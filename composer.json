@@ -1,0 +1,67 @@
+{
+    "name": "yiisoft/yii2-app-advanced",
+    "description": "Yii 2 Advanced Project Template",
+    "keywords": [
+        "yii2",
+        "framework",
+        "advanced",
+        "project template"
+    ],
+    "homepage": "http://www.yiiframework.com/",
+    "type": "project",
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "https://github.com/yiisoft/yii2/issues?state=open",
+        "forum": "http://www.yiiframework.com/forum/",
+        "wiki": "http://www.yiiframework.com/wiki/",
+        "irc": "irc://irc.freenode.net/yii",
+        "source": "https://github.com/yiisoft/yii2"
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.3.0",
+        "vova07/yii2-console-runner-extension": "@dev",
+        "yiisoft/yii2": "~2.0.53",
+        "yiisoft/yii2-bootstrap": "~2.0.11",
+        "yiisoft/yii2-imagine": "^2.3.1",
+        "kartik-v/yii2-widget-datepicker": "@dev",
+        "yiisoft/yii2-jui": "^2.0.7",
+        "kartik-v/yii2-mpdf": "^1.0.6",
+        "kartik-v/yii2-widget-datetimepicker": "*",
+        "kartik-v/yii2-widget-timepicker": "*",
+        "phpoffice/phpspreadsheet": "*",
+        "edamov/pushok": "^0.16.0",
+        "google/apiclient": "2.18.1",
+        "leparkour/yii2-dynamicform": "^1.0.0",
+        "yiisoft/yii2-symfonymailer": "^4.0",
+        "yiithings/yii2-dotenv": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "leparkour\\dynamicform\\": "vendor/leparkour/yii2-dynamicform"
+        },
+        "files": [
+            "dateTimeFunctions.php"
+        ]
+    },
+    "require-dev": {
+        "yiisoft/yii2-debug": "~2.1.0",
+        "yiisoft/yii2-gii": "~2.2.6",
+        "yiisoft/yii2-faker": "~2.0.0"
+    },
+    "config": {
+        "process-timeout": 1800,
+        "fxp-asset": {
+            "enabled": false
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
+}

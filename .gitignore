@@ -1,0 +1,8 @@
+vendor*
+*.zip
+*.txt
+/service/**
+!/service/**/
+!/service/**/.gitkeep
+!default-user.png
+.env

@@ -1,0 +1,146 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Manual</title>
+<!-- Bootstrap core CSS -->
+<link href="css/bootstrap.css" rel="stylesheet">
+
+<!-- Custom styles -->
+<link href="css/core.css" rel="stylesheet">
+<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+      <script src="js/respond.min.js"></script>
+    <!endif]-->
+</head>
+
+<body>
+
+<!-- uncomment code for absolute positioning tweek see top comment in css --> 
+<!-- <div class="absolute-wrapper"> </div> --> 
+<!-- Menu -->
+<div class="side-menu">
+  <nav class="navbar navbar-default" role="navigation"> 
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <div class="brand-wrapper">
+        <div class="brand-name-wrapper pull-left"> <img src="images/main-logo.png" /> </div>
+        <!-- Hamburger -->
+        <button type="button" class="navbar-toggle pull-right"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </button>
+        
+        <!-- Brand --> 
+        
+        <!-- Search body --> 
+        
+      </div>
+    </div>
+    
+    <!-- Main Menu -->
+    <div class="side-menu-container">
+      <ul class="nav navbar-nav">
+        <li class="menu-item"><a href="index.html">Introduction</a></li>
+        <li class="menu-item"><a href="get-start.html"><span></span>Getting Started</a></li>
+        <li class="menu-item"><a href="directory.html"><span></span>Directory</a></li>
+        <li class="menu-item"><a href="notification.html">Notifications</a></li>
+        <li class="menu-item"><a href="bills.html"><span></span>Bills</a></li>
+        <li class="menu-item"><a href="feedback.html"><span></span>Feedback</a></li>
+        <li class="menu-item"><a href="committee.html"><span></span>Committee</a></li>
+        <li class="menu-item"><a href="affiliates.html"><span></span>Affiliates</a></li>
+        <li class="menu-item"><a href="institution.html"><span></span>My Institution</a></li>
+        <li class="menu-item"><a href="conversation.html"><span></span>Conversation</a></li>
+        <li class="menu-item"><a href="prayer.html"><span></span>Prayer Request</a></li>
+        <li class="menu-item"><a href="photo.html"><span></span>Photos</a></li>
+        <li class="menu-item"><a href="near-me.html"><span></span>Near By</a></li>
+        <li class="menu-item"><a href="food-order.html"><span></span>Food Order</a></li>
+        <li class="menu-item"><a href="administration.html"><span></span>Administration</a></li>
+        <li class="menu-item"><a href="profile.html"><span></span>Profile</a></li>
+        <li class="menu-item"><a href="settings.html"><span></span>Settings</a></li>
+        <li class="menu-item"><a href="survey.html"><span></span>Survey</a></li>
+      </ul>
+    </div>
+    <!-- /.navbar-collapse --> 
+  </nav>
+</div>
+
+<!-- Main Content -->
+<div class="container-fluid">
+  <div class="side-body">
+    <h2 class="page-header">User Manual</h2>
+    <div class="inlinerow">
+      <div class="sectionheads">Feedback</div>
+    </div>
+    <div class="inlinerow">
+      <div class="row">
+        <div class="col-xs-12">
+          <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+            <div class="panel panel-default">
+              <div class="panel-heading" role="tab" id="headingOne">
+                <h4 class="panel-title"> <a class="collapsed" data-toggle="collapse"  data-parent="#accordion" href="#collapseOne" aria-expanded="false" aria-controls="collapseOne"> How do I send a feedback ? </a> </h4>
+              </div>
+              <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                <div class="panel-body">
+                  <div class="helptextbox">
+                    <p><strong>1. Click on the Feedback icon</strong></p>
+                    <p>Click on the Feedback icon to navigate to the Feedback page</p>
+                  </div>
+                  <p ><img width="100%" src="images/feedback-menu.png"></p>
+                  <div class="helptextbox">
+                    <p><strong>2. Send feedback</strong></p>
+                    <p> Firstly, select an institution from the dropdown </p>
+                    <p> Then select a feedback type</p>
+                    <p> You can type in a feedback message, if you would like. </p>
+                    <p> Then click on the photo icon to add images to your feedback</p>
+                    <p> Finally press the "Send" button</p>
+                  </div>
+                  <p ><img width="100%" src="images/feedback.png"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap core JavaScript
+    ================================================== --> 
+<!-- Placed at the end of the document so the pages load faster --> 
+<script src="js/jquery-2.1.4.min.js"></script> 
+<script src="js/bootstrap.min.js"></script> 
+<script>
+	$(function () {
+    $('.navbar-toggle').click(function () {
+		
+		$('.side-menu-container').toggle();
+		$('.container-fluid').toggle();
+		
+        $('.navbar-nav').toggleClass('slide-in');
+        $('.side-body').toggleClass('body-slide-in');
+		
+        
+
+        /// uncomment code for absolute positioning tweek see top comment in css
+        //$('.absolute-wrapper').toggleClass('slide-in');
+        
+    });
+	
+	// $('.menu-item').click(function () {
+//		
+//		
+//		 $('.navbar-nav').toggleClass('slide-in');
+//		 	 });
+//	
+	
+	
+	
+   
+});
+	</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+@charset "utf-8";
+/* CSS Document */
+
+/* Fonts */
+
+@font-face {
+    font-family: 'source_sans_proregular';
+    src: url('../fonts/sourcesanspro-regular-webfont.eot');
+    src: url('../fonts/sourcesanspro-regular-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/sourcesanspro-regular-webfont.woff2') format('woff2'),
+         url('../fonts/sourcesanspro-regular-webfont.woff') format('woff'),
+         url('../fonts/sourcesanspro-regular-webfont.ttf') format('truetype'),
+         url('../fonts/sourcesanspro-regular-webfont.svg#source_sans_proregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+
+@font-face {
+    font-family: 'source_sans_prosemibold';
+    src: url('../fonts/sourcesanspro-semibold-webfont.eot');
+    src: url('../fonts/sourcesanspro-semibold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/sourcesanspro-semibold-webfont.woff2') format('woff2'),
+         url('../fonts/sourcesanspro-semibold-webfont.woff') format('woff'),
+         url('../fonts/sourcesanspro-semibold-webfont.ttf') format('truetype'),
+         url('../fonts/sourcesanspro-semibold-webfont.svg#source_sans_prosemibold') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+
+@font-face {
+    font-family: 'source_sans_probold';
+    src: url('../fonts/sourcesanspro-bold-webfont.eot');
+    src: url('../fonts/sourcesanspro-bold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/sourcesanspro-bold-webfont.woff2') format('woff2'),
+         url('../fonts/sourcesanspro-bold-webfont.woff') format('woff'),
+         url('../fonts/sourcesanspro-bold-webfont.ttf') format('truetype'),
+         url('../fonts/sourcesanspro-bold-webfont.svg#source_sans_probold') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+body {
+	font-family: 'source_sans_proregular';
+	font-size:14px;
+	}
+	
+
+
+.contents {
+	border:1px solid #CCC;
+	border-top:0px;
+	padding-top:15px;
+	padding-bottom:40px;
+	}
+
+.headerbar {
+	border-bottom:1px solid #CCC;
+	padding-bottom:15px;}
+
+.headerlogo img{
+	width:100px;}
+	
+.headtitle {
+	font-size: 22px;
+    color: #7d7d7d;
+	font-family: 'source_sans_prosemibold';}
+	
+.relative {
+	position:relative;}
+	
+.menubox {
+	width:100%;
+	display:block;
+	position:fixed;
+	top:0px;
+	left:0px;
+	background:#06F;
+	color:#FFF;}
+	
+	
+	
+/* Dash CSS */
+/*
+ * Base structure
+ */
+
+/* Move down content because we have a fixed navbar that is 50px tall */
+body {
+  padding-top: 0px;
+}
+
+
+/*
+ * Global add-ons
+ */
+
+.sub-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+/*
+ * Top navigation
+ * Hide default border to remove 1px line.
+ */
+.navbar-fixed-top {
+  border: 0;
+}
+
+/*
+ * Sidebar
+ */
+
+/* Hide for mobile, show later */
+.sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+  }
+}
+
+/* Sidebar navigation */
+.nav-sidebar {
+  margin-right: -21px; /* 20px padding + 1px border */
+  margin-bottom: 20px;
+  margin-left: -20px;
+}
+.nav-sidebar > li > a {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+.nav-sidebar > .active > a,
+.nav-sidebar > .active > a:hover,
+.nav-sidebar > .active > a:focus {
+  color: #fff;
+  background-color: #428bca;
+}
+
+
+/*
+ * Main content
+ */
+
+.main {
+  padding: 20px;
+}
+@media (min-width: 768px) {
+  .main {
+    padding-right: 40px;
+    padding-left: 40px;
+  }
+}
+.main .page-header {
+  margin-top: 0;
+}
+
+
+/*
+ * Placeholder dashboard ideas
+ */
+
+.placeholders {
+  margin-bottom: 30px;
+  /*text-align: center;*/
+}
+.placeholders h4 {
+  margin-bottom: 0;
+}
+.placeholder {
+  margin-bottom: 20px;
+}
+.placeholder img {
+  display: inline-block;
+  border-radius: 50%;
+}
+/* /Dash CSS */	
+				
+	
+	
+.Mbot15 {
+	margin-bottom:15px;}
+	
+.sectionheads {
+	width:100%;
+	display:block;
+	float:left;
+	font-size:18px;
+	padding-bottom:15px;}	
+	
+.inlinerow {
+	width:100%;
+	display:block;
+	float:left;}
+	
+.Mtop40 {
+	margin-top:40px;}	
+	
+.subsectionheads {
+	width:100%;
+	display:block;
+	float:left;
+	font-size:16px;
+	font-family: 'source_sans_prosemibold';
+	margin-top:20px;
+	padding-bottom:15px;}	
+	
+	
+.downarrow {
+	background:url(../images/down.png) no-repeat 97% center;
+	}	
+	
+.panel-title a {
+	width:100%;
+	display:block;
+	text-decoration:none;}	
+	
+.panel-title a:hover {
+	color:#428bca;}		
+	
+	
+.Mtop20 {
+	margin-top:20px;}		
+	
+	
+.helptextbox {
+	background: #f0f8ff;
+    border-radius: 7px;
+    border: 1px dashed #337ab7;
+    padding: 10px;
+    margin-bottom: 10px;}
+	
+.padspace {
+	padding:5px 15px !important;}	
+	
