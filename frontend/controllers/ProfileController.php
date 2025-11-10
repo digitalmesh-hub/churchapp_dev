@@ -51,12 +51,12 @@ class ProfileController extends Controller
     			if ($memberId) {
         				$model = $this->findModel($memberId);
                         if($memberType == 'MM'){
-                            $member['imageOrginal'] = $model->member_pic;
+                            $member['imageOrginal'] = $model->member_pic ?: "/Member/default-user.png";
         				    $member['imageThumbnail'] = $model->memberImageThumbnail;
         				    $member['name'] = (($model->firstName)?$model->firstName.' ':'').(($model->middleName)?$model->middleName.' ':'').(($model->lastName)?$model->lastName:'');
                         }
                         else{
-                            $member['imageOrginal'] = $model->spouse_pic;
+                            $member['imageOrginal'] = $model->spouse_pic ?: "/Member/default-user.png";
         				    $member['imageThumbnail'] = $model->spouseImageThumbnail;
         				    $member['name'] = (($model->spouse_firstName)?$model->spouse_firstName.' ':'').(($model->spouse_middleName)?$model->spouse_middleName.' ':'').(($model->spouse_lastName)?$model->spouse_lastName:'');
                         }
