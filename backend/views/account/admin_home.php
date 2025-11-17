@@ -171,6 +171,18 @@ $this->title = 'Dashboard';
                             </a>
                         </div>
                         <?php } ?>
+                         <!-- show only when manage zones permission enabled -->
+                        <?php if (Yii::$app->user->can('04cd913a-ec49-11e6-b48e-000c2990e707') && Yii::$app->user->identity->institution->institutiontype == 2)
+                        { ?>
+                         <div class="col-md-2 col-sm-3 col-xs-6">
+                            <a href="<?=Url::to(['/zone/index/'])?>">
+                                <div class="dashicon">
+                                   <img src="<?php echo $assetName->baseUrl; ?>/theme/images/zone-icon.png"/>
+                                </div>
+                                <div class="dashtext">Zone</div>
+                            </a>
+                        </div>
+                        <?php } ?>
                          <!-- show only when manage affilated institution permission enabled -->
                         <?php if (Yii::$app->user->can('5a1562b9-ed1e-11e6-b48e-000c2990e707'))
                         { ?>

@@ -6,6 +6,7 @@ use Yii;
 use common\models\basemodels\Member;
 use common\models\extendedmodels\ExtendedCountry;
 use common\models\extendedmodels\ExtendedFamilyunit;
+use common\models\extendedmodels\ExtendedZone;
 use common\models\extendedmodels\ExtendedTitle;
 use common\models\extendedmodels\ExtendedInstitution;
 use common\models\extendedmodels\ExtendedDevicedetails;
@@ -153,7 +154,7 @@ class ExtendedMember extends Member
     {
         return [
             [['institutionid', 'memberno', 'membershiptype', 'firstName', 'lastName'], 'required'],
-            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid'], 'integer'],
+            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id'], 'integer'],
             [['membersince', 'member_dob', 'spouse_dob', 'dom', 'app_reg_member', 'app_reg_spouse', 'lastupdated', 'createddate'], 'safe'],
             [['memberno'], 'string', 'max' => 75],
             [['batch'],'string', 'max' => 5],
@@ -174,6 +175,7 @@ class ExtendedMember extends Member
             [['member_business_phone1_areacode', 'member_business_phone3_areacode', 'member_residence_phone1_areacode', 'member_residence_phone2_areacode', 'member_business_phone2_areacode'], 'string', 'max' => 5],
             [['countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedCountry::className(), 'targetAttribute' => ['countrycode' => 'countryid']],
             [['familyunitid'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedFamilyunit::className(), 'targetAttribute' => ['familyunitid' => 'familyunitid']],
+            [['zone_id'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedZone::className(), 'targetAttribute' => ['zone_id' => 'zoneid']],
          //   [['member_mobile1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedCountry::className(), 'targetAttribute' => ['member_mobile1_countrycode' => 'countryid']],
             [['membertitle'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedTitle::className(), 'targetAttribute' => ['membertitle' => 'TitleId']],
            // [['spouse_mobile1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedCountry::className(), 'targetAttribute' => ['spouse_mobile1_countrycode' => 'countryid']],

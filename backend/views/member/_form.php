@@ -165,6 +165,90 @@ echo Html::hiddenInput(
 
                                 <!-- Member Tab -->
                                 <div id="member" class="tab-pane fade active in" role="tabpanel">
+
+                                 <!-- Section 1 -->
+
+
+                                        <?php if ($type !="Staff"){?>
+                                            <div class="col-md-12 col-sm-12">
+                                            <legend>Membership Details</legend>
+                                        </div>
+                                    <div class="col-md-6 col-sm-6 Mtop20">
+                                        <fieldset>
+                                        <!-- rows -->
+                                        <div class="inlinerow Mtop10">
+                                            <div class="col-md-4 col-sm-5 L32">Membership no <span style="color: red;">*</span></div>
+                                            <div class="col-md-8 col-sm-7">
+                                            <?= $form->field($model, 'memberno')->textInput(['maxlength' => 20,'id'=>'txtMemberNo'])->label(false) ?>
+                                                </div>
+                                        </div>
+                                        <!--/.rows -->
+                                        <!-- rows -->
+                                      
+
+
+                                        <?php if (strtolower(ExtendedInstitution::getInstitutionTypeNameFromCode($model->institution->institutiontype)) =="education"){?>
+                                              <div class="inlinerow Mtop10">
+                                                <div class="col-md-4 col-sm-5 L32">Batch <span style="color: red;">*</span> </div>
+                                                
+                                                <div class="col-md-8 col-sm-7">
+                                                   
+ 											<?= $form->field($model, 'batch')->dropDownList(
+                                                    $batches,
+                                                    [
+                                                    'prompt'=>'Please Select',
+                                                    'id'=>'batch'
+                                                    ]
+                                                    )
+                                                ->label(false);?>
+
+                                                </div>
+                                            </div>
+                                            <?php } else  {
+                                                ?>
+                                                  <div class="inlinerow Mtop10">
+                                                    <div class="col-md-4 col-sm-5 L32">Member since</div>
+                                                    <div class="col-md-8 col-sm-7">
+                                                            <?= DatePicker::widget([
+                                                                'name' => 'membersince',
+                                                                'id' => 'membersince',
+                                                                'value' => $model->membersince?date(yii::$app->params['dateFormat']['viewDateFormat'], strtotimeNew($model->membersince)):'',
+                                                                'options' => [
+                                                                // 'placeholder' => 'Select End Date',
+                                                                ],
+                                                                'pluginOptions' => [
+                                                                    'autoclose'=>true,
+                                                                'format' => 'dd MM yyyy',
+                                                                    'endDate' =>'0d'
+                                                                ]
+                                                                ]);?>
+                                                    </div>
+                                                </div>
+                                                <?php
+                                            }?>
+
+                                        <!-- rows -->
+                                        </fieldset>
+                                    </div>
+                                    <div class="col-md-6 col-sm-6 Mtop20">
+                                        <div class="inlinerow Mtop10">
+                                            <div class="col-md-4 col-sm-5 L32">Membership type <span style="color: red;">*</span></div>
+                                            <div class="col-md-8 col-sm-7">
+                                                 <?= $form->field($model, 'membershiptype')->dropDownList(
+                                                    [
+                                                        'Primary' => 'Primary',
+                                                        'Fellowship' => 'Fellowship'
+                                                    ],
+                                                    [
+                                                        'id' => 'txtMemberShip_Type',
+                                                        'prompt' => 'Please Select'
+                                                    ]
+                                                )->label(false) ?>
+                                                </div>
+                                        </div>
+                                                    </div>
+                                                    <div class="segment">&nbsp;</div>
+                                        <?php }?>
                                     <!-- Section 1 -->
 
                                     <div class="col-md-6 col-sm-6 Mtop20">
@@ -346,6 +430,22 @@ echo Html::hiddenInput(
                                                    
  											<?= $form->field($model, 'familyunitid')->dropDownList(
                                                     $familyUnitsArray,
+                                                    [
+                                                    'prompt'=>'Please Select'
+                                                    ]
+                                                    )
+                                                ->label(false);?>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="inlinerow Mtop10">
+                                                <div class="col-md-4 col-sm-5 L32">Zone </div>
+                                                
+                                                <div class="col-md-8 col-sm-7">
+                                                   
+ 											<?= $form->field($model, 'zone_id')->dropDownList(
+                                                    $zonesArray,
                                                     [
                                                     'prompt'=>'Please Select'
                                                     ]
@@ -609,13 +709,34 @@ echo Html::hiddenInput(
                                             </div>
 										<?php }?>
                                             <!--/.rows -->
+
+                                            <div class="inlinerow Mtop10" id="date-of-wedding" style="display: none;">
+                                            <div class="col-md-4 col-sm-5 L32">Wedding Anniversary</div>
+                                            <div class="col-md-8 col-sm-7">
+                                            
+                                            <?= DatePicker::widget([
+        				                        'name' => 'dom',
+                                             	'id' => 'dom',
+                                                'value' => ($model->dom ) ? date(yii::$app->params['dateFormat']['viewDateFormat'], strtotimeNew($model->dom)):'',
+        				                        'options' => [
+        				                           // 'placeholder' => 'Select End Date',
+        				                        ],
+            				                    'pluginOptions' => [
+            				                            'autoclose'=>true,
+            				                            'format' => 'dd MM yyyy',
+            				                            'endDate' =>'0d'
+            				                    	]
+            				                    ]);?>
+				                    
+                                                </div>
+                                        </div>
                                         </fieldset>
                                     </div>
                                     <!-- /.Section 2 -->
 
                                     <!-- Separator -->
                                     <div class="segment">&nbsp;</div>
-                                    <div class="col-md-6 col-sm-6">
+                                    <div class="col-md-6 col-sm-6 location-details" style="display: none;">
 
                                         <fieldset>
                                             <legend>Location Details</legend>
@@ -653,115 +774,8 @@ echo Html::hiddenInput(
 
                                         </fieldset>
                                         </div>
-                                    <div class="segment">&nbsp;</div>
-
-
-                                    
-
-                                    
-
-                                    <!-- Section 1 -->
-
-                                    <div class="col-md-6 col-sm-6">
-                                        <!-- rows -->
-
-                                        <?php if ($type !="Staff"){?>
-                                        <div class="inlinerow Mtop10">
-                                            <div class="col-md-4 col-sm-5 L32">Membership no <span style="color: red;">*</span></div>
-                                            <div class="col-md-8 col-sm-7">
-                                            <?= $form->field($model, 'memberno')->textInput(['maxlength' => 20,'id'=>'txtMemberNo'])->label(false) ?>
-                                                </div>
-                                        </div>
                                         <!--/.rows -->
                                         <!-- rows -->
-                                      
-
-
-                                        <?php if (strtolower(ExtendedInstitution::getInstitutionTypeNameFromCode($model->institution->institutiontype)) =="education"){?>
-                                              <div class="inlinerow Mtop10">
-                                                <div class="col-md-4 col-sm-5 L32">Batch <span style="color: red;">*</span> </div>
-                                                
-                                                <div class="col-md-8 col-sm-7">
-                                                   
- 											<?= $form->field($model, 'batch')->dropDownList(
-                                                    $batches,
-                                                    [
-                                                    'prompt'=>'Please Select',
-                                                    'id'=>'batch'
-                                                    ]
-                                                    )
-                                                ->label(false);?>
-
-                                                </div>
-                                            </div>
-                                            <?php } else  {
-                                                ?>
-                                                  <div class="inlinerow Mtop10">
-                                                    <div class="col-md-4 col-sm-5 L32">Member since</div>
-                                                    <div class="col-md-8 col-sm-7">
-                                                            <?= DatePicker::widget([
-                                                                'name' => 'membersince',
-                                                                'id' => 'membersince',
-                                                                'value' => $model->membersince?date(yii::$app->params['dateFormat']['viewDateFormat'], strtotimeNew($model->membersince)):'',
-                                                                'options' => [
-                                                                // 'placeholder' => 'Select End Date',
-                                                                ],
-                                                                'pluginOptions' => [
-                                                                    'autoclose'=>true,
-                                                                'format' => 'dd MM yyyy',
-                                                                    'endDate' =>'0d'
-                                                                ]
-                                                                ]);?>
-                                                    </div>
-                                                </div>
-                                                <?php
-                                            }?>
-
-                                    </div>
-
-
-
-                                    <div class="col-md-6 col-sm-6">
-                                        <!-- rows -->
-                                        <div class="inlinerow Mtop10">
-                                            <div class="col-md-4 col-sm-5 L32">Membership type <span style="color: red;">*</span></div>
-                                            <div class="col-md-8 col-sm-7">
-                                                 <?= $form->field($model, 'membershiptype')->dropDownList(
-                                                    [
-                                                        'Primary' => 'Primary',
-                                                        'Fellowship' => 'Fellowship'
-                                                    ],
-                                                    [
-                                                        'id' => 'txtMemberShip_Type',
-                                                        'prompt' => 'Please Select'
-                                                    ]
-                                                )->label(false) ?>
-                                                </div>
-                                        </div>
-                                        <?php }?>
-                                        <!--/.rows -->
-                                        <!-- rows -->
-                                        <div class="inlinerow Mtop10" id="date-of-wedding" style="display: none;">
-                                            <div class="col-md-4 col-sm-5 L32">Wedding Anniversary</div>
-                                            <div class="col-md-8 col-sm-7">
-                                            
-                                            <?= DatePicker::widget([
-        				                        'name' => 'dom',
-                                             	'id' => 'dom',
-                                                'value' => ($model->dom ) ? date(yii::$app->params['dateFormat']['viewDateFormat'], strtotimeNew($model->dom)):'',
-        				                        'options' => [
-        				                           // 'placeholder' => 'Select End Date',
-        				                        ],
-            				                    'pluginOptions' => [
-            				                            'autoclose'=>true,
-            				                            'format' => 'dd MM yyyy',
-            				                            'endDate' =>'0d'
-            				                    	]
-            				                    ]);?>
-				                    
-                                                </div>
-                                        </div>
-                                    </div>
                                     <!-- /. separate section -->
                                     <!-- Separator -->
                                     <div class="segment">&nbsp;</div>

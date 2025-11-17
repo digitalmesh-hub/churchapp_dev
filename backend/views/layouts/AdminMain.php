@@ -124,6 +124,8 @@ $assetName = AppAsset::register($this);
                                { ?>
                                 <li class ="<?= Yii::$app->controller->id == 'familyunit'?"active":'' ?>"><a href="<?=Url::to(['/familyunit/index/'])?>">Family Unit</a>
                               </li> 
+                              <li class ="<?= Yii::$app->controller->id == 'zone'?"active":'' ?>"><a href="<?=Url::to(['/zone/index/'])?>">Zone</a>
+                              </li> 
                               <?php } ?>
                                 <!-- show only when Manage Titles permission enabled -->
                                <?php if (Yii::$app->user->can('4904f428-ec4b-11e6-b48e-000c2990e707'))

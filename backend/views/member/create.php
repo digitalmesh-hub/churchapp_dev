@@ -22,6 +22,7 @@ $this->title = $type;
         	'bloodGroup' 	   =>  $bloodGroup,
         	'titlesArray'      =>  $titlesArray,	
         	'familyUnitsArray' =>  $familyUnitsArray,
+			'zonesArray'       =>  $zonesArray,
     		'isMarried'	       => $isMarried,
     		'memberadditionalModal' => $memberadditionalModal,
     		'type' => $type,

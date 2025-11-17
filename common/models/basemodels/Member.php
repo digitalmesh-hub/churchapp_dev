@@ -74,6 +74,7 @@ use Yii;
  * @property string $member_business_phone3_areacode
  * @property string $newmembernum
  * @property int $familyunitid
+ * @property int $zone_id
  * @property string $memberbloodgroup
  * @property string $spousebloodgroup
  * @property string $member_residence_phone1_areacode
@@ -135,7 +136,7 @@ class Member extends \yii\db\ActiveRecord
     {
         return [
             [['institutionid', 'memberno', 'membershiptype', 'firstName', 'lastName'], 'required'],
-            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid'], 'integer'],
+            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id'], 'integer'],
             [['membersince', 'member_dob', 'spouse_dob', 'dom', 'app_reg_member', 'app_reg_spouse', 'lastupdated', 'createddate', 'location'], 'safe'],
             [['memberno'], 'string', 'max' => 75],
             [['membershiptype', 'membernickname', 'spousenickname'], 'string', 'max' => 25],
@@ -154,6 +155,7 @@ class Member extends \yii\db\ActiveRecord
             [['head_of_family'], 'in', 'range' => ['m', 's']],
             [['countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => Country::className(), 'targetAttribute' => ['countrycode' => 'countryid']],
             [['familyunitid'], 'exist', 'skipOnError' => true, 'targetClass' => Familyunit::className(), 'targetAttribute' => ['familyunitid' => 'familyunitid']],
+            [['zone_id'], 'exist', 'skipOnError' => true, 'targetClass' => Zone::className(), 'targetAttribute' => ['zone_id' => 'zoneid']],
             [['member_mobile1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => Country::className(), 'targetAttribute' => ['member_mobile1_countrycode' => 'countryid']],
             [['membertitle'], 'exist', 'skipOnError' => true, 'targetClass' => Title::className(), 'targetAttribute' => ['membertitle' => 'TitleId']],
             [['spouse_mobile1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => Country::className(), 'targetAttribute' => ['spouse_mobile1_countrycode' => 'countryid']],
@@ -236,6 +238,7 @@ class Member extends \yii\db\ActiveRecord
             'member_business_phone3_areacode' => 'Member Business Phone3 Areacode',
             'newmembernum' => 'Newmembernum',
             'familyunitid' => 'Familyunitid',
+            'zone_id' => 'Zone',
             'memberbloodgroup' => 'Memberbloodgroup',
             'spousebloodgroup' => 'Spousebloodgroup',
             'member_residence_phone1_areacode' => 'Member Residence Phone1 Areacode',
@@ -387,6 +390,14 @@ class Member extends \yii\db\ActiveRecord
     public function getFamilyunit()
     {
         return $this->hasOne(Familyunit::className(), ['familyunitid' => 'familyunitid']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getZone()
+    {
+        return $this->hasOne(Zone::className(), ['zoneid' => 'zone_id']);
     }
 
     /**

@@ -7,6 +7,7 @@ use common\models\extendedmodels\ExtendedMember;
 use common\models\extendedmodels\ExtendedDependant;
 use common\models\extendedmodels\ExtendedSettings;
 use common\models\extendedmodels\ExtendedFamilyunit;
+use common\models\extendedmodels\ExtendedZone;
 use common\models\extendedmodels\ExtendedTitle;
 use common\models\extendedmodels\ExtendedAddresstype;
 use common\models\extendedmodels\ExtendedUserCredentials;
@@ -188,15 +189,24 @@ class MemberController extends BaseController
 		$model           = new ExtendedMember();
 		$settingsModel   = new ExtendedSettings();
 		$familyUnitmodel = new ExtendedFamilyunit();
+		$zoneModel       = new ExtendedZone();
 		$titleModel      = new ExtendedTitle();
 		$memberadditionalModal = new ExtendedMemberadditionalinfo();
 		//default setting
 		$settingsModel->membernotification = 1;
 		$settingsModel->birthday = 1;
 		$settingsModel->anniversary = 1;
+		$settingsModel->memberemail = 1;
+
+		$settingsModel->spousenotification = 1;
+		$settingsModel->spousebirthday = 1;
+		$settingsModel->spouseanniversary = 1;
+		$settingsModel->spouseemail = 1;
+
 		$institusionId = $this->currentUser()->institutionid;
 		$model->institutionid = $institusionId;
 		$familyUnits = $familyUnitmodel->getActiveFamilyUnits($institusionId);
+		$zones = $zoneModel->getActiveZones($institusionId);
 
 		$roleGroupId = $this->getMemberRoleGroupID("Member");
 		$roleCategories = ArrayHelper::map(
@@ -210,6 +220,11 @@ class MemberController extends BaseController
 		$familyUnitsArray = [];
 		if (!empty($familyUnits)) {
 			$familyUnitsArray =	ArrayHelper::map($familyUnits, 'familyunitid', 'description');
+		}
+
+		$zonesArray = [];
+		if (!empty($zones)) {
+			$zonesArray =	ArrayHelper::map($zones, 'zoneid', 'description');
 		}
 
 		$titles = CacheHelper::getTitles($institusionId, function() use ($titleModel, $institusionId) {
@@ -269,6 +284,7 @@ class MemberController extends BaseController
 					'bloodGroup' 	   =>  $bloodGroup,
 					'titlesArray'      =>  $titlesArray,
 					'familyUnitsArray' =>  $familyUnitsArray,
+					'zonesArray'       =>  $zonesArray,
 					'isMarried'	       => $isMarried,
 					'memberadditionalModal' => $memberadditionalModal,
 					'type' => 'Member',
@@ -292,6 +308,7 @@ class MemberController extends BaseController
 			'bloodGroup' 	   =>  $bloodGroup,
 			'titlesArray'      =>  $titlesArray,
 			'familyUnitsArray' =>  $familyUnitsArray,
+			'zonesArray'       =>  $zonesArray,
 			'isMarried'	       => $isMarried,
 			'memberadditionalModal' => $memberadditionalModal,
 			'type' => 'Member',
@@ -360,10 +377,17 @@ class MemberController extends BaseController
 			$spouseImages['thumbnail'] = $model->spouseImageThumbnail;
 
 			$familyUnits = $familyUnitmodel->getActiveFamilyUnits($institusionId);
+			$zoneModel = new ExtendedZone();
+			$zones = $zoneModel->getActiveZones($institusionId);
 
 			$familyUnitsArray = [];
 			if (!empty($familyUnits)) {
 				$familyUnitsArray =	ArrayHelper::map($familyUnits, 'familyunitid', 'description');
+			}
+
+			$zonesArray = [];
+			if (!empty($zones)) {
+				$zonesArray =	ArrayHelper::map($zones, 'zoneid', 'description');
 			}
 
 			// Cache titles for 1 hour (3600 seconds) to reduce database queries
@@ -420,6 +444,7 @@ class MemberController extends BaseController
 						'bloodGroup' 	   =>  $bloodGroup,
 						'titlesArray'      =>  $titlesArray,
 						'familyUnitsArray' =>  $familyUnitsArray,
+						'zonesArray'       =>  $zonesArray,
 						'isMarried'	       => $isMarried,
 						'memberadditionalModal' => $memberadditionalModal,
 						'type' => 'Member',
@@ -440,6 +465,7 @@ class MemberController extends BaseController
 				'bloodGroup' 	   =>  $bloodGroup,
 				'titlesArray'      =>  $titlesArray,
 				'familyUnitsArray' =>  $familyUnitsArray,
+				'zonesArray'       =>  $zonesArray,
 				'isMarried'	       => $isMarried,
 				'memberadditionalModal' => $memberadditionalModal,
 				'type' => 'Member',
@@ -516,9 +542,15 @@ class MemberController extends BaseController
 
 			$institusionId = $this->currentUser()->institutionid;
 			$familyUnits = $familyUnitmodel->getActiveFamilyUnits($institusionId);
+			$zoneModel = new ExtendedZone();
+			$zones = $zoneModel->getActiveZones($institusionId);
 			$familyUnitsArray = [];
 			if (!empty($familyUnits)) {
 				$familyUnitsArray =	ArrayHelper::map($familyUnits, 'familyunitid', 'description');
+			}
+			$zonesArray = [];
+			if (!empty($zones)) {
+				$zonesArray =	ArrayHelper::map($zones, 'zoneid', 'description');
 			}
 			
 			// Cache titles for 1 hour to reduce database queries
@@ -576,6 +608,7 @@ class MemberController extends BaseController
 						'bloodGroup' 	   =>  $staffDesignationListArray,
 						'titlesArray'      =>  $titlesArray,
 						'familyUnitsArray' =>  $familyUnitsArray,
+						'zonesArray'       =>  $zonesArray,
 						'isMarried'	       => $isMarried,
 						'memberadditionalModal' => $memberadditionalModal,
 						'type' => 'Staff',
@@ -596,6 +629,7 @@ class MemberController extends BaseController
 				'bloodGroup' 	   =>  $staffDesignationListArray,
 				'titlesArray'      =>  $titlesArray,
 				'familyUnitsArray' =>  $familyUnitsArray,
+				'zonesArray'       =>  $zonesArray,
 				'isMarried'	       => $isMarried,
 				'memberadditionalModal' => $memberadditionalModal,
 				'type' => 'Staff',
@@ -936,11 +970,21 @@ class MemberController extends BaseController
 		$model           = new ExtendedMember();
 		$settingsModel   = new ExtendedSettings();
 		$familyUnitmodel = new ExtendedFamilyunit();
+		$zoneModel       = new ExtendedZone();
 		$titleModel      = new ExtendedTitle();
 		$memberadditionalModal = new ExtendedMemberadditionalinfo();
 		$institusionId = $this->currentUser()->institutionid;
 		$model->institutionid = $institusionId;
+		$familyUnits = $familyUnitmodel->getActiveFamilyUnits($institusionId);
+		$zones = $zoneModel->getActiveZones($institusionId);
 		$familyUnitsArray = [];
+		if (!empty($familyUnits)) {
+			$familyUnitsArray =	ArrayHelper::map($familyUnits, 'familyunitid', 'description');
+		}
+		$zonesArray = [];
+		if (!empty($zones)) {
+			$zonesArray =	ArrayHelper::map($zones, 'zoneid', 'description');
+		}
 		$roleGroupId = $this->getMemberRoleGroupID("Staff");
 		$roleCategories = ArrayHelper::map(
 			CustomRoleModel::getRoleCategories($roleGroupId, $institusionId),
@@ -1007,6 +1051,7 @@ class MemberController extends BaseController
 					'bloodGroup' 	   =>  $staffDesignationListArray,
 					'titlesArray'      =>  $titlesArray,
 					'familyUnitsArray' =>  $familyUnitsArray,
+					'zonesArray'       =>  $zonesArray,
 					'isMarried'	       => $isMarried,
 					'memberadditionalModal' => $memberadditionalModal,
 					'type' => 'Staff',
@@ -1029,6 +1074,7 @@ class MemberController extends BaseController
 			'bloodGroup' 	   =>  $staffDesignationListArray,
 			'titlesArray'      =>  $titlesArray,
 			'familyUnitsArray' =>  $familyUnitsArray,
+			'zonesArray'       =>  $zonesArray,
 			'isMarried'	       => $isMarried,
 			'memberadditionalModal' => $memberadditionalModal,
 			'type' => 'Staff',
@@ -3448,6 +3494,7 @@ class MemberController extends BaseController
 
 		if (!$isStaff) {
 			$memberModel->familyunitid 	= isset($memberDetails['familyunitid']) ? trim($memberDetails['familyunitid']) : '';
+			$memberModel->zone_id 	= isset($memberDetails['zone_id']) ? trim($memberDetails['zone_id']) : null;
 			$memberModel->memberno = isset($memberDetails['memberno']) ? trim($memberDetails['memberno']) : null;
 			$memberModel->membershiptype 	= isset($memberDetails['membershiptype']) ? trim($memberDetails['membershiptype']) : null;
 			$memberModel->membersince 	= $membersince;
