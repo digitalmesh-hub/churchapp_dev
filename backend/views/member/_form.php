@@ -554,7 +554,7 @@ echo Html::hiddenInput(
 
                                             <!-- rows -->
                                             <div class="inlinerow Mtop10">
-                                                <div class="col-md-4 col-sm-5 L32">Title</div>
+                                                <div class="col-md-4 col-sm-5 L32">Title<span id="spouse-title-required" style="color: red; display: none;"> *</span></div>
                                                 <div class="col-md-8 col-sm-7">
 
     
@@ -573,7 +573,7 @@ echo Html::hiddenInput(
 
                                             <!-- rows -->
                                             <div class="inlinerow Mtop10">
-                                                <div class="col-md-4 col-sm-5 L32">First Name</div>
+                                                <div class="col-md-4 col-sm-5 L32">First Name <span id="spouse-firstname-required" style="color: red; display: none;">*</span></div>
                                                 <div class="col-md-8 col-sm-7">
                                                 	<?= $form->field($model, 'spouse_firstName')->textInput(['maxlength' => true, 'id' => 'txtMemberSpouseFirstName'])->label(false) ?>
                                                     </div>
@@ -589,7 +589,7 @@ echo Html::hiddenInput(
                                             <!--/.rows -->
                                             <!-- rows -->
                                             <div class="inlinerow Mtop10">
-                                                <div class="col-md-4 col-sm-5 L32">Last Name</div>
+                                                <div class="col-md-4 col-sm-5 L32">Last Name <span id="spouse-lastname-required" style="color: red; display: none;">*</span></div>
                                                 <div class="col-md-8 col-sm-7">
                                                  <?= $form->field($model, 'spouse_lastName')->textInput(['maxlength' => true,'id'=>'txtMemberSpouseLastName'])->label(false) ?>
                                                 </div>
@@ -624,7 +624,7 @@ echo Html::hiddenInput(
                                            <?php }?> 
 
                                            <div class="inlinerow Mtop10">
-                                                <div class="col-md-4 col-sm-5 L32">Mobile </div>
+                                                <div class="col-md-4 col-sm-5 L32">Mobile<span id="spouse-mobile-countrycode-required" style="color: red; display: none;"> *</span></div>
                                                     <div class="col-md-8 col-sm-12 phone-div">
                                                 <?= $form->field($model, 'spouse_mobile1_countrycode')->textInput(['maxlength' => '4' ,'class' => 'form-control citycodes' ,'id'=>'txtspousemobile1_countrycode' ])->label(false) ?>
                                                 <?= $form->field($model, 'spouse_mobile1')->textInput(['maxlength' => '10', 'class' =>'form-control fullnumber-affiliated phone-margin', 'id'=> 'txtspousemobile1' ])->label(false) ?>

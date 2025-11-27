@@ -115,6 +115,9 @@
               $('#txtMemberSpouseFirstName').on('change', function() {
                   __this._weddingAnnivesaryToogle()
               });
+              $('#txtspousemobile1, #SpouseTitle, #txtMemberspouseemail, #spouse_dob, #txtspousemobile1_countrycode').on('change keyup', function() {
+                  __this._updateSpouseRequiredIndicators()
+              });
               $(".removedependantimage").on("click", function() {
                   var dependantId = $(this).attr("dependantid");
                   $('#dependantimage_' + dependantId).attr('src', $('#base-url').val() + "/theme/images/default-user.png");
@@ -246,6 +249,7 @@
               $('#test').tagsinput('items')
               $(document).ready(function() {
                 __this._weddingAnnivesaryToogle()
+                __this._updateSpouseRequiredIndicators()
 
             });
           },
@@ -526,19 +530,6 @@
                   swal({
                           title: '',
                           text: 'Spouse Email not in proper format!',
-                          type: 'error',
-                          //closeOnConfirm: false
-                          timer: 2000
-                      },
-                      function() {
-                          $("#txtMemberspouseemail").focus();
-                      })
-                  boolresult = false;
-              } else if ($("#txtMemberspouseemail").val() != "" && ($("#txtMemberspouseemail").val() == $("#txtMemberEmail").val())) {
-                  $('.nav-tabs a[href="#member"]').tab('show');
-                  swal({
-                          title: '',
-                          text: 'Member and Spouse Email cannot be same!',
                           type: 'error',
                           //closeOnConfirm: false
                           timer: 2000
@@ -986,6 +977,40 @@
                $('#date-of-wedding').show()
             }
         },
+
+        _updateSpouseRequiredIndicators: function() {
+            // Show asterisks if any of these conditions are true:
+            // 1. Spouse mobile number is filled
+            // 2. Spouse title is selected
+            // 3. Spouse email is filled
+            // 4. Spouse DOB is filled
+            var spouseMobile = $('#txtspousemobile1').val();
+            var spouseTitle = $('#SpouseTitle').val();
+            var spouseEmail = $('#txtMemberspouseemail').val();
+            var spouseDOB = $('#spouse_dob').val();
+            var spouseCountryCode = $('#txtspousemobile1_countrycode').val();
+            
+            if ((spouseMobile && spouseMobile.trim() !== "") || 
+                (spouseTitle && spouseTitle !== "") || 
+                (spouseEmail && spouseEmail.trim() !== "") ||
+                (spouseDOB && spouseDOB.trim() !== "")) {
+                $('#spouse-title-required').show();
+                $('#spouse-firstname-required').show();
+                $('#spouse-lastname-required').show();
+            } else {
+                $('#spouse-title-required').hide();
+                $('#spouse-firstname-required').hide();
+                $('#spouse-lastname-required').hide();
+            }
+            
+            // Show country code asterisk if mobile is filled but country code is empty
+            if ((spouseMobile && spouseMobile.trim() !== "") && (!spouseCountryCode || spouseCountryCode.trim() === "")) {
+                $('#spouse-mobile-countrycode-required').show();
+            } else {
+                $('#spouse-mobile-countrycode-required').hide();
+            }
+        },
+
         _ValidateBeforeDeleteMember: function() {
               var boolresult = true;
               if ($("#txtMemberspouseemail").val() != "" && $("#txtMemberSpouseFirstName").val() == "") {

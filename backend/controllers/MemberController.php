@@ -2997,14 +2997,22 @@ class MemberController extends BaseController
 			// add spouse details in creadential
 			$spouseMobleNo = $approvalMemberModal->spouse_mobile1;
 			$spouseEmail = $approvalMemberModal->spouse_email;
+			$memberEmail = $approvalMemberModal->member_email;
 			if (!empty($spouseMobleNo) && $spousePhoneAccept) {
+				// If spouse email matches member email, don't save email for spouse credentials (set to null)
+				$spouseEmailForCredential = $spouseEmail;
+				if (!empty($spouseEmail) && !empty($memberEmail) && strtolower(trim($spouseEmail)) === strtolower(trim($memberEmail))) {
+					$spouseEmailForCredential = null; // Same email - don't save for spouse
+				}
+				
 				$userCredentialModel = new ExtendedUserCredentials();
-				$spouseUserCredentialExist = $userCredentialModel->memberCredentialExist($spouseMobleNo, $spouseEmail);
+				$spouseUserCredentialExist = $userCredentialModel->memberCredentialExist($spouseMobleNo, $spouseEmailForCredential);
 				if (!empty($spouseUserCredentialExist)) {
 					$spouseUserCredentialId = $spouseUserCredentialExist['id'];
 				} else {
-					$spouseUserCredentialId = $this->addUserCredential($this->currentUser()->institutionid, $spouseEmail, 'remember', 'S', $spouseMobleNo);
+					$spouseUserCredentialId = $this->addUserCredential($this->currentUser()->institutionid, $spouseEmailForCredential, 'remember', 'S', $spouseMobleNo);
 				}
+				
 				$userMemberList = $userMemberModel->userMemberExist($spouseUserCredentialId, $memberModal->memberid, $this->currentUser()->institutionid, 'S');
 				if ($userMemberList == null || count($userMemberList) <= 0) {
 					$this->addUserModel($spouseUserCredentialId, $memberModal->memberid, $this->currentUser()->institutionid, 'S');
@@ -3247,11 +3255,17 @@ class MemberController extends BaseController
 			if (!empty($spouseMobleNo)) {
 				$spouseActive = isset($postDetails['ExtendedMember']['active_spouse']) ? (int)$postDetails['ExtendedMember']['active_spouse'] : 1;
 
-				$spouseUserCredentialExist = $userCredentialModel->memberCredentialExist($spouseMobleNo, $spouseEmail);
+				// If spouse email matches member email, don't save email for spouse credentials (set to null)
+				$spouseEmailForCredential = $spouseEmail;
+				if (!empty($spouseEmail) && !empty($email) && strtolower(trim($spouseEmail)) === strtolower(trim($email))) {
+					$spouseEmailForCredential = null; // Same email - don't save for spouse
+				}
+
+				$spouseUserCredentialExist = $userCredentialModel->memberCredentialExist($spouseMobleNo, $spouseEmailForCredential);
 				if (!empty($spouseUserCredentialExist)) {
 					$spouseUserCredentialId = $spouseUserCredentialExist['id'];
 				} else {
-					$spouseUserCredentialId   = $this->addUserCredential($this->currentUser()->institutionid, $spouseEmail, 'remember', 'S', $spouseMobleNo, $spouse_role);
+					$spouseUserCredentialId   = $this->addUserCredential($this->currentUser()->institutionid, $spouseEmailForCredential, 'remember', 'S', $spouseMobleNo, $spouse_role);
 				}
 
 				$userMemberList = $userMemberModel->userMemberExist($spouseUserCredentialId, $member->memberid, $this->currentUser()->institutionid, 'S');

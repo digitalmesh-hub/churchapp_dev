@@ -614,11 +614,15 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
             $('#txtspousemobile1').on('change', function() {
                 __this._spouseDropDownToggle()
+                __this._updateSpouseRequiredIndicators()
 
             });
             $('#txtMemberSpouseFirstName').on('change', function() {
                 __this._weddingAnnivesaryToogle()
 
+            });
+            $('#SpouseTitle, #txtMemberspouseemail, #txtSpouseDOB, #txtspousemobile1_countrycode').on('change keyup', function() {
+                __this._updateSpouseRequiredIndicators()
             });
             $(".tempdpmartialstatus").change(function() {
 
@@ -769,6 +773,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
             $(document).ready(function() {
                 __this._spouseDropDownToggle()
                 __this._weddingAnnivesaryToogle()
+                __this._updateSpouseRequiredIndicators()
 
             });
 
@@ -1115,22 +1120,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                         $("#txtMemberspouseemail").focus();
                     }
                 )
-
-                boolresult = false;
-            } else if ($("#txtMemberspouseemail").val() != "" && ($("#txtMemberspouseemail").val() == $("#txtMemberEmail").val())) {
-                $('.nav-tabs a[href="#member"]').tab('show');
-                swal({
-                        title: '',
-                        text: type + ' and Spouse Email cannot be same',
-                        type: 'error',
-                        //closeOnConfirm: false
-                        timer: 2000
-                    },
-                    function() {
-                        $("#txtMemberspouseemail").focus();
-                    }
-                )
-
 
                 boolresult = false;
             } else if ($("#txtMemberMobile1").val() != "" && ($("#txtspousemobile1").val() == $("#txtMemberMobile1").val())) {
@@ -1811,6 +1800,39 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 $('#date-of-wedding').hide()
             } else {
                $('#date-of-wedding').show()
+            }
+        },
+
+        _updateSpouseRequiredIndicators: function() {
+            // Show asterisks if any of these conditions are true:
+            // 1. Spouse mobile number is filled
+            // 2. Spouse title is selected
+            // 3. Spouse email is filled
+            // 4. Spouse DOB is filled
+            var spouseMobile = $('#txtspousemobile1').val();
+            var spouseTitle = $('#SpouseTitle').val();
+            var spouseEmail = $('#txtMemberspouseemail').val();
+            var spouseDOB = $('#txtSpouseDOB').val();
+            var spouseCountryCode = $('#txtspousemobile1_countrycode').val();
+            
+            if ((spouseMobile && spouseMobile.trim() !== "") || 
+                (spouseTitle && spouseTitle !== "") || 
+                (spouseEmail && spouseEmail.trim() !== "") ||
+                (spouseDOB && spouseDOB.trim() !== "")) {
+                $('#spouse-title-required').show();
+                $('#spouse-firstname-required').show();
+                $('#spouse-lastname-required').show();
+            } else {
+                $('#spouse-title-required').hide();
+                $('#spouse-firstname-required').hide();
+                $('#spouse-lastname-required').hide();
+            }
+            
+            // Show country code asterisk if mobile is filled but country code is empty
+            if ((spouseMobile && spouseMobile.trim() !== "") && (!spouseCountryCode || spouseCountryCode.trim() === "")) {
+                $('#spouse-mobile-countrycode-required').show();
+            } else {
+                $('#spouse-mobile-countrycode-required').hide();
             }
         },
 
