@@ -1813,7 +1813,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
             var spouseTitle = $('#SpouseTitle').val();
             var spouseEmail = $('#txtMemberspouseemail').val();
             var spouseDOB = $('#txtSpouseDOB').val();
-            var spouseCountryCode = $('#txtspousemobile1_countrycode').val();
             
             if ((spouseMobile && spouseMobile.trim() !== "") || 
                 (spouseTitle && spouseTitle !== "") || 
@@ -1829,7 +1828,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
             }
             
             // Show country code asterisk if mobile is filled but country code is empty
-            if ((spouseMobile && spouseMobile.trim() !== "") && (!spouseCountryCode || spouseCountryCode.trim() === "")) {
+            if ((spouseMobile && spouseMobile.trim() !== "")) {
                 $('#spouse-mobile-countrycode-required').show();
             } else {
                 $('#spouse-mobile-countrycode-required').hide();

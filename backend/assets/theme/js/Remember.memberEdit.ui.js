@@ -988,7 +988,6 @@
             var spouseTitle = $('#SpouseTitle').val();
             var spouseEmail = $('#txtMemberspouseemail').val();
             var spouseDOB = $('#spouse_dob').val();
-            var spouseCountryCode = $('#txtspousemobile1_countrycode').val();
             
             if ((spouseMobile && spouseMobile.trim() !== "") || 
                 (spouseTitle && spouseTitle !== "") || 
@@ -1004,7 +1003,7 @@
             }
             
             // Show country code asterisk if mobile is filled but country code is empty
-            if ((spouseMobile && spouseMobile.trim() !== "") && (!spouseCountryCode || spouseCountryCode.trim() === "")) {
+            if ((spouseMobile && spouseMobile.trim() !== "")) {
                 $('#spouse-mobile-countrycode-required').show();
             } else {
                 $('#spouse-mobile-countrycode-required').hide();
