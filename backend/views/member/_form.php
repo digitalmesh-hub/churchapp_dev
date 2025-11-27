@@ -1016,7 +1016,7 @@ echo Html::hiddenInput(
                                            						 $addressTypes,
                                             							[
                                            						 'prompt'=>'Please Select',
-                                            						'value' => ($settingsModel->isNewRecord)? 1 : $settingsModel->addresstypeid
+                                            						'value' => ($settingsModel->isNewRecord || empty($settingsModel->addresstypeid))? 1 : $settingsModel->addresstypeid
                                             					]
                                             					)
                                         					->label(false);?>
