@@ -105,7 +105,7 @@
       <div class="col-md-12"><strong>Add Dependent spouse</strong></div>
       <div class="row">
          <div class="col-md-12 Mtop10">
-            <div class="col-md-2 col-sm-2">Spouse Title <span style="color: red;">*</span> </div>
+            <div class="col-md-2 col-sm-2">Spouse Title </div>
             <div class="col-md-2 col-sm-3">
                <?= $form->field($spouseModel, 'spouse_title')->dropDownList(
                   $titlesArray,
@@ -116,7 +116,7 @@
             </div>
          </div>
          <div class="col-md-12 Mtop10">
-            <div class="col-md-2 col-sm-2">Spouse Name <span style="color: red;">*</span></div>
+            <div class="col-md-2 col-sm-2">Spouse Name</div>
             <div class="col-md-3 col-sm-3">
                <?= $form->field($spouseModel, 'spouse_name')->textInput(['maxlength' => true,'id' => 'txtdependantspousename'])->label(false) ?>
             </div>

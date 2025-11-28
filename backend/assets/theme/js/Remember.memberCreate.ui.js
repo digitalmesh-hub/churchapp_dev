@@ -1854,24 +1854,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 })
                 $("#txtDependantName").focus();
                 boolresult = false;
-            } else if ($("#DPMartialStatus").val() == 2) {
-                if ($("#dependantspousetitleid").val() == "") {
-                    swal({
-                        title: ' ',
-                        text: 'Please select dependent Spouse Title',
-                        type: 'error',
-                    })
-                    $("#dependantspousetitleid").focus();
-                    boolresult = false;
-                } else if ($("#txtdependantspousename").val().trim() == "") {
-                    swal({
-                        title: ' ',
-                        text: 'Dependent spouse Name Cannot be blank',
-                        type: 'error',
-                    })
-                    $("#txtdependantspousename").focus();
-                    boolresult = false;
-                }
             } else {
                 boolresult = true;
             }
