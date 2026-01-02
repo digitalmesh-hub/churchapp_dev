@@ -22,16 +22,18 @@ class TextMessageHandler extends Component
 			if(!empty($numbers)){
 	            $numbers = implode(',', $numbers); // A single number or a comma-seperated list of numbers
 	        }
-	        $url= Yii::$app->params['sms']['apiurl'];
-	        $username = Yii::$app->params['sms']['user'];
-	        $hash = Yii::$app->params['sms']['hash'];
-	        $sender = Yii::$app->params['sms']['sender'];
-	        $test = "0";
-	        
-	        $message = urlencode($message);
+	        $url= env('SMS_APIURL');
+	        $apiKey = env('SMS_API_KEY');
+	        $sender = env('SMS_SENDER');
+            $route = env('SMS_ROUTE');
 	        
 	        // Prepare data for POST request
-	        $data = "username=".$username."&hash=".$hash."&numbers=".$numbers."&sender=".$sender."&message=".$message."&test=".$test;
+            $fields = [
+                "sender_id" => $sender,
+                "message" => $message,
+                "route" => $route,
+                "numbers" => $numbers,
+            ];
 	        
 	        // Send the POST request with cURL
 	        $ch = curl_init($url);
@@ -42,8 +44,12 @@ class TextMessageHandler extends Component
 	        }
 	        
 	        curl_setopt($ch, CURLOPT_POST, true);
-	        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+	        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
 	        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                "authorization: " . $apiKey,
+                "Content-Type: application/json"
+            ]);
 	        if(yii::$app->params['proxyEnabled']){
 	        	if (!is_null(\Yii::$app->params['proxy.host'])) {
 	        		$proxy = \Yii::$app->params['proxy.host'];
@@ -53,11 +59,10 @@ class TextMessageHandler extends Component
 	        }
 	        
 	        $response = curl_exec($ch); // This is the result from the API
-			yii::error('SMS content: '.$message);
-	        yii::error($response); //log response data
+			yii::info('SMS content: '.$message);
+	        yii::info($response); //log response data
 	        $response = json_decode($response);
-	        $status = $response->status;
-	        curl_close($ch);
+	        $status = $response?->return ;
 	        
 		} catch (\Exception $e){
 			yii::error($e->getMessage());

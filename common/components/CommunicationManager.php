@@ -33,11 +33,11 @@ class CommunicationManager extends component
                     if ($userCredentials->initiallogin) {
                        $OTPMessage = "To reset the PIN for Re-member app use OTP " . (string)$OTP . ". - RE-MEMBER";
                     } else {
-                       $OTPMessage = "Greetings from Re-member! " . (string)$OTP . " is the OTP to verify your mobile no. Verify and enjoy using Re-member app. - RE-MEMBER";
+                       $OTPMessage = "Greetings from Re-member! " . (string)$OTP . " is the OTP to verify your mobile no. Verify and enjoy using Re-member app. -RE-MEMBER";
                     }
                //disabled it for blocking sms
                 $response = yii::$app->textMessageHandler->sendSMS($mobileNumber, $OTPMessage); 
-                if ($response && $response === "success") {
+                if ($response) {
 						$IsSMSSent = true;
                 }
                  // Update OTP to the corresponding USER ID
@@ -377,11 +377,11 @@ class CommunicationManager extends component
 			} else if ($requestType == 'forgot-password') {
 				$OTPMessage = "To reset the PIN for Re-member app use OTP " . (string)$otp . ". - RE-MEMBER";
 			} else {
-				$OTPMessage = "Greetings from Re-member! " . (string)$otp . " is the OTP to verify your mobile no. Verify and enjoy using Re-member app. - RE-MEMBER";
+				$OTPMessage = "Greetings from Re-member! " . (string)$otp . " is the OTP to verify your mobile no. Verify and enjoy using Re-member app. -RE-MEMBER";
 			}
 			//disabled it for blocking sms
 			$response = yii::$app->textMessageHandler->sendSMS($mobileNumber, $OTPMessage); 
-			if ($response && $response === "success") {
+			if ($response) {
 				$IsSMSSent = true;
 			}
             $result = $IsSMSSent ? true : false;

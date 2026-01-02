@@ -1398,7 +1398,7 @@ class MemberController extends BaseController
 	{
 		$request = Yii::$app->request;
 		$instId = $request->get('institutionId');
-		$filterByUpdatedContacts = strtolower($request->get('filterByUpdatedContacts')) == 'true' ? true : false;
+		$filterByUpdatedContacts = strtolower($request->get('filterByUpdatedContacts')) == 'true' ? 1 : 0;
 		$lastUpdated = $request->get('lastUpdatedOn');
 		$userId = Yii::$app->user->identity->id;
 		$institutionId = (empty($instId))? Yii::$app->user->identity->institutionid : $instId;
