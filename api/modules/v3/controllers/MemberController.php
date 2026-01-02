@@ -664,14 +664,6 @@ class MemberController extends BaseController
 					// Head of family
 					$data->headOfFamily = isset($response['head_of_family']) ? $response['head_of_family'] : 'm';
 					
-					// Zone information
-					$data->zoneId = !empty($response['zone_id']) ? (int)$response['zone_id'] : null;
-					$data->zoneName = !empty($response['zone']) ? $response['zone'] : '';
-					
-					// Family unit information
-					$data->familyUnitId = !empty($response['familyunitid']) ? (int)$response['familyunitid'] : null;
-					$data->familyUnitName = !empty($response['familyunit']) ? $response['familyunit'] : '';
-					
 					$memberCountryCode = '';
 					$membermobileNumber = '';
 					$spousemobilecountrycode = '';
@@ -779,6 +771,8 @@ class MemberController extends BaseController
 			$memberDetails->homeChurchName = (!empty($response['homechurch']))?$response['homechurch']:'';
 			$memberDetails->committeeDesignation = (!empty($response['familyunit']))?(string)$response['familyunit']:'';
 			$memberDetails->familyUnit = (!empty($response['familyunit']))?(string)$response['familyunit']:'';
+			$memberDetails->zone = (!empty($response['zone']))?(string)$response['zone']:'';
+			$memberDetails->zoneId = (!empty($response['zone_id']))?(int)$response['zone_id']:'';
 			$memberDetails->bloodGroup = (!empty($response['memberbloodgroup']))?$response['memberbloodgroup']:'';
 			$locationArray = [];
 			if (!empty($response['location'])) {
