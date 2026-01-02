@@ -661,6 +661,17 @@ class MemberController extends BaseController
 					$membershipData->batch 		 = !empty($response['batch']) ? $response['batch'] : '';
 					$data->membershipDetails = $membershipData;
 					
+					// Head of family
+					$data->head_of_family = isset($response['head_of_family']) ? $response['head_of_family'] : 'm';
+					
+					// Zone information
+					$data->zone_id = !empty($response['zone_id']) ? (int)$response['zone_id'] : null;
+					$data->zone_name = !empty($response['zone']) ? $response['zone'] : '';
+					
+					// Family unit information
+					$data->familyunit_id = !empty($response['familyunitid']) ? (int)$response['familyunitid'] : null;
+					$data->familyunit_name = !empty($response['familyunit']) ? $response['familyunit'] : '';
+					
 					$memberCountryCode = '';
 					$membermobileNumber = '';
 					$spousemobilecountrycode = '';
