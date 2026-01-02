@@ -662,15 +662,15 @@ class MemberController extends BaseController
 					$data->membershipDetails = $membershipData;
 					
 					// Head of family
-					$data->head_of_family = isset($response['head_of_family']) ? $response['head_of_family'] : 'm';
+					$data->headOfFamily = isset($response['head_of_family']) ? $response['head_of_family'] : 'm';
 					
 					// Zone information
-					$data->zone_id = !empty($response['zone_id']) ? (int)$response['zone_id'] : null;
-					$data->zone_name = !empty($response['zone']) ? $response['zone'] : '';
+					$data->zoneId = !empty($response['zone_id']) ? (int)$response['zone_id'] : null;
+					$data->zoneName = !empty($response['zone']) ? $response['zone'] : '';
 					
 					// Family unit information
-					$data->familyunit_id = !empty($response['familyunitid']) ? (int)$response['familyunitid'] : null;
-					$data->familyunit_name = !empty($response['familyunit']) ? $response['familyunit'] : '';
+					$data->familyUnitId = !empty($response['familyunitid']) ? (int)$response['familyunitid'] : null;
+					$data->familyUnitName = !empty($response['familyunit']) ? $response['familyunit'] : '';
 					
 					$memberCountryCode = '';
 					$membermobileNumber = '';
