@@ -228,7 +228,7 @@ return [
     "apns.team_id" => "8X2B6BXMCN",
     "apns.app_bundle_id" => "com.digitalmesh.Remember",
     'apns.path.private_key_path' => (true) // set this to false for development
-    ? Yii::getAlias('@common/certs/AuthKey_T7676NNRV6.p8') : Yii::getAlias('@common/certs/AuthKey_T7676NNRV6.p8'),
+    ? Yii::getAlias('@common/certs/AuthKey_39742C25WN.p8') : Yii::getAlias('@common/certs/AuthKey_39742C25WN.p8'),
     "apns.private_key_secret" => null,
     "android.service.account.path" => Yii::getAlias('@common/certs/firebase-adminsdk.json'),
     "android.project.id" => "clubapp-project",
