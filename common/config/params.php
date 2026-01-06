@@ -217,21 +217,21 @@ return [
         'announcement' => 'A',
         'member_approval' => 'M'
     ],
-    'apns.path.certificate' => (true) // set this to false for development
+    'apns.path.certificate' => (env('APNS_IS_PRODUCTION')) // set this to false for development
         ? Yii::getAlias('@common/certs/cert_prod.pem') : Yii::getAlias('@common/certs/cert_dev.pem'),
     "passphrase" => "Pass@123",
-    'apns.path' => (true) // set this to false for development
+    'apns.path' => (env('APNS_IS_PRODUCTION')) // set this to false for development
         ? 'ssl://gateway.push.apple.com:2195' : 'ssl://gateway.sandbox.push.apple.com:2195',
 
-    "apns.is_production" => true, // set this to false for development
-    "apns.key_id" => "T7676NNRV6",
-    "apns.team_id" => "8X2B6BXMCN",
-    "apns.app_bundle_id" => "com.digitalmesh.Remember",
-    'apns.path.private_key_path' => (true) // set this to false for development
-    ? Yii::getAlias('@common/certs/AuthKey_39742C25WN.p8') : Yii::getAlias('@common/certs/AuthKey_39742C25WN.p8'),
+    "apns.is_production" => env('APNS_IS_PRODUCTION'), // set this to false for development
+    "apns.key_id" => env('APNS_KEY_ID'),
+    "apns.team_id" => env('APNS_TEAM_ID'),
+    "apns.app_bundle_id" => env('APNS_APP_BUNDLE_ID'),
+    'apns.path.private_key_path' => (env('APNS_IS_PRODUCTION')) // set this to false for development
+    ? Yii::getAlias(env('APNS_PRIVATE_KEY_PATH')) : Yii::getAlias(env('APNS_PRIVATE_KEY_PATH')),
     "apns.private_key_secret" => null,
-    "android.service.account.path" => Yii::getAlias('@common/certs/firebase-adminsdk.json'),
-    "android.project.id" => "clubapp-project",
+    "android.service.account.path" => Yii::getAlias(env('FCM_SERVICE_ACCOUNT_PATH')),
+    "android.project.id" => env('ANDROID_PROJECT_ID'),
     "meetingDays" => [
         "Sunday" => "Sunday",
         "Monday" => "Monday",
