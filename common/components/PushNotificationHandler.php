@@ -32,29 +32,62 @@ class PushNotificationHandler extends Component
         $to[] = $devise_key;
         
         try {
-            if (strtolower($device_type) == "android") { // Android push notification
+            // Use FCM v1 API for both iOS and Android (React Native)
+            if (strtolower($device_type) == "android" || strtolower($device_type) == "ios") {
                 $gcm_client = new GCMClient($this->gcmAuthKey, $this->serviceURL);
 
-                $post_data  = [
+                // Build FCM v1 message format
+                $message = [
                     'token' => $devise_key,
-                    'data' => $data,
+                    'data' => [],
                 ];
                 
-                $resp = $gcm_client->sendMessage($post_data);
-                return empty($resp['error']) ? true : false;
-            } elseif (strtolower($device_type) == "ios") { // iOS push notification
-                // $apnsClient = new APNSClient(); /* deprecated ios legacy push notification */
-                $apnsClient = new APNSClientHTTP();
-
-
-                // Sends notifications and returns an int on success and boolean false on error
-                // $resp = $apnsClient->send($devise_key, $data); /* deprecated ios legacy push notification */
-                $resp = $apnsClient->send($to, $data); 
-                if (!empty($resp)) {
-                    return true;
-                } else {
-                    return false;
+                // Add notification for display
+                if (isset($data['aps']['alert']['body'])) {
+                    $message['notification'] = [
+                        'title' => ucfirst($data['contentTitle'] ?? $data['type'] ?? 'Notification'),
+                        'body' => $data['aps']['alert']['body'],
+                    ];
                 }
+                
+                // Add custom data fields (convert all to strings for compatibility)
+                foreach ($data as $key => $value) {
+                    if ($key !== 'aps') {
+                        $message['data'][$key] = is_array($value) ? json_encode($value) : (string)$value;
+                    }
+                }
+                
+                // Add platform-specific configurations
+                if (strtolower($device_type) == "ios") {
+                    $message['apns'] = [
+                        'payload' => [
+                            'aps' => [
+                                'alert' => [
+                                    'title' => ucfirst($data['contentTitle'] ?? $data['type'] ?? 'Notification'),
+                                    'body' => $data['aps']['alert']['body'] ?? $data['message'] ?? '',
+                                ],
+                                'badge' => $data['aps']['badge'] ?? 1,
+                                'sound' => $data['aps']['sound'] ?? 'default',
+                            ]
+                        ]
+                    ];
+                    
+                    // Add content-available for silent push
+                    if (isset($data['aps']['contentAvailable'])) {
+                        $message['apns']['payload']['aps']['content-available'] = 1;
+                    }
+                } else {
+                    $message['android'] = [
+                        'priority' => 'high',
+                        'notification' => [
+                            'sound' => 'default',
+                            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                        ]
+                    ];
+                }
+                
+                $resp = $gcm_client->sendMessage($message);
+                return empty($resp['error']) ? true : false;
             }
 
         } catch (ErrorException $e) {
@@ -217,6 +250,7 @@ class PushNotificationHandler extends Component
     	    $count = 1;
         }
         
+    	// For iOS, add aps payload for FCM to forward to APNs
     	if ($deviceType == 'ios'){
     		$pushNotificationDetails ['aps'] = [
     				'alert' =>[
@@ -225,12 +259,12 @@ class PushNotificationHandler extends Component
     				'badge' => (int)$count,
     				'sound' => 'default'
     		];
-        } else {
-            $pushNotificationDetails['item-id']	       = (string) $pushNotificationDetails['item-id'];
-            $pushNotificationDetails['institution-id'] = (string) $pushNotificationDetails['institution-id'];
-            $pushNotificationDetails['member-id'] = (string) $pushNotificationDetails['member-id'];
-    		return $pushNotificationDetails;
         }
+        
+        // Convert numeric fields to strings for data payload (required by FCM data messages)
+        $pushNotificationDetails['item-id']	       = (string) $pushNotificationDetails['item-id'];
+        $pushNotificationDetails['institution-id'] = (string) $pushNotificationDetails['institution-id'];
+        $pushNotificationDetails['member-id'] = (string) $pushNotificationDetails['member-id'];
 
 		return $pushNotificationDetails;
     }
