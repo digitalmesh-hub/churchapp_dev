@@ -624,7 +624,7 @@ class NotificationsController extends BaseController
 
 					if($type!='anniversary') {
 
-						if ($row['birthday']) {
+						if ($type == 'birthday' && $row['birthday']) {
 							$memberFilterMobileNo = $row['member_mobile1'];
 							if (!empty($memberFilterMobileNo)){
 								if (!in_array($memberFilterMobileNo ,$this->memberFilter)){
@@ -634,7 +634,7 @@ class NotificationsController extends BaseController
 								}
 							}	
 						}
-						if ($row['spousebirthday']) {
+						if ($type == 'spousebirthday' && $row['spousebirthday']) {
 							$memberFilterMobileNo = $row['spouse_mobile1'];
 							if (!empty($memberFilterMobileNo)){
 								if (!in_array($memberFilterMobileNo ,$this->memberFilter)){
@@ -684,7 +684,7 @@ class NotificationsController extends BaseController
 				foreach ($value as $row) {
 
 					if($type!='anniversary') {
-					if ($row['birthday']) {
+					if ($type == 'birthday' && $row['birthday']) {
 						$memberFilterMobileNo = $row['member_mobile1'];
 						if (!empty($memberFilterMobileNo)){
 							if (!in_array($memberFilterMobileNo ,$this->memberFilter)){
@@ -695,7 +695,7 @@ class NotificationsController extends BaseController
 						} 
 						
 					}
-					if ($row['spousebirthday']) {
+					if ($type == 'spousebirthday' && $row['spousebirthday']) {
 						$memberFilterMobileNo = $row['spouse_mobile1'];
 						if (!empty($memberFilterMobileNo)){
 							if (!in_array($memberFilterMobileNo ,$this->memberFilter)){
