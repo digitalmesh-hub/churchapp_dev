@@ -236,7 +236,7 @@ class AccountController extends \yii\rest\Controller
                                     $user->otpInfoText = $response->otpInfoText ?? '';
                                     $user->email = ($response->value['emailid']) ? (string)$response->value['emailid'] : "";
                                     $user->mobile = ($response->value['Mobile']) ? $response->value['Mobile'] : "";
-                                    $user->screenName = $response->value['firstName'] . ' ' . $response->value['middleName'] . ' ' . $response->value['lastName'];
+                                    $user->screenName = preg_replace('/\s+/', ' ', trim($response->value['firstName'] . ' ' . $response->value['middleName'] . ' ' . $response->value['lastName']));
                                     $user->userThumbnailImage = (! empty($response->value['Photo'])) ? (string)preg_replace('/\s+/', "%20",yii::$app->params['imagePath'] . $response->value['Photo'] ): "";
                                     
                                     $user->institutionId = (string) $response->value['institutionid'];
