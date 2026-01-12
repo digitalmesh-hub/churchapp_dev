@@ -2395,7 +2395,7 @@ class MemberController extends BaseController
 				$isApproved['member_email'] = ['isApproved' => false, 'value' => $tempMemberModal->temp_member_email];
 				$allReject++;
 			} else {
-				$memberModal->member_email = $approvalMemberModal->member_residence_Phone2;
+				$memberModal->member_email = $approvalMemberModal->member_email;
 				$isApproved['member_email'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_member_email];
 				$allAccept++;
 			}
@@ -4376,7 +4376,7 @@ class MemberController extends BaseController
 								if ($this->isDiffer($tempDepentantDetail['weddinganniversary'], $dependantDetail['weddinganniversary'])) {
 									$total++;
 									$dependantDate = $this->sqlDateConversion($dependant['WeddingAnniversary']);
-									if ($this->isDiffer($dependantDate, $tempDepentantDetail['spousedob'])) {
+									if ($this->isDiffer($dependantDate, $tempDepentantDetail['weddinganniversary'])) {
 										$isApproved['weddinganniversary_' . $dependantId] = ['isApproved' => false, 'value' => $tempDepentantDetail['weddinganniversary']];
 										$allReject++;
 									} else {
