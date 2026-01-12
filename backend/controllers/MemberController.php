@@ -1817,11 +1817,11 @@ class MemberController extends BaseController
 		if ($this->isDiffer($model->residence_state, $tempMemberModel->temp_residence_state)) {
 			$difference++;
 		}
-		if (!empty($tempMemberModel->location['latitude']) || !empty($tempMemberModel->location['longitude']) || !empty($model->location)) {
+		/* if (!empty($tempMemberModel->location['latitude']) || !empty($tempMemberModel->location['longitude']) || !empty($model->location)) {
 			if ($this->isDifferArray($model->location, $tempMemberModel->location)) {
 				$difference++;
 			}
-		}
+		} */
 		if (
 			$this->isDiffer($model->member_residence_Phone1_countrycode, $tempMemberModel->temp_member_residence_Phone1_countrycode) ||
 			$this->isDiffer($model->member_residence_phone1_areacode, $tempMemberModel->temp_member_residence_Phone1_areacode) ||
