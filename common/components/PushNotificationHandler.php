@@ -82,6 +82,8 @@ class PushNotificationHandler extends Component
                         'notification' => [
                             'sound' => 'default',
                             'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                            'title' => ucfirst($data['contentTitle'] ?? $data['type'] ?? 'Notification'),
+                            'body' => $data['message'] ?? '',
                         ]
                     ];
                 }
@@ -97,13 +99,32 @@ class PushNotificationHandler extends Component
     }
     
     /**
+     * Convert notification type to human-readable title
+     * @param String $notificationType Technical notification type (e.g., 'profile-approval')
+     * @return String Human-readable title (e.g., 'Profile Approval')
+     */
+    private function formatNotificationTitle($notificationType) {
+        if (empty($notificationType)) {
+            return 'Notification';
+        }
+        
+        // Replace hyphens and underscores with spaces
+        $title = str_replace(['-', '_'], ' ', $notificationType);
+        
+        // Convert to title case (capitalize first letter of each word)
+        $title = ucwords(strtolower($title));
+        
+        return $title;
+    }
+    
+    /**
      * Set push Notification rqst
      */
     
     public function setPushNotificationRequest($registrationid,$message,$notificationType,$institutionId,$notificationInserId,$institutionName,$deviceType,$userId =null, $memberId=null ){
     
     	$pushNotificationDetails 	= [];
-    	$pushNotificationDetails['contentTitle']   = $notificationType;
+    	$pushNotificationDetails['contentTitle']   = $this->formatNotificationTitle($notificationType);
     	$pushNotificationDetails['message']		   = $message;
     	$pushNotificationDetails['type']		   = $notificationType;
     	$pushNotificationDetails['item-id']	       = (int)($notificationType == 'birthday' || $notificationType == 'anniversary') ? '':(int)$notificationInserId;
@@ -154,7 +175,7 @@ class PushNotificationHandler extends Component
     public function getSilentPushNotificationBasicRequest($notificationType, $deviceType) {
 
         $pushNotificationDetails 	= [];
-    	$pushNotificationDetails['contentTitle']   = $notificationType;
+    	$pushNotificationDetails['contentTitle']   = $this->formatNotificationTitle($notificationType);
         $pushNotificationDetails['type']		   = $notificationType;
 
         if ($deviceType == 'android'){
@@ -183,7 +204,7 @@ class PushNotificationHandler extends Component
 
     public function getPushNotificationRequestUsingInfo($info) {
 
-        $notificationTitle = $info[PushNotificationRequestParamKeys::NOTIFICATION_TITLE] ?? $info[PushNotificationRequestParamKeys::NOTIFICATION_TYPE];
+        $notificationTitle = $info[PushNotificationRequestParamKeys::NOTIFICATION_TITLE] ?? $this->formatNotificationTitle($info[PushNotificationRequestParamKeys::NOTIFICATION_TYPE]);
         $notificationType = $info[PushNotificationRequestParamKeys::NOTIFICATION_TYPE];
         $message = $info[PushNotificationRequestParamKeys::MESSAGE];
         $notificationID = $info[PushNotificationRequestParamKeys::NOTIFICATION_ID];
