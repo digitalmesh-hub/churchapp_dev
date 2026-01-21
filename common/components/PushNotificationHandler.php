@@ -81,7 +81,7 @@ class PushNotificationHandler extends Component
                         'priority' => 'high',
                         'notification' => [
                             'sound' => 'default',
-                            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                            'click_action' => env('ANDROID_NOTIFICATION_CLICK_ACTION', 'FLUTTER_NOTIFICATION_CLICK'),
                             'title' => ucfirst($data['contentTitle'] ?? $data['type'] ?? 'Notification'),
                             'body' => $data['message'] ?? '',
                         ]
