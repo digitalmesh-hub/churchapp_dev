@@ -134,7 +134,7 @@ return [
     'instituteLogoFrom' =>  env('INSTITUTION_LOGO_FORM'),
     'email' => [
         'attachmentPath' => '/runtime/files/',
-        'logoPath' => '/assets/theme/images/login-logo.png',
+        'logoPath' => '/assets/theme/images/church-logo.png',
         'emailFailed' => Yii::t ( 'app', 'Unable to send mail' ),
         'emailFailedNetwork' => Yii::t ( 'app', 'Unable to send mail! due to network issue' ) 
     ] ,

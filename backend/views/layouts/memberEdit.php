@@ -43,7 +43,7 @@ $assetName = AppAsset::register($this);
          <div class="container">
          <div class="row">
               <div class="col-md-12 col-sm-12 Mtop10">
-                   <div class="col-md-4 col-sm-5"><a href="#"><img src="<?php echo $assetName->baseUrl; ?>/theme/images/remember-logo.png" title="Go home"/></a></div>
+                   <div class="col-md-4 col-sm-5"><a href="#"><img width="175" src="<?php echo $assetName->baseUrl; ?>/theme/images/church-logo.png" title="Go home"/></a></div>
                    <div class="col-md-4 col-sm-5 pull-right text-right accountinfo">
                         
                        

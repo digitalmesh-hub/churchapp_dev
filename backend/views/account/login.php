@@ -41,7 +41,7 @@ if ($session->has('institutionInactive')): ?>
     $session->remove('institutionInactive'); // Clear message after displaying
 endif; ?>
 	<div class="filter-rows text-center Mbot40">
-		<img src="<?php echo $assetName->baseUrl; ?>/theme/images/login-logo.png" />
+		<img width="175" src="<?php echo $assetName->baseUrl; ?>/theme/images/church-logo.png" />
 	</div>
 	<div class="inlinerow">
 		<div class="required">
