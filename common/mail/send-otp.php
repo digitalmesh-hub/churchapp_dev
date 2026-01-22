@@ -18,7 +18,7 @@ use yii\helpers\Html;
 			<td valign="top" style="margin: 0 auto">
 				<table cellspacing="0" border="0" align="center" style="background: #fff; border: 1px solid #ccc; margin: 0 auto" cellpadding="0" width="600">
 					<tr>
-						<td style="text-align: center;"><img width="150px" src="<?= !empty($logo) ? $logo : $message->embed(Yii::getAlias('@backend'.Yii::$app->params['email']['logoPath']));?>" /></td>
+						<td style="text-align: center;"><img style="cursor: pointer; max-width: 150px; height: auto; min-height: auto; min-width: auto;" src="<?= !empty($logo) ? $logo : $message->embed(Yii::getAlias('@backend'.Yii::$app->params['email']['logoPath']));?>" /></td>
 					</tr>
 					<tr>
 						<td>
