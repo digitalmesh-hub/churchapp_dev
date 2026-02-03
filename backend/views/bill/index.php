@@ -41,7 +41,7 @@ JS
                             <div class="col-md-3 col-sm-3">
                                 <div id="div1" class="filter-rows text-center">Year</div>
                                 <div class="filter-rows">   
-                                <?= $form->field($formModel, 'year')->dropdownList(array_combine(range(1993, 2025), range(1993, 2025)), [
+                                <?= $form->field($formModel, 'year')->dropdownList(array_combine(range(date('Y'), 1993), range(date('Y'), 1993)), [
                                     'prompt' => '',
                                     'options' => [ isset($queryBack['year']) ? $queryBack['year'] : date('Y') => ['Selected'=>'selected']]
                                     ])->label(false) ?>
@@ -92,7 +92,7 @@ JS
                             <div class="col-md-3 col-sm-3">
                                 <div id="divCategory" class="filter-rows text-center">Year</div>
                                 <div class="filter-rows">
-                                 <?= $searchForm->field($searchModel, 'year')->dropdownList(array_combine(range(1993, 2025), range(1993, 2025)), [
+                                 <?= $searchForm->field($searchModel, 'year')->dropdownList(array_combine(range(date('Y'), 1993), range(date('Y'), 1993)), [
                                     'prompt' => '',
                                     'options' => [ ($searchModel->year) ? ($searchModel->year) :  date('Y') => ['Selected'=>'selected']]
                                     ])->label(false) ?>
