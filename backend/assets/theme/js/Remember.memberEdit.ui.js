@@ -1003,11 +1003,11 @@
             }
             
             // Show country code asterisk if mobile is filled but country code is empty
-            if ((spouseMobile && spouseMobile.trim() !== "")) {
+            /* if ((spouseMobile && spouseMobile.trim() !== "")) {
                 $('#spouse-mobile-countrycode-required').show();
             } else {
                 $('#spouse-mobile-countrycode-required').hide();
-            }
+            } */
         },
 
         _ValidateBeforeDeleteMember: function() {
