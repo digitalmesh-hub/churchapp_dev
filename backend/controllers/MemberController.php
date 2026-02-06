@@ -4814,7 +4814,7 @@ class MemberController extends BaseController
 		}
 	}
 	/**
-	 * To remove spouse pic
+	 * To remove spouse pic.
 	 */
 
 	public function actionRemoveSpousepic()
