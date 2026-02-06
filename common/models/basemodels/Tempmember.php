@@ -112,6 +112,7 @@ class Tempmember extends \yii\db\ActiveRecord
             [['temp_memberid', 'temp_institutionid', 'temp_createdby', 'temp_modifiedby', 'temp_member_business_phone1_countrycode', 'temp_member_business_phone2_countrycode', 'temp_member_business_phone3_countrycode', 'temp_member_residence_Phone1_countrycode'], 'integer'],
             [['temp_membersince', 'temp_member_dob', 'temp_spouse_dob', 'temp_dom', 'temp_app_reg_member', 'temp_app_reg_spouse', 'temp_lastupdated', 'temp_createddate', 'location'], 'safe'],
             [['temp_memberno', 'temp_membershiptype', 'temp_membernickname', 'temp_spousenickname'], 'string', 'max' => 25],
+            [['temp_memberno'], 'match', 'pattern' => '/^(RM-|FM-)\d+$/', 'message' => 'Membership number must start with either RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)', 'skipOnEmpty' => true],
             [['temp_firstName', 'temp_middleName', 'temp_lastName', 'temp_business_district', 'temp_business_state', 'temp_business_pincode', 'temp_spouse_firstName', 'temp_spouse_middleName', 'temp_spouse_lastName', 'temp_residence_address3', 'temp_residence_district', 'temp_residence_state', 'temp_modifieddate', 'temp_spouseoccupation'], 'string', 'max' => 45],
             [['temp_business_address1', 'temp_business_address2', 'temp_residence_address1', 'temp_residence_address2'], 'string', 'max' => 75],
             [['temp_member_mobile1_countrycode','temp_spouse_mobile1_countrycode'], 'string', 'max' => 5],
@@ -136,6 +137,27 @@ class Tempmember extends \yii\db\ActiveRecord
             [['temp_member_residence_Phone1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => Country::className(), 'targetAttribute' => ['temp_member_residence_Phone1_countrycode' => 'countryid']],
           //  [['temp_spouse_mobile1_countrycode'], 'exist', 'skipOnError' => true, 'targetClass' => Country::className(), 'targetAttribute' => ['temp_spouse_mobile1_countrycode' => 'countryid']],
         ];
+    }
+    
+    /**
+     * Validate membership number format before saving
+     * This runs even when save(false) is called
+     */
+    public function beforeSave($insert)
+    {
+        if (!parent::beforeSave($insert)) {
+            return false;
+        }
+        
+        // Validate temp_memberno format if it's not empty
+        if (!empty($this->temp_memberno)) {
+            if (!preg_match('/^(RM-|FM-)\d+$/', $this->temp_memberno)) {
+                $this->addError('temp_memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)');
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     /**

@@ -157,6 +157,7 @@ class ExtendedMember extends Member
             [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id'], 'integer'],
             [['membersince', 'member_dob', 'spouse_dob', 'dom', 'app_reg_member', 'app_reg_spouse', 'lastupdated', 'createddate'], 'safe'],
             [['memberno'], 'string', 'max' => 75],
+            [['memberno'], 'match', 'pattern' => '/^(RM-|FM-)\d+$/', 'message' => 'Membership number must start with either RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)'],
             [['batch'],'string', 'max' => 5],
             [['membershiptype', 'membernickname', 'spousenickname'], 'string', 'max' => 25],
             [['firstName', 'middleName', 'lastName', 'business_district', 'business_state', 'business_pincode', 'spouse_firstName', 'spouse_middleName', 'spouse_lastName', 'residence_address3', 'residence_district', 'residence_state', 'newmembernum'], 'string', 'max' => 45],
@@ -183,6 +184,28 @@ class ExtendedMember extends Member
             [['institutionid'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedInstitution::className(), 'targetAttribute' => ['institutionid' => 'id']],
         ];
     }
+    
+    /**
+     * Validate membership number format before saving
+     * This runs even when save(false) is called
+     */
+    public function beforeSave($insert)
+    {
+        if (!parent::beforeSave($insert)) {
+            return false;
+        }
+        
+        // Validate membership number format if it's not empty
+        if (!empty($this->memberno)) {
+            if (!preg_match('/^(RM-|FM-)\d+$/', $this->memberno)) {
+                $this->addError('memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     /**
      * To check the mobile already exist 
      * @param unknown $institusionId
@@ -422,6 +445,7 @@ class ExtendedMember extends Member
     		return $getAllData;
     		 
     	} catch (Exception $e) {
+            yii::error($e->getMessage());
     		return false;
     	}
     }
@@ -914,7 +938,7 @@ class ExtendedMember extends Member
     			$deviceList = ExtendedDevicedetails::getUserDevices($userId);
     			if($deviceList && count($deviceList) > 0)
     			{
-    				$message = "Your request for data updation has been processed.Please check your email.";
+    				$message = "Your request for data updation has been processed. Please check your email.";
     				$notificationType = 'profile-approved';
     				foreach ($deviceList as $deviceItem)
     				{

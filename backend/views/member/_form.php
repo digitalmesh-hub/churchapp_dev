@@ -21,6 +21,28 @@ $this->registerJsFile(
 		]
 );
 
+$this->registerCss('.error-border { border: 1px solid red !important; }');
+
+$this->registerCss('
+.tooltip-inner {
+    max-width: 400px !important;
+    text-align: left;
+    white-space: normal;
+}
+.contentbg {
+    overflow: visible !important;
+}
+');
+
+$this->registerJs("
+$(function () {
+    $('[data-toggle=\"tooltip\"]').tooltip({
+        container: '.contentbg',
+        boundary: 'viewport'
+    });
+});
+", \yii\web\View::POS_READY);
+
 echo Html::hiddenInput(
 		'dependant-edit-url',
 		\Yii::$app->params['ajaxUrl']['dependant-edit-url'],
@@ -214,10 +236,21 @@ echo Html::hiddenInput(
                                         <fieldset>
                                         <!-- rows -->
                                         <div class="inlinerow Mtop10">
-                                            <div class="col-md-4 col-sm-5 L32">Membership no <span style="color: red;">*</span></div>
+                                            <div class="col-md-4 col-sm-5 L32">
+                                                Membership no <span style="color: red;">*</span>
+                                                <span class="membership-info-icon" style="display: inline-block; width: 16px; height: 16px; line-height: 16px; text-align: center; 
+                                                      border-radius: 50%; background-color: #3498db; color: white; font-size: 12px; 
+                                                      font-weight: bold; cursor: help; margin-left: 3px;" 
+                                                      data-toggle="tooltip" data-placement="auto bottom" 
+                                                      title="Membership number must start with either RM- or FM- followed by numbers. Examples: FM-1001, RM-2345">i</span>
+                                            </div>
                                             <div class="col-md-8 col-sm-7">
-                                            <?= $form->field($model, 'memberno')->textInput(['maxlength' => 20,'id'=>'txtMemberNo'])->label(false) ?>
-                                                </div>
+                                            <?= $form->field($model, 'memberno')->textInput([
+                                                'maxlength' => 20,
+                                                'id'=>'txtMemberNo',
+                                                'placeholder' => 'e.g., FM-1001 or RM-1001'
+                                            ])->label(false) ?>
+                                            </div>
                                         </div>
                                         <!--/.rows -->
                                         <!-- rows -->

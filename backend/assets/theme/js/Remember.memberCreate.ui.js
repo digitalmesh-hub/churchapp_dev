@@ -722,7 +722,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 var roleCategoryId = $('#spouse-role-category').val()
                 __this._spouseroles(roleCategoryId)
             })
-
         },
         _memberroles: function(roleCategoryId) {
             var ajaxUrl = $('#homeUrl').val() + $('#member-role-dep-drop-Url').val()
@@ -836,6 +835,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
             var regexpin = /^.{4,8}$/;
             //var regexOfficePhone = /^(?=.*[0-9])[- ()0-9]+$/;
             var regexOfficePhone = /^\d{7,10}$/;
+            var regexMembershipNo = /^(RM-|FM-)\d+$/;
             var boolresult = true;
             var latitudePattern = /^-?(90|[0-8]?\d)(\.\d+)?$/;
             var longitudePattern = /^-?(180|1[0-7]\d|[0-9]?\d)(\.\d+)?$/;
@@ -883,6 +883,32 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     },
                     function() {
                         $("#txtLastName").focus();
+                    }
+                )
+                boolresult = false;
+            } else if ($("#txtMemberNo").val() == "") {
+                $('.nav-tabs a[href="#member"]').tab('show');
+                swal({
+                        title: '',
+                        text: 'Membership Number cannot be blank',
+                        type: 'error',
+                        timer: 2000
+                    },
+                    function() {
+                        $("#txtMemberNo").focus();
+                    }
+                )
+                boolresult = false;
+            } else if ($("#txtMemberNo").val() != "" && !regexMembershipNo.test($("#txtMemberNo").val())) {
+                $('.nav-tabs a[href="#member"]').tab('show');
+                swal({
+                        title: '',
+                        text: 'Membership number must start with RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)',
+                        type: 'error',
+                        timer: 3000
+                    },
+                    function() {
+                        $("#txtMemberNo").focus();
                     }
                 )
                 boolresult = false;
