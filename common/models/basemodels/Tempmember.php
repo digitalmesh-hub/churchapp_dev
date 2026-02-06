@@ -152,7 +152,7 @@ class Tempmember extends \yii\db\ActiveRecord
         // Validate temp_memberno format if it's not empty
         if (!empty($this->temp_memberno)) {
             if (!preg_match('/^(RM-|FM-)\d+$/', $this->temp_memberno)) {
-                $this->addError('temp_memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)');
+                $this->addError('temp_memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)');
                 return false;
             }
         }

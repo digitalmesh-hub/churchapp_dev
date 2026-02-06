@@ -903,7 +903,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 $('.nav-tabs a[href="#member"]').tab('show');
                 swal({
                         title: '',
-                        text: 'Membership number must start with RM- or FM- followed by numbers (e.g., FM-1001 or RM-1001)',
+                        text: 'Membership number must start with RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)',
                         type: 'error',
                         timer: 3000
                     },

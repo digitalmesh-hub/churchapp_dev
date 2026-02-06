@@ -242,13 +242,13 @@ echo Html::hiddenInput(
                                                       border-radius: 50%; background-color: #3498db; color: white; font-size: 12px; 
                                                       font-weight: bold; cursor: help; margin-left: 3px;" 
                                                       data-toggle="tooltip" data-placement="auto bottom" 
-                                                      title="Membership number must start with either RM- or FM- followed by numbers. Examples: FM-1001, RM-2345">i</span>
+                                                      title="Membership number must start with either RM- or FM- followed by numbers. Examples: RM-1001, FM-1001">i</span>
                                             </div>
                                             <div class="col-md-8 col-sm-7">
                                             <?= $form->field($model, 'memberno')->textInput([
                                                 'maxlength' => 20,
                                                 'id'=>'txtMemberNo',
-                                                'placeholder' => 'e.g., FM-1001 or RM-1001'
+                                                'placeholder' => 'e.g., RM-1001 or FM-1001'
                                             ])->label(false) ?>
                                             </div>
                                         </div>
