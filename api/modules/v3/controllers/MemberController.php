@@ -4059,6 +4059,9 @@ class MemberController extends BaseController
 			$isApproved['location'] = ['isApproved'=> true, 'value' => $tempMemberMailModal->location];
 		}
 		 
+		// Track who approved the member info
+		$memberModal->updated_by = Yii::$app->user->id;
+		
 		if ($memberModal->save(false)){
 		
 			$spousePhoneAccept = true;

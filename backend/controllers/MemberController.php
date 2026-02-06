@@ -1994,6 +1994,7 @@ class MemberController extends BaseController
 				$approvalMemberModal = $this->toSetImagesApproval($approvalMemberModal, $memberDetails, $memberModal, $tempMemberModal);
 				if ($approvalMemberModal && $memberModal && $tempMemberModal) {
 					$memberModal->lastupdated =  date(yii::$app->params['dateFormat']['sqlDandTFormat']);
+					$memberModal->updated_by = $this->currentUserId();
 					$memberResponse = $this->storeAndSendApprovaldetails($approvalMemberModal, $memberModal, $tempMemberModal);
 				}
 				$memberModal = $this->findModel($memberDetails['MemberID']);
@@ -2992,6 +2993,7 @@ class MemberController extends BaseController
 			$allAccept++;
 			$isApproved['member_residence_Phone1_countrycode'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_member_residence_Phone1_countrycode];
 		}
+		$memberModal->updated_by = $this->currentUserId();
 		if ($memberModal->save(false)) {
 			$spousePhoneAccept = true;
 			// add spouse details in creadential
@@ -3130,6 +3132,7 @@ class MemberController extends BaseController
 			if ($memberId) {
 				$memberModel = $this->findModel($memberId);
 				$memberModel->lastupdated = date(yii::$app->params['dateFormat']['sqlDandTFormat']);
+				$memberModel->updated_by = $this->currentUserId();
 			} else {
 				$memberModel = new ExtendedMember();
 			}
@@ -3606,6 +3609,11 @@ class MemberController extends BaseController
 			$memberModel->confirmed_spouse = isset($memberDetails['confirmed_spouse']) ? (int)$memberDetails['confirmed_spouse'] : 1;
 			$memberModel->head_of_family = isset($memberDetails['head_of_family']) ? $memberDetails['head_of_family'] : 'm';
 		}
+		
+		// Set updated_by to track who made the changes
+		if ($memberModel->memberid) {
+			$memberModel->updated_by = $this->currentUserId();
+		}
 
 		if ($memberModel->save(false)) {
 			return $memberModel;
@@ -3821,6 +3829,14 @@ class MemberController extends BaseController
 		$deleteDepentantModel->dob = $model->dob;
 		$deleteDepentantModel->relation = $model->relation;
 		$deleteDepentantModel->save();
+		
+		// Update parent member's updated_by when dependant is deleted
+		$memberModel = ExtendedMember::findOne($model->memberid);
+		if ($memberModel) {
+			$memberModel->updated_by = $this->currentUserId();
+			$memberModel->save(false);
+		}
+		
 		$model->delete();
 	}
 
@@ -3857,6 +3873,14 @@ class MemberController extends BaseController
 		$model->active = isset($reqDetails['dependantActive']) ? (int)$reqDetails['dependantActive'] : 0;
 		$model->confirmed = isset($reqDetails['dependantConfirmed']) ? (int)$reqDetails['dependantConfirmed'] : 0;
 		if ($model->save()) {
+			// Update parent member's updated_by when dependant is saved
+			if ($memberId) {
+				$memberModel = ExtendedMember::findOne($memberId);
+				if ($memberModel) {
+					$memberModel->updated_by = $this->currentUserId();
+					$memberModel->save(false);
+				}
+			}
 			return $model;
 		} else {
 			return false;
@@ -4783,6 +4807,7 @@ class MemberController extends BaseController
 				$this->unlinkFile($model->member_pic, $model->memberImageThumbnail);
 				$model->member_pic = null;
 				$model->memberImageThumbnail = null;
+				$model->updated_by = $this->currentUserId();
 				$model->save(false);
 			}
 			return;
@@ -4803,6 +4828,7 @@ class MemberController extends BaseController
 				$this->unlinkFile($model->spouse_pic, $model->spouseImageThumbnail);
 				$model->spouse_pic 	= null;
 				$model->spouseImageThumbnail = null;
+				$model->updated_by = $this->currentUserId();
 				$model->save(false);
 			}
 			return;

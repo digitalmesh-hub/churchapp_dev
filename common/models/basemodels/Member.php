@@ -83,6 +83,7 @@ use Yii;
  * @property string $member_residence_Phone2_countrycode
  * @property string $companyname
  * @property string $member_business_phone2_areacode
+ * @property int $updated_by
  *
  * @property Attendance[] $attendances
  * @property Bills[] $bills
@@ -136,7 +137,7 @@ class Member extends \yii\db\ActiveRecord
     {
         return [
             [['institutionid', 'memberno', 'membershiptype', 'firstName', 'lastName'], 'required'],
-            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id'], 'integer'],
+            [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id', 'updated_by'], 'integer'],
             [['membersince', 'member_dob', 'spouse_dob', 'dom', 'app_reg_member', 'app_reg_spouse', 'lastupdated', 'createddate', 'location'], 'safe'],
             [['memberno'], 'string', 'max' => 75],
             [['membershiptype', 'membernickname', 'spousenickname'], 'string', 'max' => 25],

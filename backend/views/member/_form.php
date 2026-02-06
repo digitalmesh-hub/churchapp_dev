@@ -141,6 +141,43 @@ echo Html::hiddenInput(
      <div class="Mtop10">
       <?= FlashResult::widget(); ?>
       </div>
+      
+      <?php if ($model->memberid && $model->updated_by): ?>
+      <div class="col-md-12 col-sm-12 Mtop10">
+          <div class="alert alert-info" style="margin-bottom: 10px;">
+              <i class="fa fa-info-circle"></i> 
+              <strong>Last Updated:</strong> 
+              <?php 
+                  $updatedBy = \common\models\extendedmodels\ExtendedUserCredentials::findOne($model->updated_by);
+                  if ($updatedBy) {
+                      $userName = $updatedBy->emailid; // default to email
+                      
+                      // Try to get the member's name through usermembers relation
+                      $usermember = $updatedBy->getUsermembers()->one();
+                      if ($usermember && $usermember->member) {
+                          $member = $usermember->member;
+                          $userName = trim($member->firstName . ' ' . $member->lastName);
+                      } elseif ($updatedBy->userprofile) {
+                          // If not a member, try userprofile
+                          $userName = trim($updatedBy->userprofile->firstname . ' ' . $updatedBy->userprofile->middlename . ' ' . $updatedBy->userprofile->lastname);
+                      }
+                      
+                      echo Html::encode($userName);
+                      if ($model->lastupdated) {
+                          $timezone = Yii::$app->user->identity->institution->timezone ?? 'Asia/Kolkata';
+                          $dateTime = \common\models\basemodels\BaseModel::convertToUserTimezone($model->lastupdated, $timezone, true);
+                          if ($dateTime) {
+                              echo ' on ' . $dateTime->format('d M Y, h:i A');
+                          }
+                      }
+                  } else {
+                      echo 'Unknown';
+                  }
+              ?>
+          </div>
+      </div>
+      <?php endif; ?>
+      
                <div class="col-md-12 col-sm-12 Mtopbot20"> 
                
                     <!-- Section head -->
