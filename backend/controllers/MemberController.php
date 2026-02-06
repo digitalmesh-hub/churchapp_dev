@@ -298,6 +298,16 @@ class MemberController extends BaseController
 			}
 		}
 		$model->member_mobile1_countrycode = $model->spouse_mobile1_countrycode = "+91";
+		
+		// Get max membership numbers for RM and FM prefixes
+		$maxRMMembership = Yii::$app->db->createCommand(
+			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+		)->bindValue(':institutionid', $institusionId)->queryScalar();
+		
+		$maxFMMembership = Yii::$app->db->createCommand(
+			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+		)->bindValue(':institutionid', $institusionId)->queryScalar();
+		
 		return $this->render('create', [
 			'model'            =>  $model,
 			'dependantDetails'  =>  $dependantDetails,
@@ -313,7 +323,9 @@ class MemberController extends BaseController
 			'memberadditionalModal' => $memberadditionalModal,
 			'type' => 'Member',
 			'roleCategories' => $roleCategories,
-			'batches' => $batches
+			'batches' => $batches,
+			'maxRMMembership' => $maxRMMembership,
+			'maxFMMembership' => $maxFMMembership
 		]);
 	}
 
@@ -455,6 +467,16 @@ class MemberController extends BaseController
 					]);
 				}
 			}
+			
+			// Get max membership numbers for RM and FM prefixes
+			$maxRMMembership = Yii::$app->db->createCommand(
+				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+			)->bindValue(':institutionid', $institusionId)->queryScalar();
+			
+			$maxFMMembership = Yii::$app->db->createCommand(
+				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+			)->bindValue(':institutionid', $institusionId)->queryScalar();
+			
 			return $this->render('update', [
 				'model'            =>  $model,
 				'dependantDetails'	       =>  $dependantDetails,
@@ -472,7 +494,9 @@ class MemberController extends BaseController
 				'roleCategories' => $roleCategories,
 				'selectedSpouseCat' => $selectedSpouseCat,
 				'selectedMemberCat' => $selectedMemberCat,
-				'batches' => $batches
+				'batches' => $batches,
+				'maxRMMembership' => $maxRMMembership,
+				'maxFMMembership' => $maxFMMembership
 			]);
 		} else {
 			$this->sessionAddFlashArray('error', "Member details not available !", true);
@@ -3598,6 +3622,7 @@ class MemberController extends BaseController
 			$memberModel->memberbloodgroup 	= trim($memberDetails['memberbloodgroup']);
 			$memberModel->spousebloodgroup 	= trim($memberDetails['spousebloodgroup']);
 		}
+		$memberModel->directory_number 	= isset($memberDetails['directory_number']) ? trim($memberDetails['directory_number']) : '';
 		$memberModel->member_residence_phone1_areacode 	= trim($memberDetails['member_residence_phone1_areacode']);
 		$memberModel->member_residence_Phone1_countrycode  	= trim($memberDetails['member_residence_Phone1_countrycode']);
 

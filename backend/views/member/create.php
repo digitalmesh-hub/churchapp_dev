@@ -28,7 +28,9 @@ $this->title = $type;
     		'type' => $type,
     		'formType' => "create",
 			'roleCategories' => $roleCategories,
-			'batches' => $batches
+			'batches' => $batches,
+			'maxRMMembership' => $maxRMMembership,
+			'maxFMMembership' => $maxFMMembership
     ]) ?>
 </div>
 

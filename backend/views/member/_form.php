@@ -200,6 +200,25 @@ echo Html::hiddenInput(
       </div>
       <?php endif; ?>
       
+      <?php if (!$model->memberid): ?>
+      <div class="col-md-12 col-sm-12 Mtop10">
+          <div class="alert alert-success" style="margin-bottom: 10px;">
+              <i class="fa fa-info-circle"></i> 
+              <strong>Latest Membership Numbers:</strong>
+              <?php if (isset($maxRMMembership) && $maxRMMembership): ?>
+                  <span style="margin-left: 10px;"><strong>RM:</strong> <?= Html::encode($maxRMMembership) ?></span>
+              <?php else: ?>
+                  <span style="margin-left: 10px;"><strong>RM:</strong> None</span>
+              <?php endif; ?>
+              <?php if (isset($maxFMMembership) && $maxFMMembership): ?>
+                  <span style="margin-left: 20px;"><strong>FM:</strong> <?= Html::encode($maxFMMembership) ?></span>
+              <?php else: ?>
+                  <span style="margin-left: 20px;"><strong>FM:</strong> None</span>
+              <?php endif; ?>
+          </div>
+      </div>
+      <?php endif; ?>
+      
                <div class="col-md-12 col-sm-12 Mtopbot20"> 
                
                     <!-- Section head -->
@@ -542,6 +561,21 @@ echo Html::hiddenInput(
                                             ]
                                             )
                                         ->label(false);?>
+
+                                                </div>
+                                            </div>
+
+
+                                            <div class="inlinerow Mtop10">
+                                                <div class="col-md-4 col-sm-5 L32">Directory Number </div>
+                                                
+                                                <div class="col-md-8 col-sm-7">
+                                                   
+ 											<?= $form->field($model, 'directory_number')->textInput(
+                                            [
+                                            'maxlength' => true,
+                                            'id' => 'txtMemberDirectoryNumber'
+                                            ])->label(false);?>
 
                                                 </div>
                                             </div>

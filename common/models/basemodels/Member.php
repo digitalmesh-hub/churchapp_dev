@@ -145,6 +145,7 @@ class Member extends \yii\db\ActiveRecord
             [['firstName', 'middleName', 'lastName', 'business_district', 'business_state', 'business_pincode', 'spouse_firstName', 'spouse_middleName', 'spouse_lastName', 'residence_address3', 'residence_district', 'residence_state', 'newmembernum'], 'string', 'max' => 45],
             [['business_address1', 'business_address2', 'residence_address1', 'residence_address2', 'homechurch', 'occupation', 'companyname'], 'string', 'max' => 100],
             [['business_address3'], 'string', 'max' => 50],
+            [['directory_number'], 'string', 'max' => 50],
             [['member_mobile1', 'member_mobile2', 'member_musiness_Phone1', 'member_business_Phone2', 'member_residence_Phone1', 'member_residence_Phone2', 'spouse_mobile1', 'spouse_mobile2', 'member_business_Phone3'], 'string', 'max' => 13],
             [['member_email', 'spouse_email', 'businessemail'], 'string', 'max' => 150],
             [['residence_pincode', 'memberbloodgroup', 'spousebloodgroup'], 'string', 'max' => 15],
@@ -275,7 +276,8 @@ class Member extends \yii\db\ActiveRecord
             'active_spouse' => 'Active Spouse',
             'confirmed' => 'Confirmed',
             'confirmed_spouse' => 'Confirmed Spouse',
-            'head_of_family' => 'Head of Family'
+            'head_of_family' => 'Head of Family',
+            'directory_number' => 'Directory Number'
         ];
     }
     /**

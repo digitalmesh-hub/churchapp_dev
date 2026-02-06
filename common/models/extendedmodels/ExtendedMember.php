@@ -162,6 +162,7 @@ class ExtendedMember extends Member
             [['membershiptype', 'membernickname', 'spousenickname'], 'string', 'max' => 25],
             [['firstName', 'middleName', 'lastName', 'business_district', 'business_state', 'business_pincode', 'spouse_firstName', 'spouse_middleName', 'spouse_lastName', 'residence_address3', 'residence_district', 'residence_state', 'newmembernum'], 'string', 'max' => 45],
             [['business_address1', 'business_address2', 'residence_address1', 'residence_address2', 'homechurch', 'occupation', 'companyname'], 'string', 'max' => 100],
+            [['directory_number'], 'string', 'max' => 50],
             [['business_address3'], 'string', 'max' => 50],
             [['member_mobile1', 'member_mobile2', 'member_musiness_Phone1', 'member_business_Phone2', 'member_residence_Phone1', 'member_residence_Phone2', 'spouse_mobile1', 'spouse_mobile2', 'member_business_Phone3'], 'string', 'max' => 13],
             [['member_email', 'spouse_email', 'businessemail'], 'string', 'max' => 150],

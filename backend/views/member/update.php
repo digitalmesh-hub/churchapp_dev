@@ -29,7 +29,9 @@ $this->title = $type;
                 'roleCategories' => $roleCategories,
                 'selectedSpouseCat' => $selectedSpouseCat,
 				'selectedMemberCat' => $selectedMemberCat,
-				'batches' => $batches
+				'batches' => $batches,
+				'maxRMMembership' => $maxRMMembership,
+				'maxFMMembership' => $maxFMMembership
     ]) ?>
 
 </div>
