@@ -174,14 +174,35 @@ echo Html::hiddenInput(
                   if ($updatedBy) {
                       $userName = $updatedBy->emailid; // default to email
                       
-                      // Try to get the member's name through usermembers relation
-                      $usermember = $updatedBy->getUsermembers()->one();
+                      // Try to get the member's name through UserMember
+                      $usermember = \common\models\extendedmodels\ExtendedUserMember::find()
+                          ->where(['userid' => $updatedBy->id])
+                          ->one();
                       if ($usermember && $usermember->member) {
                           $member = $usermember->member;
-                          $userName = trim($member->firstName . ' ' . $member->lastName);
+                          // Check if user is spouse or member
+                          if ($usermember->usertype === 'S') {
+                              // Spouse user - use spouse name fields
+                              $userName = trim(implode(' ', array_filter([
+                                  $member->spouse_firstName,
+                                  $member->spouse_middleName,
+                                  $member->spouse_lastName
+                              ])));
+                          } else {
+                              // Member user - use primary member name fields
+                              $userName = trim(implode(' ', array_filter([
+                                  $member->firstName,
+                                  $member->middleName,
+                                  $member->lastName
+                              ])));
+                          }
                       } elseif ($updatedBy->userprofile) {
                           // If not a member, try userprofile
-                          $userName = trim($updatedBy->userprofile->firstname . ' ' . $updatedBy->userprofile->middlename . ' ' . $updatedBy->userprofile->lastname);
+                          $userName = trim(implode(' ', array_filter([
+                              $updatedBy->userprofile->firstname,
+                              $updatedBy->userprofile->middlename,
+                              $updatedBy->userprofile->lastname
+                          ])));
                       }
                       
                       echo Html::encode($userName);
