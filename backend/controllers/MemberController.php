@@ -5047,7 +5047,11 @@ class MemberController extends BaseController
 			$titlesArray =	ArrayHelper::map($titles, 'TitleId', 'Description');
 		}
 
-		$members = ExtendedMember::find()->where(['institutionid' => $institutionId])->all();
+		// Eager load dependants to avoid N+1 queries
+		$members = ExtendedMember::find()
+			->where(['institutionid' => $institutionId])
+			->with('dependants')
+			->all();
 		$spreadsheet = new Spreadsheet();
 		$sheet = $spreadsheet->getActiveSheet();
 		$sheet->setCellValue('A1', 'Name')
@@ -5072,6 +5076,9 @@ class MemberController extends BaseController
 		$row = 2;
 		$mergeLastColumn = 'I';
 		$lastColumn = 'O';
+		
+		// Cache date format for performance
+		$dateFormat = Yii::$app->params['dateFormat']['viewDateFormat'];
 
 		foreach ($members as $member) {
 
@@ -5093,7 +5100,7 @@ class MemberController extends BaseController
 				->setCellValue('F' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : '')
 				->setCellValue('G' . $row, $residentialAddress)
 				->setCellValue('H' . $row, $bussinessAddress)
-				->setCellValue('I' . $row, (!empty($member->dom) ? date_format(date_create($member->dom), Yii::$app->params['dateFormat']['viewDateFormat']) : ''));
+				->setCellValue('I' . $row, (!empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : ''));
 
 			$dependants = [];
 			foreach ($member->dependants as $dependant) {
@@ -5112,7 +5119,7 @@ class MemberController extends BaseController
 					$dependants[$dependant->dependantid]['spouse_name'] = trim(implode(' ', [($titlesArray[$dependant->titleid] ?? ''), $dependant->dependantname]));
 					$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 					$dependants[$dependant->dependantid]['spouse_mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : '';
-					$dependants[$dependant->dependantid]['spouse_dob'] = (!empty($dependant->dob) ? date_format(date_create($dependant->dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '');
+					$dependants[$dependant->dependantid]['spouse_dob'] = (!empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '');
 					$dependants[$dependant->dependantid]['spouse_titleid'] = $dependant->titleid;
 				}
 			}
@@ -5320,7 +5327,76 @@ class MemberController extends BaseController
 			}
 		}
 
-		$members = $query->distinct()->all();
+		// Execute query with eager loading to avoid N+1 queries
+		if ($includeDependants) {
+			$members = $query->with('dependants')->distinct()->all();
+		} else {
+			$members = $query->distinct()->all();
+		}
+
+		// Pre-fetch all update user information to avoid N+1 queries
+		$updateUserMap = [];
+		$updatedByIds = array_filter(array_unique(array_column($members, 'updated_by')));
+		
+		if (!empty($updatedByIds)) {
+			// Batch fetch all user credentials with userprofile relation
+			$userCredentials = ExtendedUserCredentials::find()
+				->where(['id' => $updatedByIds])
+				->with('userprofile')
+				->indexBy('id')
+				->all();
+			
+			// Batch fetch all user members with member relation
+			$userMembers = ExtendedUserMember::find()
+				->where(['userid' => $updatedByIds])
+				->with('member')
+				->all();
+			
+			// Build lookup map: user_id => ['member' => ..., 'usertype' => ...]
+			$userMemberMap = [];
+			foreach ($userMembers as $um) {
+				$userMemberMap[$um->userid] = [
+					'member' => $um->member,
+					'usertype' => $um->usertype
+				];
+			}
+			
+			// Build final update user map
+			foreach ($userCredentials as $userId => $updatedBy) {
+				$updateUser = $updatedBy->emailid; // default to email
+				
+				if (isset($userMemberMap[$userId]) && $userMemberMap[$userId]['member']) {
+					$updateMember = $userMemberMap[$userId]['member'];
+					$userType = $userMemberMap[$userId]['usertype'];
+					
+					// Check if user is spouse or member
+					if ($userType === 'S') {
+						// Spouse user - use spouse name fields
+						$updateUser = trim(implode(' ', array_filter([
+							$updateMember->spouse_firstName,
+							$updateMember->spouse_middleName,
+							$updateMember->spouse_lastName
+						])));
+					} else {
+						// Member user - use primary member name fields
+						$updateUser = trim(implode(' ', array_filter([
+							$updateMember->firstName,
+							$updateMember->middleName,
+							$updateMember->lastName
+						])));
+					}
+				} elseif ($updatedBy->userprofile) {
+					// If not a member, try userprofile
+					$updateUser = trim(implode(' ', array_filter([
+						$updatedBy->userprofile->firstname,
+						$updatedBy->userprofile->middlename,
+						$updatedBy->userprofile->lastname
+					])));
+				}
+				
+				$updateUserMap[$userId] = $updateUser;
+			}
+		}
 
 		// Get titles
 		$titleModel = new ExtendedTitle();
@@ -5338,68 +5414,78 @@ class MemberController extends BaseController
 
 		// Set headers based on whether dependants are included
 		if ($includeDependants) {
-			$sheet->setCellValue('A1', 'Member Name')
-				->setCellValue('B1', 'Member Since')
-				->setCellValue('C1', 'Member DOB')
-				->setCellValue('D1', 'Member Age')
-				->setCellValue('E1', 'Member Mobile')
-				->setCellValue('F1', 'Member Email')
-				->setCellValue('G1', 'Member Occupation')
-				->setCellValue('H1', 'Member Active')
-				->setCellValue('I1', 'Member Confirmed')
-				->setCellValue('J1', 'Spouse Name')
-				->setCellValue('K1', 'Spouse DOB')
-				->setCellValue('L1', 'Spouse Age')
-				->setCellValue('M1', 'Spouse Mobile')
-				->setCellValue('N1', 'Spouse Occupation')
-				->setCellValue('O1', 'Spouse Active')
-				->setCellValue('P1', 'Spouse Confirmed')
-				->setCellValue('Q1', 'Head of Family')
-				->setCellValue('R1', 'Wedding Anniversary')
-				->setCellValue('S1', 'Residential Address')
-				->setCellValue('T1', 'Business Address')
-				->setCellValue('U1', 'Dependant Name')
-				->setCellValue('V1', 'Dependant Relation')
-				->setCellValue('W1', 'Dependant DOB')
-				->setCellValue('X1', 'Dependant Age')
-				->setCellValue('Y1', 'Dependant Mobile')
-				->setCellValue('Z1', 'Dependant Occupation')
-				->setCellValue('AA1', 'Dependant Active')
-				->setCellValue('AB1', 'Dependant Confirmed')
-				->setCellValue('AC1', 'Dependant Spouse Name')
-				->setCellValue('AD1', 'Dependant Spouse DOB')
-				->setCellValue('AE1', 'Dependant Spouse Age')
-				->setCellValue('AF1', 'Dependant Spouse Mobile')
-				->setCellValue('AG1', 'Dependant Spouse Occupation')
-				->setCellValue('AH1', 'Dependant Spouse Active')
-				->setCellValue('AI1', 'Dependant Spouse Confirmed')
-				->setCellValue('AJ1', 'Dependant Wedding Anniversary');
+			$sheet->setCellValue('A1', 'Membership Number')
+				->setCellValue('B1', 'Member Name')
+				->setCellValue('C1', 'Member Since')
+				->setCellValue('D1', 'Member DOB')
+				->setCellValue('E1', 'Member Age')
+				->setCellValue('F1', 'Member Mobile')
+				->setCellValue('G1', 'Member Email')
+				->setCellValue('H1', 'Member Occupation')
+				->setCellValue('I1', 'Member Active')
+				->setCellValue('J1', 'Member Confirmed')
+				->setCellValue('K1', 'Spouse Name')
+				->setCellValue('L1', 'Spouse DOB')
+				->setCellValue('M1', 'Spouse Age')
+				->setCellValue('N1', 'Spouse Mobile')
+				->setCellValue('O1', 'Spouse Occupation')
+				->setCellValue('P1', 'Spouse Active')
+				->setCellValue('Q1', 'Spouse Confirmed')
+				->setCellValue('R1', 'Head of Family')
+				->setCellValue('S1', 'Wedding Anniversary')
+				->setCellValue('T1', 'Residential Address')
+				->setCellValue('U1', 'Business Address')
+				->setCellValue('V1', 'Dependant Name')
+				->setCellValue('W1', 'Dependant Relation')
+				->setCellValue('X1', 'Dependant DOB')
+				->setCellValue('Y1', 'Dependant Age')
+				->setCellValue('Z1', 'Dependant Mobile')
+				->setCellValue('AA1', 'Dependant Occupation')
+				->setCellValue('AB1', 'Dependant Active')
+				->setCellValue('AC1', 'Dependant Confirmed')
+				->setCellValue('AD1', 'Dependant Spouse Name')
+				->setCellValue('AE1', 'Dependant Spouse DOB')
+				->setCellValue('AF1', 'Dependant Spouse Age')
+				->setCellValue('AG1', 'Dependant Spouse Mobile')
+				->setCellValue('AH1', 'Dependant Spouse Occupation')
+				->setCellValue('AI1', 'Dependant Spouse Active')
+				->setCellValue('AJ1', 'Dependant Spouse Confirmed')
+				->setCellValue('AK1', 'Dependant Wedding Anniversary')
+				->setCellValue('AL1', 'Date of Last Update')
+				->setCellValue('AM1', 'Update User');
 		} else {
-			$sheet->setCellValue('A1', 'Member Name')
-				->setCellValue('B1', 'Member Since')
-				->setCellValue('C1', 'Member DOB')
-				->setCellValue('D1', 'Member Age')
-				->setCellValue('E1', 'Member Mobile')
-				->setCellValue('F1', 'Member Email')
-				->setCellValue('G1', 'Member Occupation')
-				->setCellValue('H1', 'Member Active')
-				->setCellValue('I1', 'Member Confirmed')
-				->setCellValue('J1', 'Spouse Name')
-				->setCellValue('K1', 'Spouse DOB')
-				->setCellValue('L1', 'Spouse Age')
-				->setCellValue('M1', 'Spouse Mobile')
-				->setCellValue('N1', 'Spouse Occupation')
-				->setCellValue('O1', 'Spouse Active')
-				->setCellValue('P1', 'Spouse Confirmed')
-				->setCellValue('Q1', 'Head of Family')
-				->setCellValue('R1', 'Wedding Anniversary')
-				->setCellValue('S1', 'Residential Address')
-				->setCellValue('T1', 'Business Address');
+			$sheet->setCellValue('A1', 'Membership Number')
+				->setCellValue('B1', 'Member Name')
+				->setCellValue('C1', 'Member Since')
+				->setCellValue('D1', 'Member DOB')
+				->setCellValue('E1', 'Member Age')
+				->setCellValue('F1', 'Member Mobile')
+				->setCellValue('G1', 'Member Email')
+				->setCellValue('H1', 'Member Occupation')
+				->setCellValue('I1', 'Member Active')
+				->setCellValue('J1', 'Member Confirmed')
+				->setCellValue('K1', 'Spouse Name')
+				->setCellValue('L1', 'Spouse DOB')
+				->setCellValue('M1', 'Spouse Age')
+				->setCellValue('N1', 'Spouse Mobile')
+				->setCellValue('O1', 'Spouse Occupation')
+				->setCellValue('P1', 'Spouse Active')
+				->setCellValue('Q1', 'Spouse Confirmed')
+				->setCellValue('R1', 'Head of Family')
+				->setCellValue('S1', 'Wedding Anniversary')
+				->setCellValue('T1', 'Residential Address')
+				->setCellValue('U1', 'Business Address')
+				->setCellValue('V1', 'Date of Last Update')
+				->setCellValue('W1', 'Update User');
 		}
 
 		$row = 2;
-		$mergeLastColumn = $includeDependants ? 'T' : 'T';
-		$lastColumn = $includeDependants ? 'AJ' : 'T';
+		$mergeLastColumn = $includeDependants ? 'U' : 'U';
+		$lastColumn = $includeDependants ? 'AM' : 'W';
+		
+		// Get timezone and date format once outside the loop for performance
+		$timezone = Yii::$app->user->identity->institution->timezone ?? 'Asia/Kolkata';
+		$dateFormat = Yii::$app->params['dateFormat']['viewDateFormat'];
 
 		foreach ($members as $member) {
 			// Calculate ages
@@ -5451,27 +5537,42 @@ class MemberController extends BaseController
 			$spouseConfirmed = isset($member->confirmed_spouse) ? ($member->confirmed_spouse ? 'Yes' : 'No') : '';
 			$headOfFamily = ($member->head_of_family === 's') ? 'Spouse' : 'Member';
 
+			// Get updated by user information from pre-fetched map
+			$updateUser = '';
+			$lastUpdatedDate = '';
+			if ($member->updated_by && isset($updateUserMap[$member->updated_by])) {
+				$updateUser = $updateUserMap[$member->updated_by];
+			}
+			
+			if ($member->lastupdated) {
+				$dateTime = \common\models\basemodels\BaseModel::convertToUserTimezone($member->lastupdated, $timezone, true);
+				if ($dateTime) {
+					$lastUpdatedDate = $dateTime->format('d M Y, h:i A');
+				}
+			}
+
 			// Write member details
-			$sheet->setCellValue('A' . $row, $memberFullName)
-				->setCellValue('B' . $row, !empty($member->memberdate) ? date_format(date_create($member->memberdate), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('C' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('D' . $row, $memberAge)
-				->setCellValue('E' . $row, !empty($memberMobileNumber) ? "\t" . $memberMobileNumber : '')
-				->setCellValue('F' . $row, $member->member_email ?? '')
-				->setCellValue('G' . $row, $member->occupation ?? '')
-				->setCellValue('H' . $row, $memberActive)
-				->setCellValue('I' . $row, $memberConfirmed)
-				->setCellValue('J' . $row, $spouseFullName)
-				->setCellValue('K' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('L' . $row, $spouseAge)
-				->setCellValue('M' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : '')
-				->setCellValue('N' . $row, $member->spouseoccupation ?? '')
-				->setCellValue('O' . $row, $spouseActive)
-				->setCellValue('P' . $row, $spouseConfirmed)
-				->setCellValue('Q' . $row, $headOfFamily)
-				->setCellValue('R' . $row, !empty($member->dom) ? date_format(date_create($member->dom), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('S' . $row, $residentialAddress)
-				->setCellValue('T' . $row, $businessAddress);
+			$sheet->setCellValue('A' . $row, $member->memberno ?? '')
+				->setCellValue('B' . $row, $memberFullName)
+				->setCellValue('C' . $row, !empty($member->memberdate) ? date_format(date_create($member->memberdate), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
+				->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
+				->setCellValue('E' . $row, $memberAge)
+				->setCellValue('F' . $row, !empty($memberMobileNumber) ? "\t" . $memberMobileNumber : '')
+				->setCellValue('G' . $row, $member->member_email ?? '')
+				->setCellValue('H' . $row, $member->occupation ?? '')
+				->setCellValue('I' . $row, $memberActive)
+				->setCellValue('J' . $row, $memberConfirmed)
+				->setCellValue('K' . $row, $spouseFullName)
+				->setCellValue('L' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
+				->setCellValue('M' . $row, $spouseAge)
+				->setCellValue('N' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : '')
+				->setCellValue('O' . $row, $member->spouseoccupation ?? '')
+				->setCellValue('P' . $row, $spouseActive)
+				->setCellValue('Q' . $row, $spouseConfirmed)
+				->setCellValue('R' . $row, $headOfFamily)
+				->setCellValue('S' . $row, !empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : '')
+				->setCellValue('T' . $row, $residentialAddress)
+				->setCellValue('U' . $row, $businessAddress);
 
 			// Process dependants if included
 			if ($includeDependants) {
@@ -5487,12 +5588,12 @@ class MemberController extends BaseController
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 						$dependants[$dependant->id]['mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : '';
 						$dependants[$dependant->id]['relation'] = $dependant->relation;
-						$dependants[$dependant->id]['dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '';
+						$dependants[$dependant->id]['dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
 						$dependants[$dependant->id]['age'] = $dependantAge;
 						$dependants[$dependant->id]['occupation'] = $dependant->occupation ?? '';
 						$dependants[$dependant->id]['active'] = isset($dependant->active) ? ($dependant->active ? 'Yes' : 'No') : '';
 						$dependants[$dependant->id]['confirmed'] = isset($dependant->confirmed) ? ($dependant->confirmed ? 'Yes' : 'No') : '';
-						$dependants[$dependant->id]['weddinganniversary'] = !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), Yii::$app->params['dateFormat']['viewDateFormat']) : '';
+						$dependants[$dependant->id]['weddinganniversary'] = !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), $dateFormat) : '';
 					} else {
 						// Dependant's spouse
 						if (empty($dependants[$dependant->dependantid])) {
@@ -5505,7 +5606,7 @@ class MemberController extends BaseController
 						]));
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 						$dependants[$dependant->dependantid]['spouse_mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : '';
-						$dependants[$dependant->dependantid]['spouse_dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '';
+						$dependants[$dependant->dependantid]['spouse_dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
 						$dependants[$dependant->dependantid]['spouse_age'] = $spouseDependantAge;
 						$dependants[$dependant->dependantid]['spouse_occupation'] = $dependant->occupation ?? '';
 						$dependants[$dependant->dependantid]['spouse_active'] = isset($dependant->active) ? ($dependant->active ? 'Yes' : 'No') : '';
@@ -5518,58 +5619,71 @@ class MemberController extends BaseController
 					if (empty($dependant['name'])) {
 						continue;
 					}
-					$sheet->setCellValue('U' . ($row + $i), $dependant['name'])
-						->setCellValue('V' . ($row + $i), $dependant['relation'])
-						->setCellValue('W' . ($row + $i), $dependant['dob'])
-						->setCellValue('X' . ($row + $i), $dependant['age'])
-						->setCellValue('Y' . ($row + $i), $dependant['mobile'])
-						->setCellValue('Z' . ($row + $i), $dependant['occupation'])
-						->setCellValue('AA' . ($row + $i), $dependant['active'])
-						->setCellValue('AB' . ($row + $i), $dependant['confirmed'])
-						->setCellValue('AC' . ($row + $i), $dependant['spouse_name'] ?? '')
-						->setCellValue('AD' . ($row + $i), $dependant['spouse_dob'] ?? '')
-						->setCellValue('AE' . ($row + $i), $dependant['spouse_age'] ?? '')
-						->setCellValue('AF' . ($row + $i), $dependant['spouse_mobile'] ?? '')
-						->setCellValue('AG' . ($row + $i), $dependant['spouse_occupation'] ?? '')
-						->setCellValue('AH' . ($row + $i), $dependant['spouse_active'] ?? '')
-						->setCellValue('AI' . ($row + $i), $dependant['spouse_confirmed'] ?? '')
-						->setCellValue('AJ' . ($row + $i), $dependant['weddinganniversary']);
-					$i++;
-				}
-
-				if ($i) {
-					foreach (range('A', $mergeLastColumn) as $columnID) {
-						$sheet->mergeCells($columnID . $row . ':' . $columnID . ($row + $i - 1));
-					}
-				}
-
-				$row += max(1, $i);
-			} else {
-				$row++;
-			}
+				$sheet->setCellValue('V' . ($row + $i), $dependant['name'])
+					->setCellValue('W' . ($row + $i), $dependant['relation'])
+					->setCellValue('X' . ($row + $i), $dependant['dob'])
+					->setCellValue('Y' . ($row + $i), $dependant['age'])
+					->setCellValue('Z' . ($row + $i), $dependant['mobile'])
+					->setCellValue('AA' . ($row + $i), $dependant['occupation'])
+					->setCellValue('AB' . ($row + $i), $dependant['active'])
+					->setCellValue('AC' . ($row + $i), $dependant['confirmed'])
+					->setCellValue('AD' . ($row + $i), $dependant['spouse_name'] ?? '')
+					->setCellValue('AE' . ($row + $i), $dependant['spouse_dob'] ?? '')
+					->setCellValue('AF' . ($row + $i), $dependant['spouse_age'] ?? '')
+					->setCellValue('AG' . ($row + $i), $dependant['spouse_mobile'] ?? '')
+					->setCellValue('AH' . ($row + $i), $dependant['spouse_occupation'] ?? '')
+					->setCellValue('AI' . ($row + $i), $dependant['spouse_active'] ?? '')
+					->setCellValue('AJ' . ($row + $i), $dependant['spouse_confirmed'] ?? '')
+					->setCellValue('AK' . ($row + $i), $dependant['weddinganniversary']);
+			$i++;
 		}
 
-		// Set column widths
-		// Generate column range from A to lastColumn (handles multi-character columns like AA, AB, etc.)
-		$columns = [];
-		$currentCol = 'A';
-		while (true) {
-			$columns[] = $currentCol;
-			if ($currentCol === $lastColumn) {
-				break;
+		if ($i) {
+			foreach (range('A', $mergeLastColumn) as $columnID) {
+				$sheet->mergeCells($columnID . $row . ':' . $columnID . ($row + $i - 1));
 			}
-			$currentCol++;
 		}
 		
-		foreach ($columns as $columnID) {
-			// Wide columns for addresses and longer text
-			if (in_array($columnID, ['S', 'T', 'Y', 'AF'])) {
-				$sheet->getColumnDimension($columnID)->setWidth(35);
-				// Medium columns for phone numbers, anniversary, occupation
-			} elseif (in_array($columnID, ['E', 'G', 'M', 'N', 'R', 'Z', 'AG', 'AJ'])) {
-				$sheet->getColumnDimension($columnID)->setWidth(25);
-				// Standard columns for everything else
-			} else {
+		// Add last updated date and user for dependants rows (merge if multiple dependants)
+		if ($i) {
+			$sheet->setCellValue('AL' . $row, $lastUpdatedDate)
+				->setCellValue('AM' . $row, $updateUser);
+			$sheet->mergeCells('AL' . $row . ':AL' . ($row + $i - 1));
+			$sheet->mergeCells('AM' . $row . ':AM' . ($row + $i - 1));
+		} else {
+			$sheet->setCellValue('AL' . $row, $lastUpdatedDate)
+				->setCellValue('AM' . $row, $updateUser);
+		}
+
+		$row += max(1, $i);
+	} else {
+		// Add last updated date and user for non-dependants row
+			$sheet->setCellValue('V' . $row, $lastUpdatedDate)
+				->setCellValue('W' . $row, $updateUser);
+			$row++;
+		}
+	}
+
+	// Set column widths
+	// Generate column range from A to lastColumn (handles multi-character columns like AA, AB, etc.)
+	$columns = [];
+	$currentCol = 'A';
+	while (true) {
+		$columns[] = $currentCol;
+		if ($currentCol === $lastColumn) {
+			break;
+		}
+		$currentCol++;
+	}
+	
+	foreach ($columns as $columnID) {
+		// Wide columns for addresses, last updated date, and longer text (Update User column)
+		if (in_array($columnID, ['T', 'U', 'Z', 'AG', 'AL', 'AM'])) {
+			$sheet->getColumnDimension($columnID)->setWidth(35);
+			// Medium columns for phone numbers, anniversary, occupation
+		} elseif (in_array($columnID, ['F', 'H', 'N', 'O', 'S', 'AA', 'AH', 'AK'])) {
+			$sheet->getColumnDimension($columnID)->setWidth(25);
+			// Standard columns for everything else
 				$sheet->getColumnDimension($columnID)->setWidth(20);
 			}
 		}
