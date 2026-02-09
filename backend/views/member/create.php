@@ -29,8 +29,8 @@ $this->title = $type;
     		'formType' => "create",
 			'roleCategories' => $roleCategories,
 			'batches' => $batches,
-			'maxRMMembership' => $maxRMMembership || 0,
-			'maxFMMembership' => $maxFMMembership || 0
+			'maxRMMembership' => $maxRMMembership,
+			'maxFMMembership' => $maxFMMembership
     ]) ?>
 </div>
 

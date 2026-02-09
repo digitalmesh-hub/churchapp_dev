@@ -30,8 +30,8 @@ $this->title = $type;
                 'selectedSpouseCat' => $selectedSpouseCat,
 				'selectedMemberCat' => $selectedMemberCat,
 				'batches' => $batches,
-				'maxRMMembership' => $maxRMMembership || 0,
-				'maxFMMembership' => $maxFMMembership || 0
+				'maxRMMembership' => $maxRMMembership,
+				'maxFMMembership' => $maxFMMembership
     ]) ?>
 
 </div>

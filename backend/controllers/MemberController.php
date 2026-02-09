@@ -240,6 +240,15 @@ class MemberController extends BaseController
 
 		$dependantDetails  = $this->addDependantDetails();
 		$addressTypes      = $this->getAddressTypes();
+		
+		// Get max membership numbers for RM and FM prefixes (moved before POST handling to ensure availability on validation errors)
+		$maxRMMembership = Yii::$app->db->createCommand(
+			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+		)->bindValue(':institutionid', $institusionId)->queryScalar();
+		
+		$maxFMMembership = Yii::$app->db->createCommand(
+			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+		)->bindValue(':institutionid', $institusionId)->queryScalar();
 
 		if ($model->load(Yii::$app->request->post())) {
 
@@ -289,7 +298,9 @@ class MemberController extends BaseController
 					'memberadditionalModal' => $memberadditionalModal,
 					'type' => 'Member',
 					'roleCategories' => $roleCategories,
-					'batches' => $batches
+					'batches' => $batches,
+					'maxRMMembership' => $maxRMMembership,
+					'maxFMMembership' => $maxFMMembership
 				]);
 			}
 			if ($response['status']) {
@@ -298,15 +309,6 @@ class MemberController extends BaseController
 			}
 		}
 		$model->member_mobile1_countrycode = $model->spouse_mobile1_countrycode = "+91";
-		
-		// Get max membership numbers for RM and FM prefixes
-		$maxRMMembership = Yii::$app->db->createCommand(
-			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
-		)->bindValue(':institutionid', $institusionId)->queryScalar();
-		
-		$maxFMMembership = Yii::$app->db->createCommand(
-			"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
-		)->bindValue(':institutionid', $institusionId)->queryScalar();
 		
 		return $this->render('create', [
 			'model'            =>  $model,
@@ -417,6 +419,16 @@ class MemberController extends BaseController
 			
 			$dependantDetails  = 	$this->addDependantDetails($id);
 			$isMarried = ['1' => 'Single', '2' => "Married"];
+			
+			// Get max membership numbers for RM and FM prefixes (moved before POST handling to ensure availability on validation errors)
+			$maxRMMembership = Yii::$app->db->createCommand(
+				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+			)->bindValue(':institutionid', $institusionId)->queryScalar();
+			
+			$maxFMMembership = Yii::$app->db->createCommand(
+				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
+			)->bindValue(':institutionid', $institusionId)->queryScalar();
+			
 			if ($model->load(Yii::$app->request->post())) {
 
 				$imageType  = 'member';
@@ -463,19 +475,12 @@ class MemberController extends BaseController
 						'roleCategories' => $roleCategories,
 						'selectedSpouseCat' => $selectedSpouseCat,
 						'selectedMemberCat' => $selectedMemberCat,
-						'batches' => $batches
+						'batches' => $batches,
+						'maxRMMembership' => $maxRMMembership,
+						'maxFMMembership' => $maxFMMembership
 					]);
 				}
 			}
-			
-			// Get max membership numbers for RM and FM prefixes
-			$maxRMMembership = Yii::$app->db->createCommand(
-				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'RM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
-			)->bindValue(':institutionid', $institusionId)->queryScalar();
-			
-			$maxFMMembership = Yii::$app->db->createCommand(
-				"SELECT memberno FROM {{%member}} WHERE memberno LIKE 'FM-%' AND institutionid = :institutionid AND (membertype = 0 OR membertype IS NULL) AND memberno IS NOT NULL ORDER BY CAST(SUBSTRING(memberno, 4) AS UNSIGNED) DESC LIMIT 1"
-			)->bindValue(':institutionid', $institusionId)->queryScalar();
 			
 			return $this->render('update', [
 				'model'            =>  $model,
