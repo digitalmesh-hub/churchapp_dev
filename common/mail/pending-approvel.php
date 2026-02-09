@@ -203,7 +203,7 @@
                                                     </table>
                                                 </td>
                                             </tr>
-                                            <tr>
+                                            <tr style="display: none;">
                                                 <td style=" vertical-align:top;">
                                                     <table style="width:100%;border:0px solid #ddd; font-size:13px;  line-height: 18px;">
                                                         <tr>

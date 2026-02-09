@@ -664,8 +664,8 @@ echo Html::hiddenInput(
       </div>
       <!-- /. separate section -->
       <!-- /. location section -->
-      <div class="segment">&nbsp;</div>
-      <div class="col-md-8 col-sm-6 col-xs-12">
+      <div class="segment" style="display: none;">&nbsp;</div>
+      <div class="col-md-8 col-sm-6 col-xs-12" style="display: none;">
          <fieldset>
             <legend>Location Details</legend>
             <div class="inlinerow Mtop10">
