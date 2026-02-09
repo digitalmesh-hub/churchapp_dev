@@ -3097,7 +3097,9 @@ class MemberController extends BaseController
 		return [
 
 			"Son"  => "Son",
+			"Son in law"  => "Son in law",
 			"Daughter"  => "Daughter",
+			"Daughter in law"  => "Daughter in law",
 			"Father" => "Father",
 			"Mother" => "Mother",
 			"Brother" => "Brother",
