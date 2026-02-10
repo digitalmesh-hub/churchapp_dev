@@ -784,6 +784,13 @@ echo Html::hiddenInput(
                                             </div>
                                             
                                             <?php if ($type !="Staff"){?>
+                                              <?php 
+                                              // Set active_spouse and confirmed_spouse to 0 if spouse details are not provided
+                                              if (empty($model->spousetitle) || empty($model->spouse_firstName)) {
+                                                  $model->active_spouse = 0;
+                                                  $model->confirmed_spouse = 0;
+                                              }
+                                              ?>
                                               <div class="inlinerow Mtop10">
                                                 <div class="col-md-4 col-sm-5 L32">Active Spouse</div>
                                                 <div class="col-md-8 col-sm-7">
