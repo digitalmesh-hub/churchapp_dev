@@ -378,6 +378,8 @@ class MemberController extends BaseController
 				$memberDetails = $this->tempMemberData($tempResponse,$mobileCountryCode,$mobileNumber,$institutionType,$memberTag);
 
 				$data->memberDetails = $memberDetails;
+
+				$data->headOfFamily = isset($tempResponse['head_of_family']) ? $tempResponse['head_of_family'] : 'm';
 				
 				//Spouse Details
 				$spouseDetails = $this->tempSpouseData($tempResponse,$spousemobilecountrycode,$spousemobileNumber);
@@ -503,7 +505,7 @@ class MemberController extends BaseController
 				$memberDetails = $this->memberData($response,$mobileCountryCode,$mobileNumber,$institutionType,$memberTag);
 
 				$data->memberDetails = $memberDetails;
-				
+				$data->headOfFamily = isset($response['head_of_family']) ? $response['head_of_family'] : 'm';
 				//Spouse Details
 				$spouseDetails = $this->spouseData($response,$spousemobilecountrycode,$spousemobileNumber);
 				$data->spouseDetails = $spouseDetails;
@@ -835,6 +837,8 @@ class MemberController extends BaseController
 		$memberDetails->familyUnit = (!empty($response['familyunitid']))?(string)$response['familyunitid']:'';
 		$memberDetails->bloodGroup = (!empty($response['tempmemberBloodGroup']))?$response['tempmemberBloodGroup']:'';
 		$memberDetails->tags = (!empty($memberTag))?$memberTag:'';
+		$memberDetails->zone = (!empty($response['zone']))?(string)$response['zone']:'';
+		$memberDetails->zoneId = (!empty($response['zone_id']))?(int)$response['zone_id']:'';
 		$locationArray = [];
 		if (!empty($response['location'])) {
 			$locationArray = json_decode($response['location'], true);
@@ -877,6 +881,8 @@ class MemberController extends BaseController
 		$memberDetails->committeeDesignation = (!empty($response['committeeDesignation']))?$response['committeeDesignation']:'';
 		$memberDetails->familyUnit = (!empty($response['familyunitid']))?(string)$response['familyunitid']:'';
 		$memberDetails->bloodGroup = (!empty($response['memberbloodgroup'])) ? $response['memberbloodgroup']:'';
+		$memberDetails->zone = (!empty($response['zone']))?(string)$response['zone']:'';
+		$memberDetails->zoneId = (!empty($response['zone_id']))?(int)$response['zone_id']:'';
 		$memberDetails->tags = (!empty($memberTag))?$memberTag:'';
 		$locationArray = [];
 		if (!empty($response['location'])) {
@@ -1454,10 +1460,14 @@ class MemberController extends BaseController
 							'spousePhone' => (!empty($value['spouse_mobile1'])) ? $value['spouse_mobile1']:'',
 							'spouseProfession' => (!empty($value['spouseoccupation'])) ? $value['spouseoccupation']:'',
 							'familyUnitId' => (!empty($value['familyunitid'])) ? $value['familyunitid']:'',
+							'familyUnit' => (!empty($value['familyunit'])) ? $value['familyunit']:'',
 							'memberBloodGroup' => (!empty($value['memberbloodgroup'])) ? $value['memberbloodgroup']:'',
 							'spouseBloodGroup' => (!empty($value['spousebloodgroup'])) ? $value['spousebloodgroup']:'',
 							'batch' => (!empty($value['batch'])) ? $value['batch']:'',
 							'location' => $location,
+							'headOfFamily' => isset($response['head_of_family']) ? $response['head_of_family'] : 'm',
+							'zone' => (!empty($value['zone'])) ? $value['zone']:'',
+							'zoneId' => (!empty($value['zoneid'])) ? $value['zoneid']:'',
 							'viewMemberResidentialAddressOnMap' => true
 					];
 					array_push($contactArray,$result);
