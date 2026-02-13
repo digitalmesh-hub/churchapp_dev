@@ -1467,7 +1467,7 @@ class MemberController extends BaseController
 							'location' => $location,
 							'headOfFamily' => isset($response['head_of_family']) ? $response['head_of_family'] : 'm',
 							'zone' => (!empty($value['zone'])) ? $value['zone']:'',
-							'zoneId' => (!empty($value['zoneid'])) ? $value['zoneid']:'',
+							'zoneId' => (!empty($value['zone_id'])) ? $value['zone_id']:'',
 							'viewMemberResidentialAddressOnMap' => true
 					];
 					array_push($contactArray,$result);
