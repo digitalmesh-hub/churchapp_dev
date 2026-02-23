@@ -80,6 +80,48 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 $(this).parent().parent().parent().children().removeClass('pendinginfo');
             });
 
+            // Approve All button handler
+            $('body').on('click', '#approveAllBtn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                swal({
+                    title: 'Approve All Changes',
+                    text: 'Are you sure you want to approve all pending changes?',
+                    type: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, approve all',
+                    cancelButtonText: 'Cancel',
+                    closeOnConfirm: false
+                }, function(isConfirmed) {
+                    if (isConfirmed) {
+                        // Close the confirmation dialog first
+                        swal.close();
+                        
+                        // Find all elements with pendinginfo class and approve them
+                        $('.pendinginfo').each(function() {
+                            $(this).attr('isapproved', 'true');
+                            $(this).removeClass('pendinginfo');
+                        });
+                        
+                        // Set infobtn that have isapproved="false" to "true"
+                        $('.infobtn[isapproved="false"], .infobtn[isapproved="False"]').attr('isapproved', 'true');
+                        
+                        // Hide all approval boxes
+                        $('.approvalbox').hide();
+                        
+                        // Show success message after dialog is fully closed
+                        setTimeout(function() {
+                            swal({
+                                title: 'Approved',
+                                text: 'All pending changes have been approved. Please click the Save button to submit the changes.',
+                                type: 'success',
+                                confirmButtonText: 'OK'
+                            });
+                        }, 300);
+                    }
+                });
+            });
+
             function formatCoordinates(input) {
                 return input.replace(/latitude:\s*"?([^",]*)"?,\s*longitude:\s*"?([^",]*)"?/, (match, lat, lon) => {
                     return (lat === "" && lon === "") ? "," : `${lat},${lon}`;
@@ -1773,6 +1815,9 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 }
 
             });
+
+            // Initialize tooltips for approve all button info icon
+            $('[data-toggle="tooltip"]').tooltip();
 
         },
         _onKeyEvents: function() {

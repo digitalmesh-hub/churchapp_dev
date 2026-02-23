@@ -8,7 +8,7 @@ use common\models\extendedmodels\ExtendedInstitution;
 $assetName = AppAsset::register($this);
 
 $this->registerJsFile(
-   $assetName->baseUrl . '/theme/js/Remember.memberApproval.ui.js?v=1.1',
+   $assetName->baseUrl . '/theme/js/Remember.memberApproval.ui.js?v=1.2.0',
    [
       'depends' => [
          AppAsset::className()
@@ -59,6 +59,17 @@ echo Html::hiddenInput(
       <?= $form->field($model, 'institutionid')->hiddenInput()->label(false) ?>
       <input type='hidden' value="<?= $countDependant ?>" id="HiddenDependantCount">
       <?= $form->field($model, 'member_mobile1')->hiddenInput(['id' => 'txtMemberNo'])->label(false) ?>
+      
+      <!-- Approve All Button -->
+      <div class="col-md-12 col-sm-12 col-xs-12 text-right Mtop10 Mbot10">
+         <button type="button" class="btn btn-success" id="approveAllBtn">
+            <i class="fa fa-check"></i> Approve All
+         </button>
+         <span class="glyphicon glyphicon-info-sign" style="margin-left: 8px; color: #31708f; font-size: 16px; cursor: help;" 
+            data-toggle="tooltip" data-placement="left" 
+            title="Click 'Approve All' to approve all pending changes at once. After approving, click the 'Save' button to save the changes. Note: Unapproved changes will be automatically rejected upon submission."></span>
+      </div>
+      
       <div class="col-md-6 col-sm-6 col-xs-12 Mtop20">
          <fieldset>
             <legend>Member Details</legend>
@@ -1238,15 +1249,15 @@ echo Html::hiddenInput(
                                     [
                                        'maxlength' => true,
                                        'id' => 'txtDependantTitle' . $j,
-                                       'class' => "form-control w80p " . $tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']], $titlesArray[$data['dependanttitleid']]),
-                                       "isapproved" => $tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']], $titlesArray[$data['dependanttitleid']]) ? 'False' : 'True',
-                                       'value' => $titlesArray[$tempDepentant['dependanttitleid']],
+                                       'class' => "form-control w80p " . $tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']] ?? '', $titlesArray[$data['dependanttitleid']] ?? ''),
+                                       "isapproved" => $tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']] ?? '', $titlesArray[$data['dependanttitleid']] ?? '') ? 'False' : 'True',
+                                       'value' => $titlesArray[$tempDepentant['dependanttitleid']] ?? '',
                                        'disabled' => true
                                     ]
                                  ); ?>
-                                 <?php if ($tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']], $titlesArray[$data['dependanttitleid']])) { ?>
+                                 <?php if ($tempMember->getPendingInfo($titlesArray[$tempDepentant['dependanttitleid']] ?? '', $titlesArray[$data['dependanttitleid']] ?? '')) { ?>
                                     <input class="infobtn" isapproved="true" type="button">
-                                    <?= $tempMember->getDetails($titlesArray[$data['dependanttitleid']]) ?>
+                                    <?= $tempMember->getDetails($titlesArray[$data['dependanttitleid']] ?? '') ?>
                                  <?php } ?>
                               </div>
                            </div>
@@ -1429,15 +1440,15 @@ echo Html::hiddenInput(
                                        [
                                           'maxlength' => true,
                                           'id' => 'txtDependantSpouseTitle' . $j,
-                                          'class' => "form-control w80p " . $tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']], $titlesArray[$data['spousetitleid']]),
-                                          "isapproved" => $tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']], $titlesArray[$data['spousetitleid']]) ? 'False' : 'True',
-                                          'value' => $titlesArray[$tempDepentant['spousetitleid']],
+                                          'class' => "form-control w80p " . $tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']] ?? '', $titlesArray[$data['spousetitleid']] ?? ''),
+                                          "isapproved" => $tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']] ?? '', $titlesArray[$data['spousetitleid']] ?? '') ? 'False' : 'True',
+                                          'value' => $titlesArray[$tempDepentant['spousetitleid']] ?? '',
                                           'disabled' => true
                                        ]
                                     ); ?>
-                                    <?php if ($tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']], $titlesArray[$data['spousetitleid']])) { ?>
+                                    <?php if ($tempMember->getPendingInfo($titlesArray[$tempDepentant['spousetitleid']] ?? '', $titlesArray[$data['spousetitleid']] ?? '')) { ?>
                                        <input class="infobtn" isapproved="true" type="button">
-                                       <?= $tempMember->getDetails($titlesArray[$data['spousetitleid']]) ?>
+                                       <?= $tempMember->getDetails($titlesArray[$data['spousetitleid']] ?? '') ?>
                                     <?php } ?>
                                  </div>
                               </div>
