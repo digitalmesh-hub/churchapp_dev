@@ -65,7 +65,8 @@ class MemberController extends BaseController
 							'update-dependant-profile-picture' => ['POST'],
 							'modify-my-profile-details' => ['POST'],
 							'approve-profile-details' => ['POST'],
-							'sync-member-connections' => ['POST']		
+							'sync-member-connections' => ['POST'],
+							'update-member-location' => ['POST']		
 						]
 					],
 				]
@@ -4308,6 +4309,100 @@ class MemberController extends BaseController
 		}
 
 		return true;
+	}
+
+	/**
+	 * Update member location
+	 * Updates the location (latitude and longitude) for the authenticated member
+	 * @return ApiResponse
+	 */
+	public function actionUpdateMemberLocation()
+	{
+		$request = Yii::$app->request;
+		$userId = Yii::$app->user->identity->id;
+		
+		if ($userId) {
+			// Get member ID from the authenticated user
+			$userMember = ExtendedUserMember::find()
+				->where(['userid' => $userId])
+				->one();
+			
+			if (!$userMember) {
+				$this->statusCode = 404;
+				$this->message = 'Member not found for this user';
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+			
+			$memberId = $userMember->memberid;
+			
+			// Get location from POST data
+			$latitude = $request->post('latitude', '');
+			$longitude = $request->post('longitude', '');
+			
+			// If both are empty, set location to null
+			if (empty($latitude) && empty($longitude)) {
+				$locationData = null;
+			} else {
+				// Validate location format
+				$locationArray = [
+					'latitude' => $latitude,
+					'longitude' => $longitude
+				];
+				
+				$isValid = $this->validateLocation($locationArray);
+				if (!$isValid) {
+					$this->statusCode = 400;
+					$this->message = 'Invalid location format. Latitude must be between -90 and 90, longitude must be between -180 and 180';
+					$this->data = new \stdClass();
+					return new ApiResponse($this->statusCode, $this->data, $this->message);
+				}
+				
+				// Encode location as JSON
+				$locationData = json_encode($locationArray);
+			}
+			
+			// Update member location
+			$member = ExtendedMember::findOne($memberId);
+			if (!$member) {
+				$this->statusCode = 404;
+				$this->message = 'Member not found';
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+			
+			$member->location = $locationData;
+			
+			if ($member->save(false)) {
+				$responseLocation = ['latitude' => '', 'longitude' => ''];
+				if ($locationData) {
+					$decodedLocation = json_decode($locationData, true);
+					$responseLocation = [
+						'latitude' => $decodedLocation['latitude'] ?? '',
+						'longitude' => $decodedLocation['longitude'] ?? ''
+					];
+				}
+				
+				$data = [
+					'location' => $responseLocation
+				];
+				
+				$this->statusCode = 200;
+				$this->message = 'Location updated successfully';
+				$this->data = $data;
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			} else {
+				$this->statusCode = 500;
+				$this->message = 'Failed to update location';
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+		} else {
+			$this->statusCode = 498;
+			$this->message = 'Session invalid';
+			$this->data = new \stdClass();
+			return new ApiResponse($this->statusCode, $this->data, $this->message);
+		}
 	}
 
 	/**

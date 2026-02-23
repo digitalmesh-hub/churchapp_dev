@@ -868,7 +868,7 @@ echo Html::hiddenInput(
 
                                     <!-- Separator -->
                                     <div class="segment">&nbsp;</div>
-                                    <div class="col-md-6 col-sm-6 location-details" style="display: none;">
+                                    <div class="col-md-6 col-sm-6 location-details">
 
                                         <fieldset>
                                             <legend>Location Details</legend>
