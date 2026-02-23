@@ -1446,13 +1446,16 @@ class MemberController extends BaseController
           $result = [
 							'memberId' => (!empty($value['memberid'])) ? trim($value['memberid']) :'',
 							'memberName' => (string)preg_replace('!\s+!', ' ', $memberName),
-					    
+					    	'memberTitle' => (!empty($value['membertitledescription'])) ? $value['membertitledescription']:'',
+							'memberTitleId' => (!empty($value['membertitle'])) ? $value['membertitle']:'',
 							'memberNickName' => (!empty($value['membernickname'])) ? $value['membernickname']:'',
 							'memberImageThumbnail' => (!empty($value['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['memberImageThumbnail']):'',
 							'memberImage' => (!empty($value['member_pic']))? (string) preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['member_pic']):'',
 							'memberPhone' => (!empty($value['member_mobile1'])) ? $value['member_mobile1']:'',
 							'memberProfession' => (!empty($value['occupation'])) ? $value['occupation']:'',
 							'memberTag' => $tagMember,
+							'spouseTitle' => (!empty($value['spousetitledescription'])) ? $value['spousetitledescription']:'',
+							'spouseTitleId' => (!empty($value['spousetitle'])) ? $value['spousetitle']:'',
 							'spouseName' => $value['spouse_firstName'].' '.$value['spouse_middleName'].' '.$value['spouse_lastName'],
 							'spouseNickName' => (!empty($value['spousenickname'])) ? $value['spousenickname']:'',
 							'spouseImageThumbnail' => (!empty($value['spouseImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['spouseImageThumbnail']):'',
