@@ -19,6 +19,7 @@ class CacheHelper
      * Cache key prefixes for different data types
      */
     const PREFIX_TITLES = 'titles';
+    const PREFIX_ALL_TITLES = 'all_titles';
     const PREFIX_STAFF_DESIGNATION = 'staff_designation';
     const PREFIX_COMMITTEES = 'committees';
     const PREFIX_FAMILY_UNITS = 'family_units';
@@ -116,6 +117,29 @@ class CacheHelper
         $key = self::buildKey(self::PREFIX_TITLES, $institutionId);
         return self::getOrSet($key, $callback);
     }
+
+    /**
+    * Get all titles (including inactive) from cache or database
+    * @param int $institutionId
+    * @param callable $callback Function to fetch all titles from database
+    * @return array
+    */
+    public static function getAllTitles($institutionId, $callback)
+    {
+        $key = self::buildKey(self::PREFIX_ALL_TITLES, $institutionId);
+        return self::getOrSet($key, $callback);
+    }
+
+    /**
+     * Clear all titles cache for specific institution
+     * @param int $institutionId
+     * @return bool
+     */
+    public static function clearAllTitlesCache($institutionId)
+    {
+        $key = self::buildKey(self::PREFIX_ALL_TITLES, $institutionId);
+        return self::clear($key);
+    }
     
     /**
      * Clear title cache for specific institution
@@ -124,6 +148,7 @@ class CacheHelper
      */
     public static function clearTitlesCache($institutionId)
     {
+        self::clearAllTitlesCache($institutionId);
         $key = self::buildKey(self::PREFIX_TITLES, $institutionId);
         return self::clear($key);
     }

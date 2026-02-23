@@ -52,6 +52,16 @@ class ExtendedTitle extends Title
 		        ->queryAll();
     	return $result;
     }
+
+    public function getAllTitles($institutionId)
+    {
+    	$sql = "select TitleId, Description,active from title where institutionid=:institutionId order by Description asc;";
+        $result = Yii::$app->db->createCommand($sql)
+                ->bindValue(':institutionId', $institutionId)
+                ->queryAll();
+        return $result;
+    }
+
     /**
      * get member title
      */
@@ -65,7 +75,7 @@ class ExtendedTitle extends Title
     					->bindValue(':memberid', $memberId)
     					->queryOne();
     		return $titleData;
-    	} catch (Exception $e) {
+    	} catch (\Exception $e) {
     		return false;
     	}
     }
