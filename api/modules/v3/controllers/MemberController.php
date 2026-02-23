@@ -4320,7 +4320,7 @@ class MemberController extends BaseController
 	{
 		$request = Yii::$app->request;
 		$userId = Yii::$app->user->identity->id;
-		
+			
 		if ($userId) {
 			// Get member ID from the authenticated user
 			$userMember = ExtendedUserMember::find()
@@ -4339,8 +4339,8 @@ class MemberController extends BaseController
 			// Get location from POST data
 			$latitude = $request->post('latitude', '');
 			$longitude = $request->post('longitude', '');
-			
-			// If both are empty, set location to null
+				
+				// If both are empty, set location to null
 			if (empty($latitude) && empty($longitude)) {
 				$locationData = null;
 			} else {
@@ -4358,8 +4358,7 @@ class MemberController extends BaseController
 					return new ApiResponse($this->statusCode, $this->data, $this->message);
 				}
 				
-				// Encode location as JSON
-				$locationData = json_encode($locationArray);
+				$locationData = $locationArray;
 			}
 			
 			// Update member location
@@ -4376,10 +4375,9 @@ class MemberController extends BaseController
 			if ($member->save(false)) {
 				$responseLocation = ['latitude' => '', 'longitude' => ''];
 				if ($locationData) {
-					$decodedLocation = json_decode($locationData, true);
 					$responseLocation = [
-						'latitude' => $decodedLocation['latitude'] ?? '',
-						'longitude' => $decodedLocation['longitude'] ?? ''
+						'latitude' => $locationData['latitude'] ?? '',
+						'longitude' => $locationData['longitude'] ?? ''
 					];
 				}
 				
