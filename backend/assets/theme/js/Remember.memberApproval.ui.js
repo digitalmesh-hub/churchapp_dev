@@ -1721,14 +1721,15 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                                         window.location.href = $('#homeUrl').val() + 'member/';
                                         $(".overlay").hide();
                                     } else {
-                                        var msg = "Member Data Updation Failed";
-                                        swal({
-                                            title: '',
-                                            text: msg,
-                                            type: 'error',
-                                        })
-                                        window.location.href = $('#homeUrl').val() + "member/";
                                         $(".overlay").hide();
+                                        var msg = result?.message ? result.message : "Member Data Updation Failed";
+                                        setTimeout(function() {
+                                            swal({
+                                                title: 'Error',
+                                                text: msg,
+                                                type: 'error',
+                                            });
+                                        }, 100);
                                     }
                                 },
                                 error: function(er) {

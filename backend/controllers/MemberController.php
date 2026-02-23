@@ -2023,7 +2023,19 @@ class MemberController extends BaseController
 				if ($countDependant >= 1) {
 					$depentantResponse = $this->storeApprovalDependantMember($dependantDetails, $tempDepentantDetails, $memberDetails['DependantLst'], $memberId);
 					if (!$depentantResponse) {
-						return false;
+						Yii::error('Failed to store approval dependant member details for memberId: ' . $memberId);
+						return [
+							'hasError' => 1,
+							'message' => 'Failed to save dependant details. Please check the data and try again.',
+						];
+					}
+					// Check if response contains error details
+					if (isset($depentantResponse['error'])) {
+						Yii::error('Validation error for memberId ' . $memberId . ': ' . $depentantResponse['error']);
+						return [
+							'hasError' => 1,
+							'message' => $depentantResponse['error'],
+						];
 					}
 				}
 				$memberadditionalModal = ExtendedMemberadditionalinfo::find()->where(['memberid' => $memberId])->one();
@@ -4203,6 +4215,14 @@ class MemberController extends BaseController
 									$isApproved['dependanttitle_' . $dependantId] = ['isApproved' => false, 'value' => $tempDepentantDetail['dependanttitle']];
 									$allReject++;
 								} else {
+									// Validate that titleid exists in the titles table
+									if (!empty($tempDepentantDetail['dependanttitleid']) && !isset($titlesArray[$tempDepentantDetail['dependanttitleid']])) {
+										$dependantName = $tempDepentantDetail['dependantname'] ?? 'Unknown';
+										$titleName = $tempDepentantDetail['dependanttitle'] ?? 'Unknown';
+										$errorMsg = 'Invalid title "' . $titleName . '" for dependent "' . $dependantName . '". This title does not exist in the system. Please select a valid title.';
+										Yii::error($errorMsg . ' (Title ID: ' . $tempDepentantDetail['dependanttitleid'] . ')');
+										return ['error' => $errorMsg, 'dependantName' => $dependantName, 'titleName' => $titleName];
+									}
 									$modal->titleid = $tempDepentantDetail['dependanttitleid'];
 									$isApproved['dependanttitle_' . $dependantId] = ['isApproved' => true, 'value' => $tempDepentantDetail['dependanttitle']];
 									$allAccept++;
@@ -4367,6 +4387,15 @@ class MemberController extends BaseController
 										$isApproved['spousetitle_' . $dependantId] = ['isApproved' => false, 'value' => $tempDepentantDetail['spousetitle']];
 										$allReject++;
 									} else {
+										// Validate that spouse titleid exists in the titles table
+										if (!empty($tempDepentantDetail['spousetitleid']) && !isset($titlesArray[$tempDepentantDetail['spousetitleid']])) {
+											$dependantName = $tempDepentantDetail['dependantname'] ?? 'Unknown';
+											$spouseName = $tempDepentantDetail['spousename'] ?? 'spouse';
+											$spouseTitle = $tempDepentantDetail['spousetitle'] ?? 'Unknown';
+											$errorMsg = 'Invalid spouse title "' . $spouseTitle . '" for "' . $spouseName . '" (spouse of dependent "' . $dependantName . '"). This title does not exist in the system. Please select a valid title.';
+											Yii::error($errorMsg . ' (Title ID: ' . $tempDepentantDetail['spousetitleid'] . ')');
+											return ['error' => $errorMsg, 'dependantName' => $dependantName, 'spouseName' => $spouseName, 'spouseTitle' => $spouseTitle];
+										}
 										$spouseModal->titleid = $tempDepentantDetail['spousetitleid'];
 										$isApproved['spousetitle_' . $dependantId] = ['isApproved' => true, 'value' => $tempDepentantDetail['spousetitle']];
 										$allAccept++;
@@ -4476,7 +4505,7 @@ class MemberController extends BaseController
 									$isApproved['weddinganniversary_' . $dependantId] = ['isApproved' => true, 'value' => $tempDepentantDetail['weddinganniversary']];
 								}
 								if (!$spouseModal->save()) {
-									yii::error(print_r($spouseModal->getErrors(), true));
+									yii::error('Failed to save spouse modal for dependantId: ' . $dependantId . '. Errors: ' . print_r($spouseModal->getErrors(), true));
 									return false;
 								}
 								if ($spouseModal->dependantname == '' || $spouseModal->dependantname == null) {
@@ -4484,7 +4513,7 @@ class MemberController extends BaseController
 								}
 							}
 							if (!$modal->save()) {
-								yii::error(print_r($modal->getErrors(), true));
+								yii::error('Failed to save dependant modal for dependantId: ' . $dependantId . '. Errors: ' . print_r($modal->getErrors(), true));
 								return false;
 							}
 							if ($modal->dependantname == '' || $modal->dependantname == null) {
