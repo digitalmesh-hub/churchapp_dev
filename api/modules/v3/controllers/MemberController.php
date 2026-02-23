@@ -28,6 +28,7 @@ use common\components\EmailHandlerComponent;
 use common\models\extendedmodels\ExtendedUserCredentials;
 use common\models\extendedmodels\ExtendedProfileupdatenotificationsent;
 use common\models\extendedmodels\ExtendedProfileupdatenotification;
+use common\models\extendedmodels\ExtendedMemberConnection;
 use common\models\basemodels\Member;
 use yii\web\UnauthorizedHttpException;
 use yii\base\ActionEvent;
@@ -63,7 +64,8 @@ class MemberController extends BaseController
 							'update-profile-picture' => ['POST'],
 							'update-dependant-profile-picture' => ['POST'],
 							'modify-my-profile-details' => ['POST'],
-							'approve-profile-details' => ['POST']		
+							'approve-profile-details' => ['POST'],
+							'sync-member-connections' => ['POST']		
 						]
 					],
 				]
@@ -728,6 +730,20 @@ class MemberController extends BaseController
 					} else {
 						$data->dependants = [];
 					}
+					
+					// Get member connections
+					$memberConnections = ExtendedMemberConnection::getMemberConnectionsWithDetails($memberId);
+					$connectionsArray = [];
+					if ($memberConnections) {
+						foreach ($memberConnections as $connection) {
+							$connectionsArray[] = [
+								'memberId' => (string)$connection['memberId'],
+								'membershipNumber' => (!empty($connection['membershipNumber'])) ? $connection['membershipNumber'] : ''
+							];
+						}
+					}
+					$data->memberConnections = $connectionsArray;
+					
 					$this->statusCode = 200;
 					$this->message = '';
 					$this->data = $data;
@@ -4292,5 +4308,84 @@ class MemberController extends BaseController
 		}
 
 		return true;
+	}
+
+	/**
+	 * Sync member connections
+	 * Inserts connections if not exist, deletes if not in the provided list
+	 * @return ApiResponse
+	 */
+	public function actionSyncMemberConnections()
+	{
+		$request = Yii::$app->request;
+		$userId = Yii::$app->user->identity->id;
+		
+		if ($userId) {
+			// Get member ID from the authenticated user
+			$userMember = ExtendedUserMember::find()
+				->where(['userid' => $userId])
+				->one();
+			
+			if (!$userMember) {
+				$this->statusCode = 404;
+				$this->message = 'Member not found for this user';
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+			
+			$memberId = $userMember->memberid;
+			
+			// Get connection IDs from POST data
+			$connectionIds = $request->post('connectionIds', []);
+			
+			// Validate that connectionIds is an array
+			if (!is_array($connectionIds)) {
+				$this->statusCode = 400;
+				$this->message = 'connectionIds must be an array';
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+			
+			// Sync the connections
+			$result = ExtendedMemberConnection::syncConnections($memberId, $connectionIds);
+			
+			if ($result['success']) {
+				$connectionsList = [];
+				foreach ($result['connections'] as $connection) {
+					$connectionsList[] = [
+						'id' => (string)$connection->id,
+						'memberId' => (string)$connection->member_id,
+						'connectedMemberId' => (string)$connection->connected_member_id,
+						'createdAt' => $connection->created_at
+					];
+				}
+				
+				$data = [
+					'connections' => $connectionsList,
+					'totalConnections' => count($connectionsList)
+				];
+				
+				$this->statusCode = 200;
+				$this->message = 'Member connections synced successfully';
+				$this->data = $data;
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			} else {
+				// Check if it's a validation error (self-connection)
+				$errorMessage = $result['error'] ?? 'Unknown error';
+				if (strpos($errorMessage, 'cannot connect to themselves') !== false) {
+					$this->statusCode = 400;
+				} else {
+					$this->statusCode = 500;
+				}
+				$this->message = $errorMessage;
+				$this->data = new \stdClass();
+				return new ApiResponse($this->statusCode, $this->data, $this->message);
+			}
+		} else {
+			$this->statusCode = 498;
+			$this->message = 'Session invalid';
+			$this->data = new \stdClass();
+			return new ApiResponse($this->statusCode, $this->data, $this->message);
+		}
 	}
 }
