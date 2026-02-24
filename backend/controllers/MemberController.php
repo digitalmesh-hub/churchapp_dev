@@ -154,6 +154,9 @@ class MemberController extends BaseController
 		$memberList =  $this->renderPartial('member_list', ['dataProvider' => $dataProvider, 'isStaff' => false]);
 
 		$pendingMemberList = $this->renderPartial('pending_member_list', ['dataProvider' => $dataProvider1]);
+		
+		// Get all unique occupations for the occupation export dropdown
+		$occupations = $this->getAllOccupations($institutionId);
 
 		return $this->render('index', [
 			'pendingMemberList' => $pendingMemberList,
@@ -162,6 +165,7 @@ class MemberController extends BaseController
 			'pendingRequest' => $pendingRequest,
 			'searchModel' => $searchModel,
 			'action' => 'index',
+			'occupations' => $occupations,
 
 		]);
 	}
@@ -3815,18 +3819,57 @@ class MemberController extends BaseController
 		if ($memberId) {
 			$dependantDetailCorrection = [];
 			$dependantDetails = $dependantModel->getDependants($memberId);
+			
+			// Filter out empty names and fix wedding anniversaries
 			foreach ($dependantDetails as $key => $value) {
 				if ($value['dependantname'] == '' || $value['dependantname'] == null) {
 					continue;
 				}
+				
+				// Fix wedding anniversary: The stored procedure returns merged data (primary + spouse in one row)
+				// If weddinganniversary is empty but we have a primary dependant with spouse, 
+				// check if the spouse record has the anniversary
+				if (empty($value['weddinganniversary']) && !empty($value['id'])) {
+					// Check if there's a spouse dependant record that has the anniversary
+					$spouseDependant = \common\models\basemodels\Dependant::find()
+						->where(['dependantid' => $value['id']])
+						->andWhere(['not', ['weddinganniversary' => null]])
+						->andWhere(['<>', 'weddinganniversary', ''])
+						->one();
+					
+					if ($spouseDependant && !empty($spouseDependant->weddinganniversary)) {
+						$value['weddinganniversary'] = $spouseDependant->weddinganniversary;
+					}
+				}
+				
 				$dependantDetailCorrection[$key] = $value;
 			}
+			
 			$dependantDetails  = $dependantDetailCorrection;
 		}
 		if ($tempMemberId) {
 
 			$dependantDetails = $dependantModel->getMemberNotDependants($tempMemberId);
 			$memberId = $tempMemberId;
+			
+			// Fix wedding anniversary for temp members
+			if (is_array($dependantDetails) && !empty($dependantDetails)) {
+				foreach ($dependantDetails as $key => $value) {
+					// If weddinganniversary is empty, check if spouse record has it
+					if (empty($value['weddinganniversary']) && !empty($value['id'])) {
+						// Check if there's a spouse dependant record that has the anniversary
+						$spouseDependant = \common\models\basemodels\Dependant::find()
+							->where(['dependantid' => $value['id']])
+							->andWhere(['not', ['weddinganniversary' => null]])
+							->andWhere(['<>', 'weddinganniversary', ''])
+							->one();
+						
+						if ($spouseDependant && !empty($spouseDependant->weddinganniversary)) {
+							$dependantDetails[$key]['weddinganniversary'] = $spouseDependant->weddinganniversary;
+						}
+					}
+				}
+			}
 		}
 
 		$titleModel      = new ExtendedTitle();
@@ -5262,8 +5305,19 @@ class MemberController extends BaseController
 		$birthdayMonth = Yii::$app->request->get('birthday_month'); // 1-12 or empty
 		$birthdayDateFrom = Yii::$app->request->get('birthday_date_from');
 		$birthdayDateTo = Yii::$app->request->get('birthday_date_to');
+		$ageFrom = Yii::$app->request->get('age_from');
+		$ageTo = Yii::$app->request->get('age_to');
+		$occupations = Yii::$app->request->get('occupation'); // Can be array for multi-select
+		$exportHof = Yii::$app->request->get('export_hof');
 		// Handle checkbox - when unchecked, parameter is not sent at all, so default to 0
 		$includeDependants = (int) Yii::$app->request->get('include_dependants', 0); // 1 or 0
+
+		// Detect export type based on filters
+		$isBirthdayExport = !empty($birthdayMonth) || (!empty($birthdayDateFrom) && !empty($birthdayDateTo));
+		$isAnniversaryExport = !empty($marriageMonth) || (!empty($marriageDateFrom) && !empty($marriageDateTo));
+		$isAgeRangeExport = !empty($ageFrom) || !empty($ageTo);
+		$isOccupationExport = !empty($occupations);
+		$isHeadOfFamilyExport = $exportHof === '1';
 
 		// Build query with filters
 		$query = ExtendedMember::find()->where(['institutionid' => $institutionId]);
@@ -5281,185 +5335,137 @@ class MemberController extends BaseController
 			$query->andWhere(['<=', 'memberdate', $memberSinceTo]);
 		}
 
-		// Filter by marriage month only
-		if (!empty($marriageMonth)) {
-			if ($includeDependants) {
-				// Include dependant wedding anniversaries in the search
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['MONTH(member.dom)' => $marriageMonth],
-					['MONTH(dependant.weddinganniversary)' => $marriageMonth]
-				]);
-			} else {
-				// Only check member marriage date
-				$query->andWhere(['MONTH(dom)' => $marriageMonth]);
+		// For birthday/anniversary exports, we filter at the individual level in PHP
+		// But we still optimize by fetching only members where at least one person has a matching date
+		if ($isBirthdayExport) {
+			// For birthday exports, get members where member, spouse, OR dependant has birthday in range
+			if (!empty($birthdayMonth)) {
+				if ($includeDependants) {
+					// Use subquery to find members with dependants having birthdays in the month
+					$dependantSubQuery = (new \yii\db\Query())
+						->select('memberid')
+						->from('dependant')
+						->where(['MONTH(dob)' => $birthdayMonth])
+						->distinct();
+					
+					$query->andWhere([
+						'or',
+						['MONTH(member_dob)' => $birthdayMonth],
+						['MONTH(spouse_dob)' => $birthdayMonth],
+						['memberid' => $dependantSubQuery]
+					]);
+				} else {
+					$query->andWhere([
+						'or',
+						['MONTH(member_dob)' => $birthdayMonth],
+						['MONTH(spouse_dob)' => $birthdayMonth]
+					]);
+				}
+			} elseif (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
+				if ($includeDependants) {
+					// Use subquery to find members with dependants having birthdays in the date range
+					$dependantSubQuery = (new \yii\db\Query())
+						->select('memberid')
+						->from('dependant')
+						->where(['between', 'dob', $birthdayDateFrom, $birthdayDateTo])
+						->distinct();
+					
+					$query->andWhere([
+						'or',
+						['between', 'member_dob', $birthdayDateFrom, $birthdayDateTo],
+						['between', 'spouse_dob', $birthdayDateFrom, $birthdayDateTo],
+						['memberid' => $dependantSubQuery]
+					]);
+				} else {
+					$query->andWhere([
+						'or',
+						['between', 'member_dob', $birthdayDateFrom, $birthdayDateTo],
+						['between', 'spouse_dob', $birthdayDateFrom, $birthdayDateTo]
+					]);
+				}
+			}
+		} elseif ($isAnniversaryExport) {
+			// For anniversary exports, get members where member OR dependant has anniversary in range
+			if (!empty($marriageMonth)) {
+				if ($includeDependants) {
+					// Use subquery to find members with dependants having anniversaries in the month
+					$dependantSubQuery = (new \yii\db\Query())
+						->select('memberid')
+						->from('dependant')
+						->where(['MONTH(weddinganniversary)' => $marriageMonth])
+						->distinct();
+					
+					$query->andWhere([
+						'or',
+						['MONTH(dom)' => $marriageMonth],
+						['memberid' => $dependantSubQuery]
+					]);
+				} else {
+					$query->andWhere(['MONTH(dom)' => $marriageMonth]);
+				}
+			} elseif (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
+				if ($includeDependants) {
+					// Use subquery to find members with dependants having anniversaries in the date range
+					$dependantSubQuery = (new \yii\db\Query())
+						->select('memberid')
+						->from('dependant')
+						->where(['between', 'weddinganniversary', $marriageDateFrom, $marriageDateTo])
+						->distinct();
+					
+					$query->andWhere([
+						'or',
+						['between', 'dom', $marriageDateFrom, $marriageDateTo],
+						['memberid' => $dependantSubQuery]
+					]);
+				} else {
+					$query->andWhere(['between', 'dom', $marriageDateFrom, $marriageDateTo]);
+				}
 			}
 		}
 
-		// Filter by marriage date range
-		if (!empty($marriageDateFrom)) {
-			if ($includeDependants) {
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['>=', 'member.dom', $marriageDateFrom],
-					['>=', 'dependant.weddinganniversary', $marriageDateFrom]
-				]);
-			} else {
-				$query->andWhere(['>=', 'dom', $marriageDateFrom]);
+		// Filter by occupation (case-insensitive exact match, supports multiple values)
+		if ($isOccupationExport && !empty($occupations)) {
+			// Ensure occupations is an array
+			if (!is_array($occupations)) {
+				$occupations = [$occupations];
 			}
-		}
-		if (!empty($marriageDateTo)) {
-			if ($includeDependants) {
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['<=', 'member.dom', $marriageDateTo],
-					['<=', 'dependant.weddinganniversary', $marriageDateTo]
-				]);
-			} else {
-				$query->andWhere(['<=', 'dom', $marriageDateTo]);
-			}
-		}
-
-		// Filter by birthday month only
-		if (!empty($birthdayMonth)) {
-			if ($includeDependants) {
-				// Include dependant birthdays in the search
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['MONTH(member.member_dob)' => $birthdayMonth],
-					['MONTH(member.spouse_dob)' => $birthdayMonth],
-					['MONTH(dependant.dob)' => $birthdayMonth]
-				]);
-			} else {
-				// Only check member and spouse birthdays
-				$query->andWhere([
-					'or',
-					['MONTH(member_dob)' => $birthdayMonth],
-					['MONTH(spouse_dob)' => $birthdayMonth]
-				]);
-			}
-		}
-
-		// Filter by birthday date range
-		if (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
-			if ($includeDependants) {
-				// Include dependant birthdays in the search
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['between', 'member.member_dob', $birthdayDateFrom, $birthdayDateTo],
-					['between', 'member.spouse_dob', $birthdayDateFrom, $birthdayDateTo],
-					['between', 'dependant.dob', $birthdayDateFrom, $birthdayDateTo]
-				]);
-			} else {
-				// Only check member and spouse birthdays
-				$query->andWhere([
-					'or',
-					['between', 'member_dob', $birthdayDateFrom, $birthdayDateTo],
-					['between', 'spouse_dob', $birthdayDateFrom, $birthdayDateTo]
-				]);
-			}
-		}
-
-		// Filter by marriage month only
-		if (!empty($marriageMonth)) {
-			if ($includeDependants) {
-				// Include dependant wedding anniversaries in the search
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['MONTH(member.dom)' => $marriageMonth],
-					['MONTH(dependant.weddinganniversary)' => $marriageMonth]
-				]);
-			} else {
-				// Only check member marriage date
-				$query->andWhere(['MONTH(dom)' => $marriageMonth]);
-			}
-		}
-
-		// Filter by marriage date range
-		if (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
-			if ($includeDependants) {
-				// Include dependant wedding anniversaries in the search
-				$query->joinWith('dependants')->andWhere([
-					'or',
-					['between', 'member.dom', $marriageDateFrom, $marriageDateTo],
-					['between', 'dependant.weddinganniversary', $marriageDateFrom, $marriageDateTo]
-				]);
-			} else {
-				// Only check member marriage date
-				$query->andWhere(['>=', 'dom', $marriageDateFrom])
-					->andWhere(['<=', 'dom', $marriageDateTo]);
+			
+			// Sanitize: trim, convert to lowercase, filter empty, limit length
+			$lowerOccupations = array_values(array_filter(array_map(function($occ) {
+				return strtolower(trim(substr(strval($occ), 0, 255)));
+			}, $occupations)));
+			
+			if (!empty($lowerOccupations)) {
+				if ($includeDependants) {
+					// Use subquery to find members with dependants having matching occupation
+					// Yii2 Query Builder automatically uses parameter binding for the values in IN clause
+					$dependantSubQuery = (new \yii\db\Query())
+						->select('memberid')
+						->from('dependant')
+						->where(['in', new \yii\db\Expression('LOWER(occupation)'), $lowerOccupations])
+						->distinct();
+					
+					$query->andWhere([
+						'or',
+						['in', new \yii\db\Expression('LOWER(occupation)'), $lowerOccupations],
+						['in', new \yii\db\Expression('LOWER(spouseoccupation)'), $lowerOccupations],
+						['memberid' => $dependantSubQuery]
+					]);
+				} else {
+					$query->andWhere([
+						'or',
+						['in', new \yii\db\Expression('LOWER(occupation)'), $lowerOccupations],
+						['in', new \yii\db\Expression('LOWER(spouseoccupation)'), $lowerOccupations]
+					]);
+				}
 			}
 		}
 
 		// Execute query with eager loading to avoid N+1 queries
-		if ($includeDependants) {
+		if ($includeDependants || $isBirthdayExport || $isAnniversaryExport || $isAgeRangeExport || $isOccupationExport) {
 			$members = $query->with(['dependants', 'zone'])->distinct()->all();
 		} else {
 			$members = $query->with('zone')->distinct()->all();
-		}
-
-		// Pre-fetch all update user information to avoid N+1 queries
-		$updateUserMap = [];
-		$updatedByIds = array_filter(array_unique(array_column($members, 'updated_by')));
-		
-		if (!empty($updatedByIds)) {
-			// Batch fetch all user credentials with userprofile relation
-			$userCredentials = ExtendedUserCredentials::find()
-				->where(['id' => $updatedByIds])
-				->with('userprofile')
-				->indexBy('id')
-				->all();
-			
-			// Batch fetch all user members with member relation
-			$userMembers = ExtendedUserMember::find()
-				->where(['userid' => $updatedByIds])
-				->with('member')
-				->all();
-			
-			// Build lookup map: user_id => ['member' => ..., 'usertype' => ...]
-			$userMemberMap = [];
-			foreach ($userMembers as $um) {
-				$userMemberMap[$um->userid] = [
-					'member' => $um->member,
-					'usertype' => $um->usertype
-				];
-			}
-			
-			// Build final update user map
-			foreach ($userCredentials as $userId => $updatedBy) {
-				$updateUser = $updatedBy->emailid; // default to email
-				
-				if (isset($userMemberMap[$userId]) && $userMemberMap[$userId]['member']) {
-					$updateMember = $userMemberMap[$userId]['member'];
-					$userType = $userMemberMap[$userId]['usertype'];
-					
-					// Check if user is spouse or member
-					if ($userType === 'S') {
-						// Spouse user - use spouse name fields
-						$updateUser = trim(implode(' ', array_filter([
-							$updateMember->spouse_firstName,
-							$updateMember->spouse_middleName,
-							$updateMember->spouse_lastName
-						])));
-					} else {
-						// Member user - use primary member name fields
-						$updateUser = trim(implode(' ', array_filter([
-							$updateMember->firstName,
-							$updateMember->middleName,
-							$updateMember->lastName
-						])));
-					}
-				} elseif ($updatedBy->userprofile) {
-					// If not a member, try userprofile
-					$updateUser = trim(implode(' ', array_filter([
-						$updatedBy->userprofile->firstname,
-						$updatedBy->userprofile->middlename,
-						$updatedBy->userprofile->lastname
-					])));
-				}
-				
-				$updateUserMap[$userId] = $updateUser;
-			}
 		}
 
 		// Get titles
@@ -5472,12 +5478,125 @@ class MemberController extends BaseController
 			$titlesArray = ArrayHelper::map($titles, 'TitleId', 'Description');
 		}
 
+		// Get timezone and date format for performance
+		$timezone = Yii::$app->user->identity->institution->timezone ?? 'Asia/Kolkata';
+		$dateFormat = Yii::$app->params['dateFormat']['viewDateFormat'];
+
+		// Pre-fetch all update user information to avoid N+1 queries (only for general export)
+		$updateUserMap = [];
+		if (!$isBirthdayExport && !$isAnniversaryExport) {
+			$updatedByIds = array_filter(array_unique(array_column($members, 'updated_by')));
+			
+			if (!empty($updatedByIds)) {
+				// Batch fetch all user credentials with userprofile relation
+				$userCredentials = ExtendedUserCredentials::find()
+					->where(['id' => $updatedByIds])
+					->with('userprofile')
+					->indexBy('id')
+					->all();
+				
+				// Batch fetch all user members with member relation
+				$userMembers = ExtendedUserMember::find()
+					->where(['userid' => $updatedByIds])
+					->with('member')
+					->all();
+				
+				// Build lookup map: user_id => ['member' => ..., 'usertype' => ...]
+				$userMemberMap = [];
+				foreach ($userMembers as $um) {
+					$userMemberMap[$um->userid] = [
+						'member' => $um->member,
+						'usertype' => $um->usertype
+					];
+				}
+				
+				// Build final update user map
+				foreach ($userCredentials as $userId => $updatedBy) {
+					$updateUser = $updatedBy->emailid; // default to email
+					
+					if (isset($userMemberMap[$userId]) && $userMemberMap[$userId]['member']) {
+						$updateMember = $userMemberMap[$userId]['member'];
+						$userType = $userMemberMap[$userId]['usertype'];
+						
+						// Check if user is spouse or member
+						if ($userType === 'S') {
+							// Spouse user - use spouse name fields
+							$updateUser = trim(implode(' ', array_filter([
+								$updateMember->spouse_firstName,
+								$updateMember->spouse_middleName,
+								$updateMember->spouse_lastName
+							])));
+						} else {
+							// Member user - use primary member name fields
+							$updateUser = trim(implode(' ', array_filter([
+								$updateMember->firstName,
+								$updateMember->middleName,
+								$updateMember->lastName
+							])));
+						}
+					} elseif ($updatedBy->userprofile) {
+						// If not a member, try userprofile
+						$updateUser = trim(implode(' ', array_filter([
+							$updatedBy->userprofile->firstname,
+							$updatedBy->userprofile->middlename,
+							$updatedBy->userprofile->lastname
+						])));
+					}
+					
+					$updateUserMap[$userId] = $updateUser;
+				}
+			}
+		}
+
 		// Create spreadsheet
 		$spreadsheet = new Spreadsheet();
 		$sheet = $spreadsheet->getActiveSheet();
 
-		// Set headers based on whether dependants are included
-		if ($includeDependants) {
+		// Set headers based on export type
+		if ($isBirthdayExport) {
+			// Birthday export: Name, Membership Number, Phone, Birthdate, Age, Zone
+			$sheet->setCellValue('A1', 'Name')
+				->setCellValue('B1', 'Membership Number')
+				->setCellValue('C1', 'Phone')
+				->setCellValue('D1', 'Birthdate')
+				->setCellValue('E1', 'Age')
+				->setCellValue('F1', 'Zone');
+			$lastColumn = 'F';
+		} elseif ($isAnniversaryExport) {
+			// Anniversary export: Name, Spouse Name, Membership Number, Phone, Anniversary Date, Zone
+			$sheet->setCellValue('A1', 'Name')
+				->setCellValue('B1', 'Spouse Name')
+				->setCellValue('C1', 'Membership Number')
+				->setCellValue('D1', 'Phone')
+				->setCellValue('E1', 'Anniversary Date')
+				->setCellValue('F1', 'Zone');
+			$lastColumn = 'F';
+		} elseif ($isAgeRangeExport) {
+			// Age Range export: Name, Membership Number, Phone, Date of Birth, Age, Occupation, Zone
+			$sheet->setCellValue('A1', 'Name')
+				->setCellValue('B1', 'Membership Number')
+				->setCellValue('C1', 'Phone')
+				->setCellValue('D1', 'Date of Birth')
+				->setCellValue('E1', 'Age')
+				->setCellValue('F1', 'Occupation')
+				->setCellValue('G1', 'Zone');
+			$lastColumn = 'G';
+		} elseif ($isOccupationExport) {
+			// Occupation export: Name, Membership Number, Phone, Occupation, Zone
+			$sheet->setCellValue('A1', 'Name')
+				->setCellValue('B1', 'Membership Number')
+				->setCellValue('C1', 'Phone')
+				->setCellValue('D1', 'Occupation')
+				->setCellValue('E1', 'Zone');
+			$lastColumn = 'E';
+		} elseif ($isHeadOfFamilyExport) {
+			// Head of Family export: Similar to general but with Head of Family info prominently displayed
+			$sheet->setCellValue('A1', 'Name')
+				->setCellValue('B1', 'Membership Number')
+				->setCellValue('C1', 'Phone')
+				->setCellValue('D1', 'Zone');
+			$lastColumn = 'D';
+		} elseif ($includeDependants) {
 			$sheet->setCellValue('A1', 'Membership Number')
 				->setCellValue('B1', 'Member Name')
 				->setCellValue('C1', 'Member Since')
@@ -5547,16 +5666,423 @@ class MemberController extends BaseController
 
 		$row = 2;
 		$mergeLastColumn = $includeDependants ? 'V' : 'V';
-		$lastColumn = $includeDependants ? 'AN' : 'X';
 		
-		// Get timezone and date format once outside the loop for performance
-		$timezone = Yii::$app->user->identity->institution->timezone ?? 'Asia/Kolkata';
-		$dateFormat = Yii::$app->params['dateFormat']['viewDateFormat'];
+		// Helper function to check if birthday matches filter
+		$matchesBirthday = function($dob) use ($birthdayMonth, $birthdayDateFrom, $birthdayDateTo) {
+			if (empty($dob)) {
+				return false;
+			}
+			if (!empty($birthdayMonth)) {
+				return date('n', strtotime($dob)) == $birthdayMonth;
+			}
+			if (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
+				return $dob >= $birthdayDateFrom && $dob <= $birthdayDateTo;
+			}
+			return false;
+		};
+		
+		// Helper function to check if anniversary matches filter
+		$matchesAnniversary = function($anniversaryDate) use ($marriageMonth, $marriageDateFrom, $marriageDateTo) {
+			if (empty($anniversaryDate)) {
+				return false;
+			}
+			if (!empty($marriageMonth)) {
+				return date('n', strtotime($anniversaryDate)) == $marriageMonth;
+			}
+			if (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
+				return $anniversaryDate >= $marriageDateFrom && $anniversaryDate <= $marriageDateTo;
+			}
+			return false;
+		};
 
-		foreach ($members as $member) {
-			// Calculate ages
-			$memberAge = !empty($member->member_dob) ? $this->calculateAge($member->member_dob) : '';
-			$spouseAge = !empty($member->spouse_dob) ? $this->calculateAge($member->spouse_dob) : '';
+		// Process members based on export type
+		if ($isBirthdayExport) {
+			// BIRTHDAY EXPORT: Each individual with matching birthday gets their own row
+			foreach ($members as $member) {
+				// Get HOF mobile number
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+				
+				// Check member birthday
+				if ($matchesBirthday($member->member_dob)) {
+					$memberFullName = trim(implode(' ', [
+						($titlesArray[$member->membertitle] ?? ''),
+						$member->firstName,
+						$member->middleName,
+						$member->lastName
+					]));
+					$memberMobile = ($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? '');
+					$memberAge = $this->calculateAge($member->member_dob);
+					
+					$sheet->setCellValue('A' . $row, $memberFullName)
+						->setCellValue('B' . $row, $member->memberno ?? '')
+						->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+						->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), $dateFormat) : '')
+						->setCellValue('E' . $row, $memberAge)
+						->setCellValue('F' . $row, $member->zone->description ?? '');
+					$row++;
+				}
+				
+				// Check spouse birthday
+				if ($matchesBirthday($member->spouse_dob)) {
+					$spouseFullName = trim(implode(' ', [
+						($titlesArray[$member->spousetitle] ?? ''),
+						$member->spouse_firstName,
+						$member->spouse_middleName,
+						$member->spouse_lastName
+					]));
+					$spouseMobile = ($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? '');
+					$spouseAge = $this->calculateAge($member->spouse_dob);
+					
+					$sheet->setCellValue('A' . $row, $spouseFullName)
+						->setCellValue('B' . $row, $member->memberno ?? '')
+						->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+						->setCellValue('D' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
+						->setCellValue('E' . $row, $spouseAge)
+						->setCellValue('F' . $row, $member->zone->description ?? '');
+					$row++;
+				}
+				
+				// Check dependants birthdays if included
+				if ($includeDependants) {
+					foreach ($member->dependants as $dependant) {
+						if ($matchesBirthday($dependant->dob)) {
+							$dependantFullName = trim(implode(' ', [
+								($titlesArray[$dependant->titleid] ?? ''),
+								$dependant->dependantname
+							]));
+							$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
+							$dependantAge = !empty($dependant->dob) ? $this->calculateAge($dependant->dob) : '';
+							
+							$sheet->setCellValue('A' . $row, $dependantFullName)
+								->setCellValue('B' . $row, $member->memberno ?? '')
+								->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+								->setCellValue('D' . $row, !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '')
+								->setCellValue('E' . $row, $dependantAge)
+								->setCellValue('F' . $row, $member->zone->description ?? '');
+							$row++;
+						}
+					}
+				}
+			}
+		} elseif ($isAnniversaryExport) {
+			// ANNIVERSARY EXPORT: Each couple with matching anniversary gets their own row
+			foreach ($members as $member) {
+				// Get HOF mobile number
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+				
+				// Check member anniversary
+				if ($matchesAnniversary($member->dom)) {
+					$memberFullName = trim(implode(' ', [
+						($titlesArray[$member->membertitle] ?? ''),
+						$member->firstName,
+						$member->middleName,
+						$member->lastName
+					]));
+					$spouseFullName = trim(implode(' ', [
+						($titlesArray[$member->spousetitle] ?? ''),
+						$member->spouse_firstName,
+						$member->spouse_middleName,
+						$member->spouse_lastName
+					]));
+					
+					$sheet->setCellValue('A' . $row, $memberFullName)
+						->setCellValue('B' . $row, $spouseFullName)
+						->setCellValue('C' . $row, $member->memberno ?? '')
+						->setCellValue('D' . $row, !empty($hofMobile) ? "\t" . $hofMobile : '')
+						->setCellValue('E' . $row, !empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : '')
+						->setCellValue('F' . $row, $member->zone->description ?? '');
+					$row++;
+				}
+				
+				// Check dependant anniversaries if included
+				if ($includeDependants) {
+					$processedDependantIds = []; // Track processed dependants to avoid duplicates
+					
+					foreach ($member->dependants as $dependant) {
+						// Skip if already processed
+						if (in_array($dependant->id, $processedDependantIds)) {
+							continue;
+						}
+						
+						// Check if this dependant has an anniversary
+						if ($matchesAnniversary($dependant->weddinganniversary)) {
+							$primaryDependant = null;
+							$spouseDependant = null;
+							
+							// Determine if this is primary or spouse dependant
+							if (empty($dependant->dependantid)) {
+								// This is the primary dependant
+								$primaryDependant = $dependant;
+								// Find their spouse
+								foreach ($member->dependants as $dep2) {
+									if (!empty($dep2->dependantid) && $dep2->dependantid == $dependant->id) {
+										$spouseDependant = $dep2;
+										break;
+									}
+								}
+							} else {
+								// This is a spouse dependant, find the primary
+								$spouseDependant = $dependant;
+								foreach ($member->dependants as $dep2) {
+									if ($dep2->id == $dependant->dependantid) {
+										$primaryDependant = $dep2;
+										break;
+									}
+								}
+							}
+							
+							// Build names
+							$dependantFullName = '';
+							$dependantSpouseName = '';
+							
+							if ($primaryDependant) {
+								$dependantFullName = trim(implode(' ', [
+									($titlesArray[$primaryDependant->titleid] ?? ''),
+									$primaryDependant->dependantname
+								]));
+							}
+							
+							if ($spouseDependant) {
+								$dependantSpouseName = trim(implode(' ', [
+									($titlesArray[$spouseDependant->titleid] ?? ''),
+									$spouseDependant->dependantname
+								]));
+							}
+							
+							// Get mobile number (prefer primary, fallback to HOF)
+							$dependantMobile = '';
+							if ($primaryDependant) {
+								$dependantMobile = ($primaryDependant->dependantmobilecountrycode ?? '') . ($primaryDependant->dependantmobile ?? '');
+							}
+							if (empty($dependantMobile) && $spouseDependant) {
+								$dependantMobile = ($spouseDependant->dependantmobilecountrycode ?? '') . ($spouseDependant->dependantmobile ?? '');
+							}
+							
+							$sheet->setCellValue('A' . $row, $dependantFullName)
+								->setCellValue('B' . $row, $dependantSpouseName)
+								->setCellValue('C' . $row, $member->memberno ?? '')
+								->setCellValue('D' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+								->setCellValue('E' . $row, !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), $dateFormat) : '')
+								->setCellValue('F' . $row, $member->zone->description ?? '');
+							$row++;
+							
+							// Mark both dependants as processed
+							$processedDependantIds[] = $dependant->id;
+							if ($primaryDependant) {
+								$processedDependantIds[] = $primaryDependant->id;
+							}
+							if ($spouseDependant) {
+								$processedDependantIds[] = $spouseDependant->id;
+							}
+						}
+					}
+				}
+			}
+		} elseif ($isAgeRangeExport) {
+			// AGE RANGE EXPORT: Each individual within age range gets their own row
+			foreach ($members as $member) {
+				// Get HOF mobile number
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+				
+				// Check member age
+				$memberAge = !empty($member->member_dob) ? $this->calculateAge($member->member_dob) : null;
+				if ($memberAge !== null && $memberAge !== '') {
+					$inRange = true;
+					if (!empty($ageFrom) && $memberAge < $ageFrom) $inRange = false;
+					if (!empty($ageTo) && $memberAge > $ageTo) $inRange = false;
+					
+					if ($inRange) {
+						$memberFullName = trim(implode(' ', [
+							($titlesArray[$member->membertitle] ?? ''),
+							$member->firstName,
+							$member->middleName,
+							$member->lastName
+						]));
+						$memberMobile = ($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? '');
+						
+						$sheet->setCellValue('A' . $row, $memberFullName)
+							->setCellValue('B' . $row, $member->memberno ?? '')
+							->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+							->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), $dateFormat) : '')
+							->setCellValue('E' . $row, $memberAge)
+							->setCellValue('F' . $row, $member->occupation ?? '')
+							->setCellValue('G' . $row, $member->zone->description ?? '');
+						$row++;
+					}
+				}
+				
+				// Check spouse age
+				$spouseAge = !empty($member->spouse_dob) ? $this->calculateAge($member->spouse_dob) : null;
+				if ($spouseAge !== null && $spouseAge !== '') {
+					$inRange = true;
+					if (!empty($ageFrom) && $spouseAge < $ageFrom) $inRange = false;
+					if (!empty($ageTo) && $spouseAge > $ageTo) $inRange = false;
+					
+					if ($inRange) {
+						$spouseFullName = trim(implode(' ', [
+							($titlesArray[$member->spousetitle] ?? ''),
+							$member->spouse_firstName,
+							$member->spouse_middleName,
+							$member->spouse_lastName
+						]));
+						$spouseMobile = ($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? '');
+						
+						$sheet->setCellValue('A' . $row, $spouseFullName)
+							->setCellValue('B' . $row, $member->memberno ?? '')
+							->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+							->setCellValue('D' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
+							->setCellValue('E' . $row, $spouseAge)
+							->setCellValue('F' . $row, $member->spouseoccupation ?? '')
+							->setCellValue('G' . $row, $member->zone->description ?? '');
+						$row++;
+					}
+				}
+				
+				// Check dependants ages if included
+				if ($includeDependants) {
+					foreach ($member->dependants as $dependant) {
+						$dependantAge = !empty($dependant->dob) ? $this->calculateAge($dependant->dob) : null;
+						if ($dependantAge !== null && $dependantAge !== '') {
+							$inRange = true;
+							if (!empty($ageFrom) && $dependantAge < $ageFrom) $inRange = false;
+							if (!empty($ageTo) && $dependantAge > $ageTo) $inRange = false;
+							
+							if ($inRange) {
+								$dependantFullName = trim(implode(' ', [
+									($titlesArray[$dependant->titleid] ?? ''),
+									$dependant->dependantname
+								]));
+								$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
+								
+								$sheet->setCellValue('A' . $row, $dependantFullName)
+									->setCellValue('B' . $row, $member->memberno ?? '')
+									->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+									->setCellValue('D' . $row, !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '')
+									->setCellValue('E' . $row, $dependantAge)
+									->setCellValue('F' . $row, $dependant->occupation ?? '')
+									->setCellValue('G' . $row, $member->zone->description ?? '');
+								$row++;
+							}
+						}
+					}
+				}
+			}
+		} elseif ($isOccupationExport) {
+			// OCCUPATION EXPORT: Each individual with matching occupation gets their own row
+			// Convert occupations to lowercase array for case-insensitive comparison
+			$lowerOccupations = is_array($occupations) ? array_map('strtolower', $occupations) : [strtolower($occupations)];
+			
+			foreach ($members as $member) {
+				// Get HOF mobile number
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+				
+				// Check member occupation
+				if (!empty($member->occupation) && in_array(strtolower($member->occupation), $lowerOccupations)) {
+					$memberFullName = trim(implode(' ', [
+						($titlesArray[$member->membertitle] ?? ''),
+						$member->firstName,
+						$member->middleName,
+						$member->lastName
+					]));
+					$memberMobile = ($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? '');
+					
+					$sheet->setCellValue('A' . $row, $memberFullName)
+						->setCellValue('B' . $row, $member->memberno ?? '')
+						->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+						->setCellValue('D' . $row, $member->occupation ?? '')
+						->setCellValue('E' . $row, $member->zone->description ?? '');
+					$row++;
+				}
+				
+				// Check spouse occupation
+				if (!empty($member->spouseoccupation) && in_array(strtolower($member->spouseoccupation), $lowerOccupations)) {
+					$spouseFullName = trim(implode(' ', [
+						($titlesArray[$member->spousetitle] ?? ''),
+						$member->spouse_firstName,
+						$member->spouse_middleName,
+						$member->spouse_lastName
+					]));
+					$spouseMobile = ($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? '');
+					
+					$sheet->setCellValue('A' . $row, $spouseFullName)
+						->setCellValue('B' . $row, $member->memberno ?? '')
+						->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+						->setCellValue('D' . $row, $member->spouseoccupation ?? '')
+						->setCellValue('E' . $row, $member->zone->description ?? '');
+					$row++;
+				}
+				
+				// Check dependants occupations if included
+				if ($includeDependants) {
+					foreach ($member->dependants as $dependant) {
+						if (!empty($dependant->occupation) && in_array(strtolower($dependant->occupation), $lowerOccupations)) {
+							$dependantFullName = trim(implode(' ', [
+								($titlesArray[$dependant->titleid] ?? ''),
+								$dependant->dependantname
+							]));
+							$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
+							
+							$sheet->setCellValue('A' . $row, $dependantFullName)
+								->setCellValue('B' . $row, $member->memberno ?? '')
+								->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
+								->setCellValue('D' . $row, $dependant->occupation ?? '')
+								->setCellValue('E' . $row, $member->zone->description ?? '');
+							$row++;
+						}
+					}
+				}
+			}
+		} elseif ($isHeadOfFamilyExport) {
+			// HEAD OF FAMILY EXPORT: One row per family with HOF information
+			foreach ($members as $member) {
+				$memberFullName = trim(implode(' ', [
+					($titlesArray[$member->membertitle] ?? ''),
+					$member->firstName,
+					$member->middleName,
+					$member->lastName
+				]));
+				
+				$spouseFullName = trim(implode(' ', [
+					($titlesArray[$member->spousetitle] ?? ''),
+					$member->spouse_firstName,
+					$member->spouse_middleName,
+					$member->spouse_lastName
+				]));
+
+				$name = ($member->head_of_family === 's') ? $spouseFullName : $memberFullName;
+								
+				// Determine HOF mobile based on head_of_family value
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+								
+				$sheet->setCellValue('A' . $row, $name)
+					->setCellValue('B' . $row, $member->memberno ?? '')
+					->setCellValue('C' . $row, !empty($hofMobile) ? "\t" . $hofMobile : '')
+					->setCellValue('D' . $row, $member->zone->description ?? '');
+				$row++;
+			}
+		} else {
+			// GENERAL EXPORT: Original functionality with merged cells
+			$lastColumn = $includeDependants ? 'AN' : 'X';
+			
+			foreach ($members as $member) {
+				// Get HOF mobile number
+				$hofMobile = ($member->head_of_family === 's') 
+					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
+					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+				
+				// Calculate ages
+				$memberAge = !empty($member->member_dob) ? $this->calculateAge($member->member_dob) : '';
+				$spouseAge = !empty($member->spouse_dob) ? $this->calculateAge($member->spouse_dob) : '';
 
 			// Build full names
 			$memberFullName = trim(implode(' ', [
@@ -5592,7 +6118,7 @@ class MemberController extends BaseController
 				$member->business_pincode
 			]));
 
-			// Format phone numbers
+			// Format phone numbers with HOF fallback
 			$memberMobileNumber = ($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? '');
 			$memberSpouseNumber = ($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? '');
 
@@ -5623,7 +6149,7 @@ class MemberController extends BaseController
 				->setCellValue('C' . $row, !empty($member->memberdate) ? date_format(date_create($member->memberdate), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
 				->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
 				->setCellValue('E' . $row, $memberAge)
-				->setCellValue('F' . $row, !empty($memberMobileNumber) ? "\t" . $memberMobileNumber : '')
+				->setCellValue('F' . $row, !empty($memberMobileNumber) ? "\t" . $memberMobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 				->setCellValue('G' . $row, $member->member_email ?? '')
 				->setCellValue('H' . $row, $member->occupation ?? '')
 				->setCellValue('I' . $row, $memberActive)
@@ -5631,7 +6157,7 @@ class MemberController extends BaseController
 				->setCellValue('K' . $row, $spouseFullName)
 				->setCellValue('L' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
 				->setCellValue('M' . $row, $spouseAge)
-				->setCellValue('N' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : '')
+				->setCellValue('N' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 				->setCellValue('O' . $row, $member->spouseoccupation ?? '')
 				->setCellValue('P' . $row, $spouseActive)
 				->setCellValue('Q' . $row, $spouseConfirmed)
@@ -5653,7 +6179,7 @@ class MemberController extends BaseController
 							$dependant->dependantname
 						]));
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
-						$dependants[$dependant->id]['mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : '';
+						$dependants[$dependant->id]['mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : '');
 						$dependants[$dependant->id]['relation'] = $dependant->relation;
 						$dependants[$dependant->id]['dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
 						$dependants[$dependant->id]['age'] = $dependantAge;
@@ -5672,7 +6198,7 @@ class MemberController extends BaseController
 							$dependant->dependantname
 						]));
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
-						$dependants[$dependant->dependantid]['spouse_mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : '';
+						$dependants[$dependant->dependantid]['spouse_mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : '');
 						$dependants[$dependant->dependantid]['spouse_dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
 						$dependants[$dependant->dependantid]['spouse_age'] = $spouseDependantAge;
 						$dependants[$dependant->dependantid]['spouse_occupation'] = $dependant->occupation ?? '';
@@ -5729,36 +6255,54 @@ class MemberController extends BaseController
 				->setCellValue('X' . $row, $updateUser);
 			$row++;
 		}
-	}
+			} // end foreach ($members as $member)
+		} // end else (general export)
 
-	// Set column widths
-	// Generate column range from A to lastColumn (handles multi-character columns like AA, AB, etc.)
-	$columns = [];
-	$currentCol = 'A';
-	while (true) {
-		$columns[] = $currentCol;
-		if ($currentCol === $lastColumn) {
-			break;
-		}
-		$currentCol++;
-	}
-	
-	foreach ($columns as $columnID) {
-		// Wide columns for addresses, last updated date, and longer text (Update User column)
-		if (in_array($columnID, ['T', 'U', 'AA', 'AH', 'AM', 'AN'])) {
-			$sheet->getColumnDimension($columnID)->setWidth(35);
-			// if dependants are not included then W and X are last updated date and user columns, so make them wide as well. If dependants are included, those columns are for dependant name and relation, which can be shorter.
-			if (!$includeDependants && in_array($columnID, ['W', 'X'])) {
-				$sheet->getColumnDimension($columnID)->setWidth(35);
+		// Set column widths
+		// Generate column range from A to lastColumn (handles multi-character columns like AA, AB, etc.)
+		$columns = [];
+		$currentCol = 'A';
+		while (true) {
+			$columns[] = $currentCol;
+			if ($currentCol === $lastColumn) {
+				break;
 			}
-			// Medium columns for phone numbers, anniversary, occupation
-		} elseif (in_array($columnID, ['F', 'H', 'N', 'O', 'S', 'AB', 'AI', 'AL'])) {
-			$sheet->getColumnDimension($columnID)->setWidth(25);
-		} else {
-			// Standard columns for everything else
-			$sheet->getColumnDimension($columnID)->setWidth(20);
+			$currentCol++;
 		}
-	}
+		
+		// Set column widths based on export type
+		if ($isBirthdayExport || $isAnniversaryExport) {
+			// Simple column widths for birthday/anniversary exports
+			foreach ($columns as $columnID) {
+				if (in_array($columnID, ['A', 'B', 'F'])) {
+					// Name, Spouse Name, Zone columns
+					$sheet->getColumnDimension($columnID)->setWidth(30);
+				} elseif (in_array($columnID, ['C', 'D', 'E'])) {
+					// Membership Number, Phone, Date, Age columns
+					$sheet->getColumnDimension($columnID)->setWidth(20);
+				} else {
+					$sheet->getColumnDimension($columnID)->setWidth(20);
+				}
+			}
+		} else {
+			// Original column widths for general export
+			foreach ($columns as $columnID) {
+				// Wide columns for addresses, last updated date, and longer text (Update User column)
+				if (in_array($columnID, ['T', 'U', 'AA', 'AH', 'AM', 'AN'])) {
+					$sheet->getColumnDimension($columnID)->setWidth(35);
+					// if dependants are not included then W and X are last updated date and user columns, so make them wide as well. If dependants are included, those columns are for dependant name and relation, which can be shorter.
+					if (!$includeDependants && in_array($columnID, ['W', 'X'])) {
+						$sheet->getColumnDimension($columnID)->setWidth(35);
+					}
+					// Medium columns for phone numbers, anniversary, occupation
+				} elseif (in_array($columnID, ['F', 'H', 'N', 'O', 'S', 'AB', 'AI', 'AL'])) {
+					$sheet->getColumnDimension($columnID)->setWidth(25);
+				} else {
+					// Standard columns for everything else
+					$sheet->getColumnDimension($columnID)->setWidth(20);
+				}
+			}
+		}
 
 		// Add borders
 		foreach (range(1, ($row - 1)) as $rowId) {
@@ -5771,6 +6315,38 @@ class MemberController extends BaseController
 
 		// Generate filename with filter info
 		$filenameParts = ['members'];
+		
+		if ($isBirthdayExport) {
+			$filenameParts[] = 'birthday';
+		} elseif ($isAnniversaryExport) {
+			$filenameParts[] = 'anniversary';
+		} elseif ($isAgeRangeExport) {
+			$filenameParts[] = 'age_range';
+			if (!empty($ageFrom) || !empty($ageTo)) {
+				$filenameParts[] = $ageFrom . '_to_' . $ageTo;
+			}
+		} elseif ($isOccupationExport) {
+			$filenameParts[] = 'occupation';
+			if (!empty($occupations)) {
+				// Handle array of occupations
+				if (is_array($occupations)) {
+					if (count($occupations) <= 3) {
+						// Include all occupation names if 3 or fewer
+						$filenameParts[] = implode('_', array_map(function($occ) {
+							return str_replace(' ', '_', $occ);
+						}, $occupations));
+					} else {
+						// Just indicate multiple if more than 3
+						$filenameParts[] = 'multiple_' . count($occupations);
+					}
+				} else {
+					$filenameParts[] = str_replace(' ', '_', $occupations);
+				}
+			}
+		} elseif ($isHeadOfFamilyExport) {
+			$filenameParts[] = 'head_of_families';
+		}
+		
 		if (!empty($membershipType)) {
 			$filenameParts[] = 'type_' . str_replace(' ', '_', $membershipType);
 		}
@@ -5778,10 +6354,10 @@ class MemberController extends BaseController
 			$filenameParts[] = 'member_since';
 		}
 		if (!empty($marriageMonth)) {
-			$filenameParts[] = 'marriage_month_' . $marriageMonth;
+			$filenameParts[] = 'month_' . $marriageMonth;
 		}
 		if (!empty($birthdayMonth)) {
-			$filenameParts[] = 'birthday_month_' . $birthdayMonth;
+			$filenameParts[] = 'month_' . $birthdayMonth;
 		}
 		if ($includeDependants) {
 			$filenameParts[] = 'with_dependants';
@@ -5810,6 +6386,75 @@ class MemberController extends BaseController
 			return $age;
 		} catch (Exception $e) {
 			return '';
+		}
+	}
+	
+	/**
+	 * Get all unique occupations from members and dependants
+	 * @param int $institutionId
+	 * @return array
+	 */
+	private function getAllOccupations($institutionId)
+	{
+		try {
+			// Get member occupations
+			$memberOccupations = (new \yii\db\Query())
+				->select(['occupation'])
+				->from('member')
+				->where(['institutionid' => $institutionId])
+				->andWhere(['not', ['occupation' => null]])
+				->andWhere(['<>', 'occupation', ''])
+				->distinct()
+				->column();
+			
+			// Get spouse occupations
+			$spouseOccupations = (new \yii\db\Query())
+				->select(['spouseoccupation'])
+				->from('member')
+				->where(['institutionid' => $institutionId])
+				->andWhere(['not', ['spouseoccupation' => null]])
+				->andWhere(['<>', 'spouseoccupation', ''])
+				->distinct()
+				->column();
+			
+			// Get dependant occupations (join with member to filter by institution)
+			$dependantOccupations = (new \yii\db\Query())
+				->select(['d.occupation'])
+				->from(['d' => 'dependant'])
+				->innerJoin(['m' => 'member'], 'd.memberid = m.memberid')
+				->where(['m.institutionid' => $institutionId])
+				->andWhere(['not', ['d.occupation' => null]])
+				->andWhere(['<>', 'd.occupation', ''])
+				->distinct()
+				->column();
+			
+			// Merge all occupations
+			$allOccupations = array_merge($memberOccupations, $spouseOccupations, $dependantOccupations);
+			
+			// Remove empty values
+			$allOccupations = array_filter($allOccupations, function($value) {
+				return !empty(trim($value));
+			});
+			
+			// Case-insensitive deduplication - keep first occurrence of each unique occupation
+			$uniqueOccupations = [];
+			$lowerCaseMap = [];
+			foreach ($allOccupations as $occupation) {
+				$lowerOccupation = strtolower(trim($occupation));
+				if (!isset($lowerCaseMap[$lowerOccupation])) {
+					$lowerCaseMap[$lowerOccupation] = trim($occupation);
+					$uniqueOccupations[] = trim($occupation);
+				}
+			}
+			
+			// Sort case-insensitively
+			sort($uniqueOccupations, SORT_STRING | SORT_FLAG_CASE);
+			
+			// Return as key-value array for dropdown
+			return array_combine($uniqueOccupations, $uniqueOccupations);
+		} catch (Exception $e) {
+			Yii::error('Failed to get occupations: ' . $e->getMessage(), __METHOD__);
+			return [];
 		}
 	}
 }
