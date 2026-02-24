@@ -1462,7 +1462,7 @@ class MemberController extends BaseController
 					}
           $result = [
 							'memberId' => (!empty($value['memberid'])) ? trim($value['memberid']) :'',
-							'memberno' => (!empty($value['memberno'])) ? $value['memberno'] :'',
+							'membershipNumber' => (!empty($value['memberno'])) ? $value['memberno'] :'',
 							'memberName' => (string)preg_replace('!\s+!', ' ', $memberName),
 					    	'memberTitle' => (!empty($value['membertitledescription'])) ? $value['membertitledescription']:'',
 							'memberTitleId' => (!empty($value['membertitle'])) ? $value['membertitle']:'',
@@ -4444,13 +4444,13 @@ class MemberController extends BaseController
 			$result = ExtendedMemberConnection::syncConnections($memberId, $connectionIds);
 			
 			if ($result['success']) {
+				// Get connection details with membership numbers
+				$memberConnections = ExtendedMemberConnection::getMemberConnectionsWithDetails($memberId);
 				$connectionsList = [];
-				foreach ($result['connections'] as $connection) {
+				foreach ($memberConnections as $connection) {
 					$connectionsList[] = [
-						'id' => (string)$connection->id,
-						'memberId' => (string)$connection->member_id,
-						'connectedMemberId' => (string)$connection->connected_member_id,
-						'createdAt' => $connection->created_at
+						'memberId' => (string)$connection['memberId'],
+						'membershipNumber' => (!empty($connection['membershipNumber'])) ? $connection['membershipNumber'] : ''
 					];
 				}
 				
