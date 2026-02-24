@@ -1462,6 +1462,7 @@ class MemberController extends BaseController
 					}
           $result = [
 							'memberId' => (!empty($value['memberid'])) ? trim($value['memberid']) :'',
+							'memberno' => (!empty($value['memberno'])) ? $value['memberno'] :'',
 							'memberName' => (string)preg_replace('!\s+!', ' ', $memberName),
 					    	'memberTitle' => (!empty($value['membertitledescription'])) ? $value['membertitledescription']:'',
 							'memberTitleId' => (!empty($value['membertitle'])) ? $value['membertitle']:'',
