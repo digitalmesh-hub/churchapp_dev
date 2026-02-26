@@ -5872,7 +5872,8 @@ class MemberController extends BaseController
 						if ($matchesBirthday($dependant->dob)) {
 							$dependantFullName = trim(implode(' ', [
 								($titlesArray[$dependant->titleid] ?? ''),
-								$dependant->dependantname
+								$dependant->dependantname,
+								'(Dep)'
 							]));
 							$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 							
@@ -5974,14 +5975,16 @@ class MemberController extends BaseController
 							if ($primaryDependant) {
 								$dependantFullName = trim(implode(' ', [
 									($titlesArray[$primaryDependant->titleid] ?? ''),
-									$primaryDependant->dependantname
+									$primaryDependant->dependantname,
+									'(Dep)'
 								]));
 							}
 							
 							if ($spouseDependant) {
 								$dependantSpouseName = trim(implode(' ', [
 									($titlesArray[$spouseDependant->titleid] ?? ''),
-									$spouseDependant->dependantname
+									$spouseDependant->dependantname,
+									'(Dep)'
 								]));
 							}
 							
@@ -6090,7 +6093,8 @@ class MemberController extends BaseController
 							if ($inRange) {
 								$dependantFullName = trim(implode(' ', [
 									($titlesArray[$dependant->titleid] ?? ''),
-									$dependant->dependantname
+									$dependant->dependantname,
+									'(Dep)'
 								]));
 								$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 								
@@ -6160,7 +6164,8 @@ class MemberController extends BaseController
 						if (!empty($dependant->occupation) && in_array(strtolower($dependant->occupation), $lowerOccupations)) {
 							$dependantFullName = trim(implode(' ', [
 								($titlesArray[$dependant->titleid] ?? ''),
-								$dependant->dependantname
+								$dependant->dependantname,
+								'(Dep)'
 							]));
 							$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 							
