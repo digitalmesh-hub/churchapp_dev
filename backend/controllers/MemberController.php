@@ -2149,8 +2149,8 @@ class MemberController extends BaseController
 		$memberModel = new ExtendedMember();
 		$titleModel      = new ExtendedTitle();
 		$institusionId = $this->currentUser()->institutionid;
-		$titles = CacheHelper::getTitles($institusionId, function() use ($titleModel, $institusionId) {
-			return $titleModel->getActiveTitles($institusionId);
+		$titles = CacheHelper::getAllTitles($institusionId, function() use ($titleModel, $institusionId) {
+			return $titleModel->getAllTitles($institusionId);
 		});
 		$titlesArray = [];
 		if (!empty($titles)) {
