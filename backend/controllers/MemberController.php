@@ -5646,9 +5646,10 @@ class MemberController extends BaseController
 				->setCellValue('B1', 'Membership Number')
 				->setCellValue('C1', 'Phone')
 				->setCellValue('D1', 'Birthdate')
-				->setCellValue('E1', 'Age')
-				->setCellValue('F1', 'Zone');
-			$lastColumn = 'F';
+				->setCellValue('E1', 'Zone')
+				->setCellValue('F1', 'Residential Address')
+				->setCellValue('G1', 'Residential Post code');
+			$lastColumn = 'G';
 		} elseif ($isAnniversaryExport) {
 			// Anniversary export: Name, Spouse Name, Membership Number, Phone, Anniversary Date, Zone
 			$sheet->setCellValue('A1', 'Name')
@@ -5656,8 +5657,10 @@ class MemberController extends BaseController
 				->setCellValue('C1', 'Membership Number')
 				->setCellValue('D1', 'Phone')
 				->setCellValue('E1', 'Anniversary Date')
-				->setCellValue('F1', 'Zone');
-			$lastColumn = 'F';
+				->setCellValue('F1', 'Zone')
+				->setCellValue('G1', 'Residential Address')
+				->setCellValue('H1', 'Residential Post code');
+			$lastColumn = 'H';
 		} elseif ($isAgeRangeExport) {
 			// Age Range export: Name, Membership Number, Phone, Date of Birth, Age, Occupation, Zone
 			$sheet->setCellValue('A1', 'Name')
@@ -5815,6 +5818,14 @@ class MemberController extends BaseController
 					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
 					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
 				
+				$member->residence_pincode;
+				$residentialAddress = trim(implode(' ', [
+					$member->residence_address1,
+					$member->residence_address2,
+					$member->residence_address3,
+					$member->residence_district,
+					$member->residence_state
+				]));
 				// Check member birthday
 				if ($matchesBirthday($member->member_dob)) {
 					$memberFullName = trim(implode(' ', [
@@ -5824,14 +5835,14 @@ class MemberController extends BaseController
 						$member->lastName
 					]));
 					$memberMobile = ($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? '');
-					$memberAge = $this->calculateAge($member->member_dob);
 					
 					$sheet->setCellValue('A' . $row, $memberFullName)
 						->setCellValue('B' . $row, $member->memberno ?? '')
 						->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 						->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), $dateFormat) : '')
-						->setCellValue('E' . $row, $memberAge)
-						->setCellValue('F' . $row, $member->zone->description ?? '');
+						->setCellValue('E' . $row, $member->zone->description ?? '')
+						->setCellValue('F' . $row, $residentialAddress)
+						->setCellValue('G' . $row, $member->residence_pincode ?? '');
 					$row++;
 				}
 				
@@ -5844,14 +5855,14 @@ class MemberController extends BaseController
 						$member->spouse_lastName
 					]));
 					$spouseMobile = ($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? '');
-					$spouseAge = $this->calculateAge($member->spouse_dob);
 					
 					$sheet->setCellValue('A' . $row, $spouseFullName)
 						->setCellValue('B' . $row, $member->memberno ?? '')
 						->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 						->setCellValue('D' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
-						->setCellValue('E' . $row, $spouseAge)
-						->setCellValue('F' . $row, $member->zone->description ?? '');
+						->setCellValue('E' . $row, $member->zone->description ?? '')
+						->setCellValue('F' . $row, $residentialAddress)
+						->setCellValue('G' . $row, $member->residence_pincode ?? '');
 					$row++;
 				}
 				
@@ -5864,14 +5875,14 @@ class MemberController extends BaseController
 								$dependant->dependantname
 							]));
 							$dependantMobile = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
-							$dependantAge = !empty($dependant->dob) ? $this->calculateAge($dependant->dob) : '';
 							
 							$sheet->setCellValue('A' . $row, $dependantFullName)
 								->setCellValue('B' . $row, $member->memberno ?? '')
 								->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 								->setCellValue('D' . $row, !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '')
-								->setCellValue('E' . $row, $dependantAge)
-								->setCellValue('F' . $row, $member->zone->description ?? '');
+								->setCellValue('E' . $row, $member->zone->description ?? '')
+								->setCellValue('F' . $row, $residentialAddress)
+								->setCellValue('G' . $row, $member->residence_pincode ?? '');
 							$row++;
 						}
 					}
@@ -5884,6 +5895,14 @@ class MemberController extends BaseController
 				$hofMobile = ($member->head_of_family === 's') 
 					? (($member->spouse_mobile1_countrycode ?? '') . ($member->spouse_mobile1 ?? ''))
 					: (($member->member_mobile1_countrycode ?? '') . ($member->member_mobile1 ?? ''));
+
+				$residentialAddress = trim(implode(' ', [
+					$member->residence_address1,
+					$member->residence_address2,
+					$member->residence_address3,
+					$member->residence_district,
+					$member->residence_state
+				]));
 				
 				// Check member anniversary
 				if ($matchesAnniversary($member->dom)) {
@@ -5905,7 +5924,9 @@ class MemberController extends BaseController
 						->setCellValue('C' . $row, $member->memberno ?? '')
 						->setCellValue('D' . $row, !empty($hofMobile) ? "\t" . $hofMobile : '')
 						->setCellValue('E' . $row, !empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : '')
-						->setCellValue('F' . $row, $member->zone->description ?? '');
+						->setCellValue('F' . $row, $member->zone->description ?? '')
+						->setCellValue('G' . $row, $residentialAddress)
+						->setCellValue('H' . $row, $member->residence_pincode ?? '');
 					$row++;
 				}
 				
@@ -5978,7 +5999,9 @@ class MemberController extends BaseController
 								->setCellValue('C' . $row, $member->memberno ?? '')
 								->setCellValue('D' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 								->setCellValue('E' . $row, !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), $dateFormat) : '')
-								->setCellValue('F' . $row, $member->zone->description ?? '');
+								->setCellValue('F' . $row, $member->zone->description ?? '')
+								->setCellValue('G' . $row, $residentialAddress)
+								->setCellValue('H' . $row, $member->residence_pincode ?? '');
 							$row++;
 							
 							// Mark both dependants as processed
