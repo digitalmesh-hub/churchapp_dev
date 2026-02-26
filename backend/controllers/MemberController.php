@@ -46,6 +46,8 @@ use common\helpers\CacheHelper;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 /**
  * MemberController implements the CRUD actions for ExtendedMember model.
@@ -5838,9 +5840,22 @@ class MemberController extends BaseController
 					
 					$sheet->setCellValue('A' . $row, $memberFullName)
 						->setCellValue('B' . $row, $member->memberno ?? '')
-						->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-						->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), $dateFormat) : '')
-						->setCellValue('E' . $row, $member->zone->description ?? '')
+						->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+					
+					// Set birthdate as Excel date for proper sorting (day-month only, current year)
+					if (!empty($member->member_dob)) {
+						$dobTimestamp = strtotime($member->member_dob);
+						$currentYear = date('Y');
+						$month = date('m', $dobTimestamp);
+						$day = date('d', $dobTimestamp);
+						$currentYearDate = strtotime("$currentYear-$month-$day");
+						$sheet->setCellValue('D' . $row, Date::PHPToExcel($currentYearDate));
+						$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM');
+					} else {
+						$sheet->setCellValue('D' . $row, '');
+					}
+					
+					$sheet->setCellValue('E' . $row, $member->zone->description ?? '')
 						->setCellValue('F' . $row, $residentialAddress)
 						->setCellValue('G' . $row, $member->residence_pincode ?? '');
 					$row++;
@@ -5858,9 +5873,22 @@ class MemberController extends BaseController
 					
 					$sheet->setCellValue('A' . $row, $spouseFullName)
 						->setCellValue('B' . $row, $member->memberno ?? '')
-						->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-						->setCellValue('D' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
-						->setCellValue('E' . $row, $member->zone->description ?? '')
+						->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+					
+					// Set birthdate as Excel date for proper sorting (day-month only, current year)
+					if (!empty($member->spouse_dob)) {
+						$dobTimestamp = strtotime($member->spouse_dob);
+						$currentYear = date('Y');
+						$month = date('m', $dobTimestamp);
+						$day = date('d', $dobTimestamp);
+						$currentYearDate = strtotime("$currentYear-$month-$day");
+						$sheet->setCellValue('D' . $row, Date::PHPToExcel($currentYearDate));
+						$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM');
+					} else {
+						$sheet->setCellValue('D' . $row, '');
+					}
+					
+					$sheet->setCellValue('E' . $row, $member->zone->description ?? '')
 						->setCellValue('F' . $row, $residentialAddress)
 						->setCellValue('G' . $row, $member->residence_pincode ?? '');
 					$row++;
@@ -5879,9 +5907,22 @@ class MemberController extends BaseController
 							
 							$sheet->setCellValue('A' . $row, $dependantFullName)
 								->setCellValue('B' . $row, $member->memberno ?? '')
-								->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-								->setCellValue('D' . $row, !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '')
-								->setCellValue('E' . $row, $member->zone->description ?? '')
+								->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+							
+							// Set birthdate as Excel date for proper sorting (day-month only, current year)
+							if (!empty($dependant->dob)) {
+								$dobTimestamp = strtotime($dependant->dob);
+								$currentYear = date('Y');
+								$month = date('m', $dobTimestamp);
+								$day = date('d', $dobTimestamp);
+								$currentYearDate = strtotime("$currentYear-$month-$day");
+								$sheet->setCellValue('D' . $row, Date::PHPToExcel($currentYearDate));
+								$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM');
+							} else {
+								$sheet->setCellValue('D' . $row, '');
+							}
+							
+							$sheet->setCellValue('E' . $row, $member->zone->description ?? '')
 								->setCellValue('F' . $row, $residentialAddress)
 								->setCellValue('G' . $row, $member->residence_pincode ?? '');
 							$row++;
@@ -5923,9 +5964,22 @@ class MemberController extends BaseController
 					$sheet->setCellValue('A' . $row, $memberFullName)
 						->setCellValue('B' . $row, $spouseFullName)
 						->setCellValue('C' . $row, $member->memberno ?? '')
-						->setCellValue('D' . $row, !empty($hofMobile) ? "\t" . $hofMobile : '')
-						->setCellValue('E' . $row, !empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : '')
-						->setCellValue('F' . $row, $member->zone->description ?? '')
+						->setCellValue('D' . $row, !empty($hofMobile) ? "\t" . $hofMobile : '');
+					
+					// Set anniversary date as Excel date for proper sorting (day-month only, current year)
+					if (!empty($member->dom)) {
+						$domTimestamp = strtotime($member->dom);
+						$currentYear = date('Y');
+						$month = date('m', $domTimestamp);
+						$day = date('d', $domTimestamp);
+						$currentYearDate = strtotime("$currentYear-$month-$day");
+						$sheet->setCellValue('E' . $row, Date::PHPToExcel($currentYearDate));
+						$sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('DD-MMM');
+					} else {
+						$sheet->setCellValue('E' . $row, '');
+					}
+					
+					$sheet->setCellValue('F' . $row, $member->zone->description ?? '')
 						->setCellValue('G' . $row, $residentialAddress)
 						->setCellValue('H' . $row, $member->residence_pincode ?? '');
 					$row++;
@@ -6000,9 +6054,22 @@ class MemberController extends BaseController
 							$sheet->setCellValue('A' . $row, $dependantFullName)
 								->setCellValue('B' . $row, $dependantSpouseName)
 								->setCellValue('C' . $row, $member->memberno ?? '')
-								->setCellValue('D' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-								->setCellValue('E' . $row, !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), $dateFormat) : '')
-								->setCellValue('F' . $row, $member->zone->description ?? '')
+								->setCellValue('D' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+							
+							// Set anniversary date as Excel date for proper sorting (day-month only, current year)
+							if (!empty($dependant->weddinganniversary)) {
+								$annivTimestamp = strtotime($dependant->weddinganniversary);
+								$currentYear = date('Y');
+								$month = date('m', $annivTimestamp);
+								$day = date('d', $annivTimestamp);
+								$currentYearDate = strtotime("$currentYear-$month-$day");
+								$sheet->setCellValue('E' . $row, Date::PHPToExcel($currentYearDate));
+								$sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('DD-MMM');
+							} else {
+								$sheet->setCellValue('E' . $row, '');
+							}
+							
+							$sheet->setCellValue('F' . $row, $member->zone->description ?? '')
 								->setCellValue('G' . $row, $residentialAddress)
 								->setCellValue('H' . $row, $member->residence_pincode ?? '');
 							$row++;
@@ -6045,9 +6112,18 @@ class MemberController extends BaseController
 						
 						$sheet->setCellValue('A' . $row, $memberFullName)
 							->setCellValue('B' . $row, $member->memberno ?? '')
-							->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-							->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), $dateFormat) : '')
-							->setCellValue('E' . $row, $memberAge)
+							->setCellValue('C' . $row, !empty($memberMobile) ? "\t" . $memberMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+						
+						// Set birthdate as Excel date for proper sorting
+						if (!empty($member->member_dob)) {
+							$dobTimestamp = strtotime($member->member_dob);
+							$sheet->setCellValue('D' . $row, Date::PHPToExcel($dobTimestamp));
+							$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+						} else {
+							$sheet->setCellValue('D' . $row, '');
+						}
+						
+						$sheet->setCellValue('E' . $row, $memberAge)
 							->setCellValue('F' . $row, $member->occupation ?? '')
 							->setCellValue('G' . $row, $member->zone->description ?? '');
 						$row++;
@@ -6072,9 +6148,18 @@ class MemberController extends BaseController
 						
 						$sheet->setCellValue('A' . $row, $spouseFullName)
 							->setCellValue('B' . $row, $member->memberno ?? '')
-							->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-							->setCellValue('D' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
-							->setCellValue('E' . $row, $spouseAge)
+							->setCellValue('C' . $row, !empty($spouseMobile) ? "\t" . $spouseMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+						
+						// Set birthdate as Excel date for proper sorting
+						if (!empty($member->spouse_dob)) {
+							$dobTimestamp = strtotime($member->spouse_dob);
+							$sheet->setCellValue('D' . $row, Date::PHPToExcel($dobTimestamp));
+							$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+						} else {
+							$sheet->setCellValue('D' . $row, '');
+						}
+						
+						$sheet->setCellValue('E' . $row, $spouseAge)
 							->setCellValue('F' . $row, $member->spouseoccupation ?? '')
 							->setCellValue('G' . $row, $member->zone->description ?? '');
 						$row++;
@@ -6100,9 +6185,18 @@ class MemberController extends BaseController
 								
 								$sheet->setCellValue('A' . $row, $dependantFullName)
 									->setCellValue('B' . $row, $member->memberno ?? '')
-									->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
-									->setCellValue('D' . $row, !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '')
-									->setCellValue('E' . $row, $dependantAge)
+									->setCellValue('C' . $row, !empty($dependantMobile) ? "\t" . $dependantMobile : (!empty($hofMobile) ? "\t" . $hofMobile : ''));
+								
+								// Set birthdate as Excel date for proper sorting
+								if (!empty($dependant->dob)) {
+									$dobTimestamp = strtotime($dependant->dob);
+									$sheet->setCellValue('D' . $row, Date::PHPToExcel($dobTimestamp));
+									$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+								} else {
+									$sheet->setCellValue('D' . $row, '');
+								}
+								
+								$sheet->setCellValue('E' . $row, $dependantAge)
 									->setCellValue('F' . $row, $dependant->occupation ?? '')
 									->setCellValue('G' . $row, $member->zone->description ?? '');
 								$row++;
@@ -6284,25 +6378,60 @@ class MemberController extends BaseController
 
 			// Write member details
 			$sheet->setCellValue('A' . $row, $member->memberno ?? '')
-				->setCellValue('B' . $row, $memberFullName)
-				->setCellValue('C' . $row, !empty($member->memberdate) ? date_format(date_create($member->memberdate), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('D' . $row, !empty($member->member_dob) ? date_format(date_create($member->member_dob), Yii::$app->params['dateFormat']['viewDateFormat']) : '')
-				->setCellValue('E' . $row, $memberAge)
+				->setCellValue('B' . $row, $memberFullName);
+			
+			// Member Since Date as Excel date
+			if (!empty($member->memberdate)) {
+				$memberDateTimestamp = strtotime($member->memberdate);
+				$sheet->setCellValue('C' . $row, Date::PHPToExcel($memberDateTimestamp));
+				$sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+			} else {
+				$sheet->setCellValue('C' . $row, '');
+			}
+			
+			// Member DOB as Excel date
+			if (!empty($member->member_dob)) {
+				$memberDobTimestamp = strtotime($member->member_dob);
+				$sheet->setCellValue('D' . $row, Date::PHPToExcel($memberDobTimestamp));
+				$sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+			} else {
+				$sheet->setCellValue('D' . $row, '');
+			}
+			
+			$sheet->setCellValue('E' . $row, $memberAge)
 				->setCellValue('F' . $row, !empty($memberMobileNumber) ? "\t" . $memberMobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 				->setCellValue('G' . $row, $member->member_email ?? '')
 				->setCellValue('H' . $row, $member->occupation ?? '')
 				->setCellValue('I' . $row, $memberActive)
 				->setCellValue('J' . $row, $memberConfirmed)
-				->setCellValue('K' . $row, $spouseFullName)
-				->setCellValue('L' . $row, !empty($member->spouse_dob) ? date_format(date_create($member->spouse_dob), $dateFormat) : '')
-				->setCellValue('M' . $row, $spouseAge)
+				->setCellValue('K' . $row, $spouseFullName);
+			
+			// Spouse DOB as Excel date
+			if (!empty($member->spouse_dob)) {
+				$spouseDobTimestamp = strtotime($member->spouse_dob);
+				$sheet->setCellValue('L' . $row, Date::PHPToExcel($spouseDobTimestamp));
+				$sheet->getStyle('L' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+			} else {
+				$sheet->setCellValue('L' . $row, '');
+			}
+			
+			$sheet->setCellValue('M' . $row, $spouseAge)
 				->setCellValue('N' . $row, !empty($memberSpouseNumber) ? "\t" . $memberSpouseNumber : (!empty($hofMobile) ? "\t" . $hofMobile : ''))
 				->setCellValue('O' . $row, $member->spouseoccupation ?? '')
 				->setCellValue('P' . $row, $spouseActive)
 				->setCellValue('Q' . $row, $spouseConfirmed)
-				->setCellValue('R' . $row, $headOfFamily)
-				->setCellValue('S' . $row, !empty($member->dom) ? date_format(date_create($member->dom), $dateFormat) : '')
-				->setCellValue('T' . $row, $residentialAddress)
+				->setCellValue('R' . $row, $headOfFamily);
+			
+			// Wedding Anniversary as Excel date
+			if (!empty($member->dom)) {
+				$domTimestamp = strtotime($member->dom);
+				$sheet->setCellValue('S' . $row, Date::PHPToExcel($domTimestamp));
+				$sheet->getStyle('S' . $row)->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+			} else {
+				$sheet->setCellValue('S' . $row, '');
+			}
+			
+			$sheet->setCellValue('T' . $row, $residentialAddress)
 				->setCellValue('U' . $row, $businessAddress)
 				->setCellValue('V' . $row, $member->zone->description ?? '');
 
@@ -6320,12 +6449,14 @@ class MemberController extends BaseController
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 						$dependants[$dependant->id]['mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : '');
 						$dependants[$dependant->id]['relation'] = $dependant->relation;
-						$dependants[$dependant->id]['dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
+						// Store timestamp for Excel date conversion later
+						$dependants[$dependant->id]['dob_timestamp'] = !empty($dependant->dob) ? strtotime($dependant->dob) : null;
 						$dependants[$dependant->id]['age'] = $dependantAge;
 						$dependants[$dependant->id]['occupation'] = $dependant->occupation ?? '';
 						$dependants[$dependant->id]['active'] = isset($dependant->active) ? ($dependant->active ? 'Yes' : 'No') : '';
 						$dependants[$dependant->id]['confirmed'] = isset($dependant->confirmed) ? ($dependant->confirmed ? 'Yes' : 'No') : '';
-						$dependants[$dependant->id]['weddinganniversary'] = !empty($dependant->weddinganniversary) ? date_format(date_create($dependant->weddinganniversary), $dateFormat) : '';
+						// Store timestamp for Excel date conversion later
+						$dependants[$dependant->id]['weddinganniversary_timestamp'] = !empty($dependant->weddinganniversary) ? strtotime($dependant->weddinganniversary) : null;
 					} else {
 						// Dependant's spouse
 						if (empty($dependants[$dependant->dependantid])) {
@@ -6338,7 +6469,8 @@ class MemberController extends BaseController
 						]));
 						$mobileNumber = ($dependant->dependantmobilecountrycode ?? '') . ($dependant->dependantmobile ?? '');
 						$dependants[$dependant->dependantid]['spouse_mobile'] = !empty($mobileNumber) ? "\t" . $mobileNumber : (!empty($hofMobile) ? "\t" . $hofMobile : '');
-						$dependants[$dependant->dependantid]['spouse_dob'] = !empty($dependant->dob) ? date_format(date_create($dependant->dob), $dateFormat) : '';
+						// Store timestamp for Excel date conversion later
+						$dependants[$dependant->dependantid]['spouse_dob_timestamp'] = !empty($dependant->dob) ? strtotime($dependant->dob) : null;
 						$dependants[$dependant->dependantid]['spouse_age'] = $spouseDependantAge;
 						$dependants[$dependant->dependantid]['spouse_occupation'] = $dependant->occupation ?? '';
 						$dependants[$dependant->dependantid]['spouse_active'] = isset($dependant->active) ? ($dependant->active ? 'Yes' : 'No') : '';
@@ -6352,21 +6484,44 @@ class MemberController extends BaseController
 						continue;
 					}
 				$sheet->setCellValue('W' . ($row + $i), $dependant['name'])
-					->setCellValue('X' . ($row + $i), $dependant['relation'])
-					->setCellValue('Y' . ($row + $i), $dependant['dob'])
-					->setCellValue('Z' . ($row + $i), $dependant['age'])
+					->setCellValue('X' . ($row + $i), $dependant['relation']);
+				
+				// Dependant DOB as Excel date
+				if (!empty($dependant['dob_timestamp'])) {
+					$sheet->setCellValue('Y' . ($row + $i), Date::PHPToExcel($dependant['dob_timestamp']));
+					$sheet->getStyle('Y' . ($row + $i))->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+				} else {
+					$sheet->setCellValue('Y' . ($row + $i), '');
+				}
+				
+				$sheet->setCellValue('Z' . ($row + $i), $dependant['age'])
 					->setCellValue('AA' . ($row + $i), $dependant['mobile'])
 					->setCellValue('AB' . ($row + $i), $dependant['occupation'])
 					->setCellValue('AC' . ($row + $i), $dependant['active'])
 					->setCellValue('AD' . ($row + $i), $dependant['confirmed'])
-					->setCellValue('AE' . ($row + $i), $dependant['spouse_name'] ?? '')
-					->setCellValue('AF' . ($row + $i), $dependant['spouse_dob'] ?? '')
-					->setCellValue('AG' . ($row + $i), $dependant['spouse_age'] ?? '')
+					->setCellValue('AE' . ($row + $i), $dependant['spouse_name'] ?? '');
+				
+				// Dependant Spouse DOB as Excel date
+				if (!empty($dependant['spouse_dob_timestamp'])) {
+					$sheet->setCellValue('AF' . ($row + $i), Date::PHPToExcel($dependant['spouse_dob_timestamp']));
+					$sheet->getStyle('AF' . ($row + $i))->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+				} else {
+					$sheet->setCellValue('AF' . ($row + $i), '');
+				}
+				
+				$sheet->setCellValue('AG' . ($row + $i), $dependant['spouse_age'] ?? '')
 					->setCellValue('AH' . ($row + $i), $dependant['spouse_mobile'] ?? '')
 					->setCellValue('AI' . ($row + $i), $dependant['spouse_occupation'] ?? '')
 					->setCellValue('AJ' . ($row + $i), $dependant['spouse_active'] ?? '')
-					->setCellValue('AK' . ($row + $i), $dependant['spouse_confirmed'] ?? '')
-					->setCellValue('AL' . ($row + $i), $dependant['weddinganniversary']);
+					->setCellValue('AK' . ($row + $i), $dependant['spouse_confirmed'] ?? '');
+				
+				// Dependant Wedding Anniversary as Excel date
+				if (!empty($dependant['weddinganniversary_timestamp'])) {
+					$sheet->setCellValue('AL' . ($row + $i), Date::PHPToExcel($dependant['weddinganniversary_timestamp']));
+					$sheet->getStyle('AL' . ($row + $i))->getNumberFormat()->setFormatCode('DD-MMM-YYYY');
+				} else {
+					$sheet->setCellValue('AL' . ($row + $i), '');
+				}
 			$i++;
 		}
 
