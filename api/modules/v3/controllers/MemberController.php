@@ -33,6 +33,8 @@ use common\models\basemodels\Member;
 use yii\web\UnauthorizedHttpException;
 use yii\base\ActionEvent;
 use yii\helpers\Url;
+use common\models\extendedmodels\ExtendedTitle;
+use common\helpers\CacheHelper;
 
 class MemberController extends BaseController
 {
@@ -2053,9 +2055,11 @@ class MemberController extends BaseController
 		$dependantImageThumbnail = $request->getBodyParam('dependantImageThumbnail');
 		$dependantSpouseImage = $request->getBodyParam('dependantSpouseImage');
 		$dependantSpouseImageThumbnail = $request->getBodyParam('dependantSpouseImageThumbnail');
+
 		if ($memberId) {
 			$memberId = filter_var($memberId, FILTER_SANITIZE_NUMBER_INT);
 			$existingMember = ExtendedMember::getExistingMemberDetails($memberId);
+			$institusionId = Yii::$app->user->identity->institutionid;
 			$userId = Yii::$app->user->identity->id;
 			if($userId) {
 				// 					$isApproved = ExtendedTempmember::isTempMemberApproved($memberId) ; 
@@ -2131,7 +2135,14 @@ class MemberController extends BaseController
                             
                         }
 						$changeBit = $this->checkThereIsAnyChanage($postDetails,$memberImages,$spouseImages) ? 0 : 1;
-
+						$titleModel      = new ExtendedTitle();
+						$titles = CacheHelper::getAllTitles($institusionId, function() use ($titleModel, $institusionId) {
+							return $titleModel->getAllTitles($institusionId);
+						});
+						$titlesArray = [];
+						if (!empty($titles)) {
+							$titlesArray =	ArrayHelper::map($titles, 'TitleId', 'Description');
+						}
 						$bachInsert = [];
 						$fields     = [
 							'tempmemberid',
@@ -2180,7 +2191,7 @@ class MemberController extends BaseController
 									$bachInsert[] = [
 										$memberId,
 										$value['dependantId'],
-										$value['dependantTitleId'],
+										isset($titlesArray[$value['dependantTitleId']]) ? $value['dependantTitleId'] : null,
 										$value['dependantName'],
 										$value['dependantMobileCountryCode'] ?? NULL, 
 										$value['dependantMobile'] ?? NULL, 
@@ -2213,7 +2224,7 @@ class MemberController extends BaseController
 									$bachInsert[] = [
 										$memberId,
 										$newMemberDependantId,
-										$value['dependantTitleId'],
+										isset($titlesArray[$value['dependantTitleId']]) ? $value['dependantTitleId'] : null,
 										$value['dependantName'],
 										$value['dependantMobileCountryCode'] ?? NULL,
 										$value['dependantMobile'] ?? NULL,
@@ -2254,7 +2265,7 @@ class MemberController extends BaseController
 									$bachInsert[] = [
 											$memberId,
 											$value['dependantSpouseId'],
-											$value['dependantSpouseTitleId'],
+											isset($titlesArray[$value['dependantSpouseTitleId']]) ? $value['dependantSpouseTitleId'] : null,
 											$value['dependantSpouseName'],
 											$value['dependantSpouseMobileCountryCode'] ?? NULL,
 											$value['dependantSpouseMobile'] ?? NULL,
@@ -2286,7 +2297,7 @@ class MemberController extends BaseController
 									$bachInsert[] = [
 										$memberId,
 										$newSpouseDependantId,
-										$value['dependantSpouseTitleId'],
+										isset($titlesArray[$value['dependantSpouseTitleId']]) ? $value['dependantSpouseTitleId'] : null,
 										$value['dependantSpouseName'],
 										$value['dependantSpouseMobileCountryCode'] ?? NULL,
 										$value['dependantSpouseMobile'] ?? NULL,
