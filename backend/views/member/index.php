@@ -237,15 +237,25 @@
                         </div>
                         <div class="col-md-4">
                            <div class="form-group">
-                              <label>Birthday From Date</label>
-                              <?= Html::input('date', 'birthday_date_from', '', ['class' => 'form-control birthday-date-from']) ?>
-                              <small class="text-muted">Or specify exact date range</small>
+                              <label>Birthday From (Day-Month)</label>
+                              <?= Html::input('text', 'birthday_date_from', '', [
+                                 'class' => 'form-control birthday-date-from day-month-input',
+                                 'placeholder' => 'DD-MM (e.g., 15-01)',
+                                 'maxlength' => '5',
+                                 'title' => 'Enter day-month in DD-MM format (e.g., 15-01 for January 15)'
+                              ]) ?>
+                              <small class="text-muted">Or specify day-month range (DD-MM)</small>
                            </div>
                         </div>
                         <div class="col-md-4">
                            <div class="form-group">
-                              <label>Birthday To Date</label>
-                              <?= Html::input('date', 'birthday_date_to', '', ['class' => 'form-control birthday-date-to']) ?>
+                              <label>Birthday To (Day-Month)</label>
+                              <?= Html::input('text', 'birthday_date_to', '', [
+                                 'class' => 'form-control birthday-date-to day-month-input',
+                                 'placeholder' => 'DD-MM (e.g., 31-01)',
+                                 'maxlength' => '5',
+                                 'title' => 'Enter day-month in DD-MM format (e.g., 31-01 for January 31)'
+                              ]) ?>
                            </div>
                         </div>
                      </div>
@@ -318,15 +328,25 @@
                         </div>
                         <div class="col-md-4">
                            <div class="form-group">
-                              <label>Anniversary From Date</label>
-                              <?= Html::input('date', 'marriage_date_from', '', ['class' => 'form-control marriage-date-from']) ?>
-                              <small class="text-muted">Or specify exact date range</small>
+                              <label>Anniversary From (Day-Month)</label>
+                              <?= Html::input('text', 'marriage_date_from', '', [
+                                 'class' => 'form-control marriage-date-from day-month-input',
+                                 'placeholder' => 'DD-MM (e.g., 15-01)',
+                                 'maxlength' => '5',
+                                 'title' => 'Enter day-month in DD-MM format (e.g., 15-01 for January 15)'
+                              ]) ?>
+                              <small class="text-muted">Or specify day-month range (DD-MM)</small>
                            </div>
                         </div>
                         <div class="col-md-4">
                            <div class="form-group">
-                              <label>Anniversary To Date</label>
-                              <?= Html::input('date', 'marriage_date_to', '', ['class' => 'form-control marriage-date-to']) ?>
+                              <label>Anniversary To (Day-Month)</label>
+                              <?= Html::input('text', 'marriage_date_to', '', [
+                                 'class' => 'form-control marriage-date-to day-month-input',
+                                 'placeholder' => 'DD-MM (e.g., 31-01)',
+                                 'maxlength' => '5',
+                                 'title' => 'Enter day-month in DD-MM format (e.g., 31-01 for January 31)'
+                              ]) ?>
                            </div>
                         </div>
                      </div>
@@ -517,6 +537,73 @@
 
 <?php
 $this->registerJs("
+   // Helper function to validate DD-MM format
+   function isValidDayMonth(dateStr) {
+      if (!dateStr) return true; // Empty is valid (optional field)
+      
+      // Check basic format DD-MM
+      if (!/^[0-9]{1,2}-[0-9]{1,2}$/.test(dateStr)) {
+         return false;
+      }
+      
+      var parts = dateStr.split('-');
+      var day = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      
+      // Check month is valid (1-12)
+      if (month < 1 || month > 12) {
+         return false;
+      }
+      
+      // Check day is valid (1-31, depending on month)
+      if (day < 1 || day > 31) {
+         return false;
+      }
+      
+      // Days in each month (using non-leap year for Feb since we ignore year)
+      var daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      
+      if (day > daysInMonth[month - 1]) {
+         return false;
+      }
+      
+      return true;
+   }
+   
+   // Helper function to convert DD-MM to MMDD format for comparison
+   function dayMonthToMMDD(dateStr) {
+      if (!dateStr) return '';
+      var parts = dateStr.split('-');
+      var day = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      return month.toString().padStart(2, '0') + day.toString().padStart(2, '0');
+   }
+   
+   // Helper function to validate date range (from must not be after to)
+   function isValidDateRange(fromDate, toDate) {
+      if (!fromDate || !toDate) return true; // Empty is valid
+      
+      var fromMMDD = dayMonthToMMDD(fromDate);
+      var toMMDD = dayMonthToMMDD(toDate);
+      
+      // From must not be later than To (same dates are allowed)
+      if (fromMMDD > toMMDD) {
+         return {
+            valid: false,
+            message: 'From date cannot be later than To date. Please ensure the date range is within the same year (e.g., 01-01 to 31-12).'
+         };
+      }
+      
+      return { valid: true };
+   }
+   
+   // Helper function to format DD-MM date for display
+   function formatDayMonth(dateStr) {
+      if (!dateStr) return '';
+      var parts = dateStr.split('-');
+      return parts[0].padStart(2, '0') + '-' + parts[1].padStart(2, '0');
+   }
+   
    // Handle export form submission for all tabs
    $('.export-btn').on('click', function(e) {
       e.preventDefault();
@@ -529,8 +616,8 @@ $this->registerJs("
       // Validate based on form type
       if (formId === 'birthday-export-form') {
          var birthdayMonth = form.find('.birthday-month').val();
-         var birthdayDateFrom = form.find('.birthday-date-from').val();
-         var birthdayDateTo = form.find('.birthday-date-to').val();
+         var birthdayDateFrom = form.find('.birthday-date-from').val().trim();
+         var birthdayDateTo = form.find('.birthday-date-to').val().trim();
          
          if (!birthdayMonth && !birthdayDateFrom && !birthdayDateTo) {
             alert('Please select a birthday month or date range to export.');
@@ -538,13 +625,32 @@ $this->registerJs("
          }
          
          if ((birthdayDateFrom && !birthdayDateTo) || (!birthdayDateFrom && birthdayDateTo)) {
-            alert('Please specify both From and To dates for birthday date range.');
+            alert('Please specify both From and To day-month for birthday range.');
             return false;
+         }
+         
+         // Validate DD-MM format and date validity
+         if (birthdayDateFrom && !isValidDayMonth(birthdayDateFrom)) {
+            alert('Birthday From date is invalid. Please enter a valid DD-MM format (e.g., 15-01 for January 15th).\\nDay must be 01-31 and Month must be 01-12.');
+            return false;
+         }
+         if (birthdayDateTo && !isValidDayMonth(birthdayDateTo)) {
+            alert('Birthday To date is invalid. Please enter a valid DD-MM format (e.g., 31-01 for January 31st).\\nDay must be 01-31 and Month must be 01-12.');
+            return false;
+         }
+         
+         // Validate date range
+         if (birthdayDateFrom && birthdayDateTo) {
+            var rangeCheck = isValidDateRange(birthdayDateFrom, birthdayDateTo);
+            if (!rangeCheck.valid) {
+               alert(rangeCheck.message);
+               return false;
+            }
          }
       } else if (formId === 'anniversary-export-form') {
          var marriageMonth = form.find('.marriage-month').val();
-         var marriageDateFrom = form.find('.marriage-date-from').val();
-         var marriageDateTo = form.find('.marriage-date-to').val();
+         var marriageDateFrom = form.find('.marriage-date-from').val().trim();
+         var marriageDateTo = form.find('.marriage-date-to').val().trim();
          
          if (!marriageMonth && !marriageDateFrom && !marriageDateTo) {
             alert('Please select an anniversary month or date range to export.');
@@ -552,8 +658,27 @@ $this->registerJs("
          }
          
          if ((marriageDateFrom && !marriageDateTo) || (!marriageDateFrom && marriageDateTo)) {
-            alert('Please specify both From and To dates for anniversary date range.');
+            alert('Please specify both From and To day-month for anniversary range.');
             return false;
+         }
+         
+         // Validate DD-MM format and date validity
+         if (marriageDateFrom && !isValidDayMonth(marriageDateFrom)) {
+            alert('Anniversary From date is invalid. Please enter a valid DD-MM format (e.g., 15-01 for January 15th).\\nDay must be 01-31 and Month must be 01-12.');
+            return false;
+         }
+         if (marriageDateTo && !isValidDayMonth(marriageDateTo)) {
+            alert('Anniversary To date is invalid. Please enter a valid DD-MM format (e.g., 31-01 for January 31st).\\nDay must be 01-31 and Month must be 01-12.');
+            return false;
+         }
+         
+         // Validate date range
+         if (marriageDateFrom && marriageDateTo) {
+            var rangeCheck = isValidDateRange(marriageDateFrom, marriageDateTo);
+            if (!rangeCheck.valid) {
+               alert(rangeCheck.message);
+               return false;
+            }
          }
       } else if (formId === 'age-range-export-form') {
          var ageFrom = form.find('.age-from').val();
@@ -824,6 +949,62 @@ $this->registerJs("
             closeOnSelect: false
          });
       }
+   });
+   
+   // Real-time validation for day-month inputs
+   \$('.day-month-input').on('blur', function() {
+      var input = \$(this);
+      var value = input.val().trim();
+      
+      if (value && !isValidDayMonth(value)) {
+         input.addClass('is-invalid');
+         input.css('border-color', '#dc3545');
+         
+         // Show tooltip or alert
+         var fieldName = input.closest('.form-group').find('label').text();
+         input.attr('title', 'Invalid date: ' + fieldName + ' must be in DD-MM format with valid day (01-31) and month (01-12)');
+      } else {
+         input.removeClass('is-invalid');
+         input.css('border-color', '');
+         input.attr('title', 'Enter day-month in DD-MM format (e.g., 15-01 for January 15)');
+      }
+   });
+   
+   // Track previous value to detect deletion (works on all devices including mobile)
+   var previousValues = {};
+   
+   \$('.day-month-input').on('focus', function() {
+      var input = \$(this);
+      previousValues[input.attr('name')] = input.val();
+   });
+   
+   // Auto-format day-month inputs as user types
+   \$('.day-month-input').on('input', function() {
+      var input = \$(this);
+      var value = input.val();
+      var fieldName = input.attr('name');
+      var previousValue = previousValues[fieldName] || '';
+      
+      // Detect if user is deleting by comparing lengths
+      var isDeleting = value.length < previousValue.length;
+      
+      // Remove any non-digit or dash characters
+      value = value.replace(/[^0-9-]/g, '');
+      
+      // Auto-add dash after 2 digits if not already there (but not when deleting)
+      if (!isDeleting && value.length === 2 && value.indexOf('-') === -1) {
+         value = value + '-';
+      }
+      
+      // Limit to DD-MM format (max 5 chars)
+      if (value.length > 5) {
+         value = value.substring(0, 5);
+      }
+      
+      input.val(value);
+      
+      // Update previous value for next input event
+      previousValues[fieldName] = value;
    });
 ", \yii\web\View::POS_READY);
 ?>

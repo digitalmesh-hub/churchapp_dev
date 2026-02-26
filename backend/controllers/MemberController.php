@@ -5300,14 +5300,41 @@ class MemberController extends BaseController
 		$memberSinceTo = Yii::$app->request->get('member_since_to');
 		$membershipType = Yii::$app->request->get('membership_type');
 		$marriageMonth = Yii::$app->request->get('marriage_month'); // 1-12 or empty
-		$marriageDateFrom = Yii::$app->request->get('marriage_date_from');
-		$marriageDateTo = Yii::$app->request->get('marriage_date_to');
+		$marriageDateFrom = trim(Yii::$app->request->get('marriage_date_from', ''));
+		$marriageDateTo = trim(Yii::$app->request->get('marriage_date_to', ''));
 		$birthdayMonth = Yii::$app->request->get('birthday_month'); // 1-12 or empty
-		$birthdayDateFrom = Yii::$app->request->get('birthday_date_from');
-		$birthdayDateTo = Yii::$app->request->get('birthday_date_to');
+		$birthdayDateFrom = trim(Yii::$app->request->get('birthday_date_from', ''));
+		$birthdayDateTo = trim(Yii::$app->request->get('birthday_date_to', ''));
 		$ageFrom = Yii::$app->request->get('age_from');
 		$ageTo = Yii::$app->request->get('age_to');
 		$occupations = Yii::$app->request->get('occupation'); // Can be array for multi-select
+		
+		// Validate DD-MM format inputs
+		if (!empty($birthdayDateFrom) && !$this->isValidDayMonth($birthdayDateFrom)) {
+			throw new \yii\web\BadRequestHttpException('Invalid birthday from date format. Expected DD-MM format.');
+		}
+		if (!empty($birthdayDateTo) && !$this->isValidDayMonth($birthdayDateTo)) {
+			throw new \yii\web\BadRequestHttpException('Invalid birthday to date format. Expected DD-MM format.');
+		}
+		if (!empty($marriageDateFrom) && !$this->isValidDayMonth($marriageDateFrom)) {
+			throw new \yii\web\BadRequestHttpException('Invalid anniversary from date format. Expected DD-MM format.');
+		}
+		if (!empty($marriageDateTo) && !$this->isValidDayMonth($marriageDateTo)) {
+			throw new \yii\web\BadRequestHttpException('Invalid anniversary to date format. Expected DD-MM format.');
+		}
+		
+		// Validate date ranges
+		if (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
+			if (!$this->isValidDayMonthRange($birthdayDateFrom, $birthdayDateTo)) {
+				throw new \yii\web\BadRequestHttpException('Invalid birthday date range. From and To dates cannot be the same.');
+			}
+		}
+		if (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
+			if (!$this->isValidDayMonthRange($marriageDateFrom, $marriageDateTo)) {
+				throw new \yii\web\BadRequestHttpException('Invalid anniversary date range. From and To dates cannot be the same.');
+			}
+		}
+		
 		$exportHof = Yii::$app->request->get('export_hof');
 		// Handle checkbox - when unchecked, parameter is not sent at all, so default to 0
 		$includeDependants = (int) Yii::$app->request->get('include_dependants', 0); // 1 or 0
@@ -5362,25 +5389,59 @@ class MemberController extends BaseController
 					]);
 				}
 			} elseif (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
+				// Parse DD-MM format (e.g., "15-01" means day 15, month 01)
+				list($fromDay, $fromMonth) = explode('-', $birthdayDateFrom);
+				list($toDay, $toMonth) = explode('-', $birthdayDateTo);
+				
+				// Convert to integer for safety
+				$fromDay = (int)$fromDay;
+				$fromMonth = (int)$fromMonth;
+				$toDay = (int)$toDay;
+				$toMonth = (int)$toMonth;
+				
+				// Create MMDD format for comparison (e.g., 0115 for Jan 15)
+				$fromMMDD = sprintf('%02d%02d', $fromMonth, $fromDay);
+				$toMMDD = sprintf('%02d%02d', $toMonth, $toDay);
+				
 				if ($includeDependants) {
-					// Use subquery to find members with dependants having birthdays in the date range
+					// Use subquery to find members with dependants having birthdays in the day-month range
 					$dependantSubQuery = (new \yii\db\Query())
 						->select('memberid')
 						->from('dependant')
-						->where(['between', 'dob', $birthdayDateFrom, $birthdayDateTo])
+						->where(['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(dob), 2, "0"), LPAD(DAY(dob), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						])
 						->distinct();
 					
 					$query->andWhere([
 						'or',
-						['between', 'member_dob', $birthdayDateFrom, $birthdayDateTo],
-						['between', 'spouse_dob', $birthdayDateFrom, $birthdayDateTo],
+						['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(member_dob), 2, "0"), LPAD(DAY(member_dob), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						],
+						['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(spouse_dob), 2, "0"), LPAD(DAY(spouse_dob), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						],
 						['memberid' => $dependantSubQuery]
 					]);
 				} else {
 					$query->andWhere([
 						'or',
-						['between', 'member_dob', $birthdayDateFrom, $birthdayDateTo],
-						['between', 'spouse_dob', $birthdayDateFrom, $birthdayDateTo]
+						['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(member_dob), 2, "0"), LPAD(DAY(member_dob), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						],
+						['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(spouse_dob), 2, "0"), LPAD(DAY(spouse_dob), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						]
 					]);
 				}
 			}
@@ -5404,21 +5465,47 @@ class MemberController extends BaseController
 					$query->andWhere(['MONTH(dom)' => $marriageMonth]);
 				}
 			} elseif (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
+				// Parse DD-MM format (e.g., "15-01" means day 15, month 01)
+				list($fromDay, $fromMonth) = explode('-', $marriageDateFrom);
+				list($toDay, $toMonth) = explode('-', $marriageDateTo);
+				
+				// Convert to integer for safety
+				$fromDay = (int)$fromDay;
+				$fromMonth = (int)$fromMonth;
+				$toDay = (int)$toDay;
+				$toMonth = (int)$toMonth;
+				
+				// Create MMDD format for comparison (e.g., 0115 for Jan 15)
+				$fromMMDD = sprintf('%02d%02d', $fromMonth, $fromDay);
+				$toMMDD = sprintf('%02d%02d', $toMonth, $toDay);
+				
 				if ($includeDependants) {
-					// Use subquery to find members with dependants having anniversaries in the date range
+					// Use subquery to find members with dependants having anniversaries in the day-month range
 					$dependantSubQuery = (new \yii\db\Query())
 						->select('memberid')
 						->from('dependant')
-						->where(['between', 'weddinganniversary', $marriageDateFrom, $marriageDateTo])
+						->where(['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(weddinganniversary), 2, "0"), LPAD(DAY(weddinganniversary), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						])
 						->distinct();
 					
 					$query->andWhere([
 						'or',
-						['between', 'dom', $marriageDateFrom, $marriageDateTo],
+						['between', 
+							new \yii\db\Expression('CONCAT(LPAD(MONTH(dom), 2, "0"), LPAD(DAY(dom), 2, "0"))'),
+							$fromMMDD,
+							$toMMDD
+						],
 						['memberid' => $dependantSubQuery]
 					]);
 				} else {
-					$query->andWhere(['between', 'dom', $marriageDateFrom, $marriageDateTo]);
+					$query->andWhere(['between', 
+						new \yii\db\Expression('CONCAT(LPAD(MONTH(dom), 2, "0"), LPAD(DAY(dom), 2, "0"))'),
+						$fromMMDD,
+						$toMMDD
+					]);
 				}
 			}
 		}
@@ -5676,7 +5763,19 @@ class MemberController extends BaseController
 				return date('n', strtotime($dob)) == $birthdayMonth;
 			}
 			if (!empty($birthdayDateFrom) && !empty($birthdayDateTo)) {
-				return $dob >= $birthdayDateFrom && $dob <= $birthdayDateTo;
+				// Extract month and day from DOB and convert to MMDD format for comparison
+				$dobTimestamp = strtotime($dob);
+				$dobMonth = date('m', $dobTimestamp); // Two-digit month
+				$dobDay = date('d', $dobTimestamp);   // Two-digit day
+				$dobMMDD = $dobMonth . $dobDay;       // MMDD format (e.g., "0115" for Jan 15)
+				
+				// Convert DD-MM format to MMDD for comparison
+				list($fromDay, $fromMonth) = explode('-', $birthdayDateFrom);
+				list($toDay, $toMonth) = explode('-', $birthdayDateTo);
+				$fromMMDD = sprintf('%02d%02d', (int)$fromMonth, (int)$fromDay);
+				$toMMDD = sprintf('%02d%02d', (int)$toMonth, (int)$toDay);
+				
+				return $dobMMDD >= $fromMMDD && $dobMMDD <= $toMMDD;
 			}
 			return false;
 		};
@@ -5690,7 +5789,19 @@ class MemberController extends BaseController
 				return date('n', strtotime($anniversaryDate)) == $marriageMonth;
 			}
 			if (!empty($marriageDateFrom) && !empty($marriageDateTo)) {
-				return $anniversaryDate >= $marriageDateFrom && $anniversaryDate <= $marriageDateTo;
+				// Extract month and day from anniversary date and convert to MMDD format for comparison
+				$annivTimestamp = strtotime($anniversaryDate);
+				$annivMonth = date('m', $annivTimestamp); // Two-digit month
+				$annivDay = date('d', $annivTimestamp);   // Two-digit day
+				$annivMMDD = $annivMonth . $annivDay;     // MMDD format (e.g., "0115" for Jan 15)
+				
+				// Convert DD-MM format to MMDD for comparison
+				list($fromDay, $fromMonth) = explode('-', $marriageDateFrom);
+				list($toDay, $toMonth) = explode('-', $marriageDateTo);
+				$fromMMDD = sprintf('%02d%02d', (int)$fromMonth, (int)$fromDay);
+				$toMMDD = sprintf('%02d%02d', (int)$toMonth, (int)$toDay);
+				
+				return $annivMMDD >= $fromMMDD && $annivMMDD <= $toMMDD;
 			}
 			return false;
 		};
@@ -6387,6 +6498,82 @@ class MemberController extends BaseController
 		} catch (Exception $e) {
 			return '';
 		}
+	}
+	
+	/**
+	 * Validate DD-MM format date string
+	 * @param string $dateStr Date in DD-MM format (e.g., "15-01" for January 15)
+	 * @return bool True if valid, false otherwise
+	 */
+	private function isValidDayMonth($dateStr)
+	{
+		if (empty($dateStr)) {
+			return true; // Empty is valid (optional field)
+		}
+		
+		// Check basic format DD-MM
+		if (!preg_match('/^[0-9]{1,2}-[0-9]{1,2}$/', $dateStr)) {
+			return false;
+		}
+		
+		$parts = explode('-', $dateStr);
+		if (count($parts) !== 2) {
+			return false;
+		}
+		
+		$day = (int)$parts[0];
+		$month = (int)$parts[1];
+		
+		// Check month is valid (1-12)
+		if ($month < 1 || $month > 12) {
+			return false;
+		}
+		
+		// Check day is valid (1-31, depending on month)
+		if ($day < 1 || $day > 31) {
+			return false;
+		}
+		
+		// Days in each month (using 29 for Feb to allow leap year dates)
+		$daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+		
+		if ($day > $daysInMonth[$month - 1]) {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Validate DD-MM date range
+	 * @param string $fromDate From date in DD-MM format
+	 * @param string $toDate To date in DD-MM format
+	 * @return bool True if valid range, false otherwise
+	 */
+	private function isValidDayMonthRange($fromDate, $toDate)
+	{
+		if (empty($fromDate) || empty($toDate)) {
+			return true; // Empty is valid (optional)
+		}
+		
+		// Both dates must be valid individually first
+		if (!$this->isValidDayMonth($fromDate) || !$this->isValidDayMonth($toDate)) {
+			return false;
+		}
+		
+		// Convert DD-MM to MMDD format for comparison
+		list($fromDay, $fromMonth) = explode('-', $fromDate);
+		list($toDay, $toMonth) = explode('-', $toDate);
+		
+		$fromMMDD = sprintf('%02d%02d', (int)$fromMonth, (int)$fromDay);
+		$toMMDD = sprintf('%02d%02d', (int)$toMonth, (int)$toDay);
+		
+		// From must not be later than To (same dates are allowed)
+		if ($fromMMDD > $toMMDD) {
+			return false; // Cannot cross year boundary
+		}
+		
+		return true;
 	}
 	
 	/**
