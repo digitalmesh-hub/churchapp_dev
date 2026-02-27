@@ -514,7 +514,17 @@ echo Html::hiddenInput(
                                                     </div>
                                             </div>
                                             
-                                            <?php if ($type !="Staff"){?>
+                                            <?php if ($type !="Staff"){
+                                              // Set default values for new records
+                                              if ($model->isNewRecord) {
+                                                  if (!isset($model->active)) {
+                                                      $model->active = 1;
+                                                  }
+                                                  if (!isset($model->confirmed)) {
+                                                      $model->confirmed = 1;
+                                                  }
+                                              }
+                                              ?>
                                               <div class="inlinerow Mtop10">
                                                 <div class="col-md-4 col-sm-5 L32">Active</div>
                                                 <div class="col-md-8 col-sm-7">
@@ -785,10 +795,15 @@ echo Html::hiddenInput(
                                             
                                             <?php if ($type !="Staff"){?>
                                               <?php 
-                                              // Set active_spouse and confirmed_spouse to 0 if spouse details are not provided
-                                              if (empty($model->spousetitle) || empty($model->spouse_firstName)) {
-                                                  $model->active_spouse = 0;
-                                                  $model->confirmed_spouse = 0;
+                                              // Set active_spouse and confirmed_spouse based on context
+                                              if ($model->isNewRecord) {
+                                                // For new records with spouse details, default to checked (1)
+                                                if (!isset($model->active_spouse)) {
+                                                    $model->active_spouse = 1;
+                                                }
+                                                if (!isset($model->confirmed_spouse)) {
+                                                    $model->confirmed_spouse = 1;
+                                                }
                                               }
                                               ?>
                                               <div class="inlinerow Mtop10">
