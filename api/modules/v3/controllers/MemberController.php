@@ -2075,6 +2075,7 @@ class MemberController extends BaseController
 							$tempMemberMailModel = new ExtendedTempmembermail();
 						}
 						//Adding member image to the temporary table
+						$postDetails = $request->post();
 						$memberImages = [];
 						$spouseImages = [];
 						$memberImages['orginal'] = '';
@@ -2093,7 +2094,10 @@ class MemberController extends BaseController
 									$memberImages = $this->fileUpload($image, $targetPath,$thumbnail);
 								}
 							}
-						}else{
+						} else if (!empty($postDetails['memberImageExisting']) && !empty($postDetails['memberImageThumbnailExisting'])) {
+							$memberImages['orginal'] = $postDetails['memberImageExisting'];
+							$memberImages['thumbnail'] = $postDetails['memberImageThumbnailExisting'];
+						} else{
 							$memberImages['orginal'] = $existingMember['member_pic'];
 							$memberImages['thumbnail'] = $existingMember['memberImageThumbnail'];
 						}
@@ -2115,12 +2119,15 @@ class MemberController extends BaseController
 									
 								}
 							}
-						}else{
+						} else if (!empty($postDetails['spouseImageExisting']) && !empty($postDetails['spouseImageThumbnailExisting'])) {
+							$spouseImages['orginal'] = $postDetails['spouseImageExisting'];
+							$spouseImages['thumbnail'] = $postDetails['spouseImageThumbnailExisting'];
+						}  else{
 							$spouseImages['orginal'] = $existingMember['spouse_pic'];
 							$spouseImages['thumbnail'] = $existingMember['spouseImageThumbnail'];
 							
 						}
-						$postDetails = $request->post();
+						
 						if(empty($postDetails['location']['latitude']) && empty($postDetails['location']['longitude'])) {
                             $postDetails['location'] = NULL;
                         }
@@ -2181,7 +2188,10 @@ class MemberController extends BaseController
 								$tempImageThumb = $dependantImages['thumbnail'];
                                 
 								
-							}else{
+							} else if(!empty($value['existingImage']) && !empty($value['existingImageThumb'])) {
+								$tempImage = $value['existingImage'];
+								$tempImageThumb = $value['existingImageThumb'];
+							} else {
                                 
                                 $tempImage = isset($existingDependant['image'])? $existingDependant['image']:'';
                                 $tempImageThumb = isset($existingDependant['thumbnailimage'])?$existingDependant['thumbnailimage']:'';
@@ -2252,7 +2262,10 @@ class MemberController extends BaseController
 								$tempImage = $dependantImages['orginal'];
 								$tempImageThumb = $dependantImages['thumbnail'];
 								
-							}else{
+							} else if(!empty($value['existingImageSpouse']) && !empty($value['existingImageThumbSpouse'])) {
+								$tempImage = $value['existingImageSpouse'];
+								$tempImageThumb = $value['existingImageThumbSpouse'];
+							} else{
 							    if(isset($value['dependantSpouseId'])){
                                     $existingDependant = ExtendedDependant::getExistingDependantDetails($value['dependantSpouseId']);
                                     $tempImage = isset($existingDependant['image'])? $existingDependant['image']:'';
