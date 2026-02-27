@@ -26,8 +26,10 @@
                 'id'=>'delete-member'
         ]
    );
-   
-   ?>
+   if (!isset($occupations)) {
+      $occupations = null; 
+   }
+?>
 <div class="col-md-12 col-sm-12 pageheader Mtop15">
    <?= $typeList ?>
 </div>
@@ -116,9 +118,11 @@
                <li role="presentation">
                   <a href="#age-range-export-tab" aria-controls="age-range-export" role="tab" data-toggle="tab">Age Range</a>
                </li>
+               <?php if (!empty($occupations) && is_array($occupations)): ?>
                <li role="presentation">
                   <a href="#occupation-export-tab" aria-controls="occupation-export" role="tab" data-toggle="tab">Occupation</a>
                </li>
+               <?php endif; ?>
                <li role="presentation">
                   <a href="#hof-export-tab" aria-controls="hof-export" role="tab" data-toggle="tab">Head of Family</a>
                </li>
@@ -443,6 +447,7 @@
                </div>
 
                <!-- Occupation Export Tab -->
+               <?php if (!empty($occupations) && is_array($occupations)): ?>
                <div role="tabpanel" class="tab-pane fade" id="occupation-export-tab">
                   <?php $form = ActiveForm::begin(['action' => ['/member/export-members-filtered'], 'method' => 'get', 'id' => 'occupation-export-form']); ?>
                   
@@ -499,6 +504,7 @@
                   
                   <?php ActiveForm::end(); ?>
                </div>
+               <?php endif; ?>
 
                <!-- Head of Family Export Tab -->
                <div role="tabpanel" class="tab-pane fade" id="hof-export-tab">
