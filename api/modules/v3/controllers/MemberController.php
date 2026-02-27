@@ -2095,8 +2095,8 @@ class MemberController extends BaseController
 								}
 							}
 						} else if (!empty($postDetails['memberImageUrl']) && !empty($postDetails['memberImageThumbnailUrl'])) {
-							$memberImages['orginal'] = $postDetails['memberImageUrl'];
-							$memberImages['thumbnail'] = $postDetails['memberImageThumbnailUrl'];
+							$memberImages['orginal'] = str_replace(Yii::$app->params['imagePath'], '', $postDetails['memberImageUrl']);
+							$memberImages['thumbnail'] = str_replace(Yii::$app->params['imagePath'], '', $postDetails['memberImageThumbnailUrl']);
 						} else{
 							$memberImages['orginal'] = $existingMember['member_pic'];
 							$memberImages['thumbnail'] = $existingMember['memberImageThumbnail'];
@@ -2120,8 +2120,8 @@ class MemberController extends BaseController
 								}
 							}
 						} else if (!empty($postDetails['spouseImageUrl']) && !empty($postDetails['spouseImageThumbnailUrl'])) {
-							$spouseImages['orginal'] = $postDetails['spouseImageUrl'];
-							$spouseImages['thumbnail'] = $postDetails['spouseImageThumbnailUrl'];
+							$spouseImages['orginal'] = str_replace(Yii::$app->params['imagePath'], '', $postDetails['spouseImageUrl']);
+							$spouseImages['thumbnail'] = str_replace(Yii::$app->params['imagePath'], '', $postDetails['spouseImageThumbnailUrl']);
 						}  else{
 							$spouseImages['orginal'] = $existingMember['spouse_pic'];
 							$spouseImages['thumbnail'] = $existingMember['spouseImageThumbnail'];
@@ -2189,8 +2189,8 @@ class MemberController extends BaseController
                                 
 								
 							} else if(!empty($value['dependantImageUrl']) && !empty($value['dependantImageThumbnailUrl'])) {
-								$tempImage = $value['dependantImageUrl'];
-								$tempImageThumb = $value['dependantImageThumbnailUrl'];
+								$tempImage = str_replace(Yii::$app->params['imagePath'], '', $value['dependantImageUrl']);
+								$tempImageThumb = str_replace(Yii::$app->params['imagePath'], '', $value['dependantImageThumbnailUrl']);
 							} else {
                                 
                                 $tempImage = isset($existingDependant['image'])? $existingDependant['image']:'';
@@ -2263,8 +2263,8 @@ class MemberController extends BaseController
 								$tempImageThumb = $dependantImages['thumbnail'];
 								
 							} else if(!empty($value['dependantSpouseImageUrl']) && !empty($value['dependantSpouseImageThumbnailUrl'])) {
-								$tempImage = $value['dependantSpouseImageUrl'];
-								$tempImageThumb = $value['dependantSpouseImageThumbnailUrl'];
+								$tempImage = str_replace(Yii::$app->params['imagePath'], '', $value['dependantSpouseImageUrl']);
+								$tempImageThumb = str_replace(Yii::$app->params['imagePath'], '', $value['dependantSpouseImageThumbnailUrl']);
 							} else{
 							    if(isset($value['dependantSpouseId'])){
                                     $existingDependant = ExtendedDependant::getExistingDependantDetails($value['dependantSpouseId']);
