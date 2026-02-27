@@ -349,15 +349,16 @@ class MemberController extends BaseController
             }
 			$responseSettings = ExtendedSettings::getMemberSettings($memberId);
 
-			if (!empty($tempResponse)) {
+			if (!empty($tempResponse) && is_array($tempResponse)) {
 				$data = new \stdClass();
 				$membershipData = new \stdClass();
 				$businessData = new \stdClass();
 				$alternatePhoneData = new \stdClass();
-				$data->memberId = $memberId?$memberId:'';
-				$membershipData->membershipId = (!empty($tempResponse['temp_memberno'])) ? $tempResponse['temp_memberno']:'';
-				$membershipData->membershipType = (!empty($tempResponse['temp_membershiptype'])) ? $tempResponse['temp_membershiptype']:'';
-				$membershipData->memberSince = (!empty($tempResponse['temp_membersince'])) ? $tempResponse['temp_membersince']:'';
+				$data->memberId = $memberId ?: '';
+				$membershipData->membershipId = $this->getTempOrRegularValue($tempResponse, 'temp_memberno', 'memberno');
+				$membershipData->membershipType = $this->getTempOrRegularValue($tempResponse, 'temp_membershiptype', 'membershiptype');
+				$membershipData->memberSince = $this->getTempOrRegularValue($tempResponse, 'temp_membersince', 'membersince');
+				$membershipData->batch = $this->getTempOrRegularValue($tempResponse, 'temp_batch', 'batch');
 				$data->membershipDetails = $membershipData;
 				
 				$memberCountryCode = '';
@@ -4492,5 +4493,24 @@ class MemberController extends BaseController
 			$this->data = new \stdClass();
 			return new ApiResponse($this->statusCode, $this->data, $this->message);
 		}
+	}
+
+	/**
+	 * Helper method to get value with fallback priority: temp value -> regular value -> default
+	 * @param array $data The data array
+	 * @param string $tempKey The temporary field key
+	 * @param string $regularKey The regular field key
+	 * @param mixed $default Default value if both are empty
+	 * @return mixed
+	 */
+	private function getTempOrRegularValue(array $data, string $tempKey, string $regularKey, $default = '')
+	{
+		if (!empty($data[$tempKey])) {
+			return $data[$tempKey];
+		}
+		if (!empty($data[$regularKey])) {
+			return $data[$regularKey];
+		}
+		return $default;
 	}
 }
