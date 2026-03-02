@@ -36,7 +36,7 @@ class ExtendedZone extends Zone
         return [
             [['description', 'institutionid'], 'required'],
             [['institutionid'], 'integer'],
-            [['description'], 'string', 'max' => 45],
+            [['description'], 'string', 'max' => 255],
             [['active'], 'integer', 'max' => 4],
             [['institutionid'], 'exist', 'skipOnError' => true, 'targetClass' => ExtendedInstitution::className(), 'targetAttribute' => ['institutionid' => 'id']],
         ];

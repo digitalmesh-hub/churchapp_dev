@@ -34,7 +34,7 @@ class Zone extends \yii\db\ActiveRecord
         return [
             [['description', 'institutionid'], 'required'],
             [['institutionid'], 'integer'],
-            [['description'], 'string', 'max' => 45],
+            [['description'], 'string', 'max' => 255],
             [['active'], 'integer', 'max' => 4],
             [['institutionid'], 'exist', 'skipOnError' => true, 'targetClass' => Institution::className(), 'targetAttribute' => ['institutionid' => 'id']],
         ];
