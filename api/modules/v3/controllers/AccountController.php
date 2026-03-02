@@ -372,10 +372,52 @@ class AccountController extends \yii\rest\Controller
                                     $adminCount = $adminCountResponse->value->PrayerRequestCount['count(result.id)'] + $adminCountResponse->value->RSVPCount['sum(result.count)'] + $adminCountResponse->value->ProfileApprovalCount['count(result.id)'] + $adminCountResponse->value->FeedbackCount['count(result.id)'] + $adminCountResponse->value->PendingAlbumCount['count(result.id)'] + $adminCountResponse->value->FoodOrdrCount['ordercount'];
                                     $foodOrderCount = $adminCountResponse->value->FoodOrdrCount['ordercount'];
                                 }
+                                
+                                // Get dependant birthday and anniversary counts
+                                $dependantBirthdayCount = 0;
+                                $dependantAnniversaryCount = 0;
+                                try {
+                                    $institutionId = $response->value['institutionid'];
+                                    $todayMonthDay = date('m-d');
+                                    
+                                    // Count dependant birthdays today
+                                    $dependantBirthdayCount = (int)Yii::$app->db->createCommand(
+                                        "SELECT COUNT(*) as count 
+                                         FROM dependant d
+                                         INNER JOIN member m ON d.memberid = m.memberid
+                                         WHERE m.institutionid = :institutionId 
+                                         AND d.dob IS NOT NULL
+                                         AND d.dependantname IS NOT NULL
+                                         AND d.dependantname != ''
+                                         AND DATE_FORMAT(d.dob, '%m-%d') = :todayMonthDay"
+                                    )
+                                    ->bindValue(':institutionId', $institutionId)
+                                    ->bindValue(':todayMonthDay', $todayMonthDay)
+                                    ->queryScalar();
+                                    
+                                    // Count dependant anniversaries today
+                                    $dependantAnniversaryCount = (int)Yii::$app->db->createCommand(
+                                        "SELECT COUNT(*) as count 
+                                         FROM dependant d
+                                         INNER JOIN member m ON d.memberid = m.memberid
+                                         WHERE m.institutionid = :institutionId 
+                                         AND d.ismarried = 2
+                                         AND d.weddinganniversary IS NOT NULL
+                                         AND d.dependantname IS NOT NULL
+                                         AND d.dependantname != ''
+                                         AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay"
+                                    )
+                                    ->bindValue(':institutionId', $institutionId)
+                                    ->bindValue(':todayMonthDay', $todayMonthDay)
+                                    ->queryScalar();
+                                } catch (\Exception $e) {
+                                    Yii::error("Error getting dependant counts: " . $e->getMessage());
+                                }
+                                
                                 $counts = array(
                                     "announcementCount" => (int)$responseNotificationcount->value['announcementcount'],
-                                    "birthdayCount" => (int)($responseNotificationcount->value['memberbirthday'] + $responseNotificationcount->value['spousebirthday']),
-                                    "anniversaryCount" => (int)$responseNotificationcount->value['weddingannuversery'],
+                                    "birthdayCount" => (int)($responseNotificationcount->value['memberbirthday'] + $responseNotificationcount->value['spousebirthday'] + $dependantBirthdayCount),
+                                    "anniversaryCount" => (int)($responseNotificationcount->value['weddingannuversery'] + $dependantAnniversaryCount),
                                     "eventsCount" => (int)$responseNotificationcount->value['eventcount'],
                                     "conversationCount" => (int)$totalUnreadConversation,
                                     "billsCount" => (int)$unreadbillcount,
