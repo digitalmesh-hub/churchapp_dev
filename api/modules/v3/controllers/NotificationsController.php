@@ -584,6 +584,20 @@ class NotificationsController extends BaseController
 					'birthdays' => [],
 				];
 			}
+			
+			// Get dependant birthdays and anniversaries
+			$dependantBirthdays = $this->getDependantBirthdays($institutionId, $vieweddate);
+			if (!empty($dependantBirthdays)) {
+				$formattedDependantBirthdays = $this->formatDependantData($dependantBirthdays, 'birthday');
+				$data['birthdays'] = array_merge($data['birthdays'], $formattedDependantBirthdays);
+			}
+			
+			$dependantAnniversaries = $this->getDependantAnniversaries($institutionId, $vieweddate);
+			if (!empty($dependantAnniversaries)) {
+				$formattedDependantAnniversaries = $this->formatDependantData($dependantAnniversaries, 'anniversary');
+				$data['anniversary'] = array_merge($data['anniversary'], $formattedDependantAnniversaries);
+			}
+			
 			$responseAnnouncements = ExtendedEvent::getAllAnnouncements($userId, $vieweddate);
 			if ($responseAnnouncements){
 			    $data['announcements'] = $this->getAnnoncements($responseAnnouncements,$userBatch);
@@ -904,6 +918,212 @@ class NotificationsController extends BaseController
     	}
     	throw new NotFoundHttpException('The requested page does not exist.');
     }
+    
+	/**
+	 * Get dependants with birthdays today
+	 * @param int $institutionId
+	 * @param string $date
+	 * @return array
+	 */
+	protected function getDependantBirthdays($institutionId, $date)
+	{
+		try {
+			$todayMonthDay = date('m-d', strtotime($date));
+			
+			$query = "SELECT 
+						d.id, 
+						d.dependantname, 
+						CASE 
+							WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+							WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+							WHEN partner.relation = 'Son in law' THEN 'Daughter'
+							WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+							WHEN partner.relation = 'Daughter in law' THEN 'Son'
+							WHEN partner.relation = 'Father' THEN 'Mother'
+							WHEN partner.relation = 'Mother' THEN 'Father'
+							WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+							WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+							WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+							WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+							WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+							WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+							ELSE 'Spouse'
+						END as relation,
+						d.dob, 
+						t.Description as titlename, 
+						m.memberid,
+						m.institutionid,
+						mt.description as membertitle,
+						m.firstname,
+						m.middlename,
+						m.lastname,
+						d.dependantmobile as dependant_mobile,
+						d.image as dependant_pic
+					  FROM dependant d
+					  INNER JOIN member m ON d.memberid = m.memberid
+					  LEFT JOIN title t ON d.titleid = t.TitleId
+					  LEFT JOIN title mt ON mt.TitleId = m.membertitle
+					  LEFT JOIN dependant partner ON partner.id = d.dependantid
+					  WHERE m.institutionid = :institutionId 
+					  AND d.dob IS NOT NULL
+					  AND d.dependantname IS NOT NULL
+					  AND d.dependantname != ''
+					  AND DATE_FORMAT(d.dob, '%m-%d') = :todayMonthDay
+					  ORDER BY m.firstname, m.lastname, d.dependantname";
+			
+			$dependants = Yii::$app->db->createCommand($query)
+				->bindValue(':institutionId', $institutionId)
+				->bindValue(':todayMonthDay', $todayMonthDay)
+				->queryAll();
+			
+			return $dependants;
+		} catch (\Exception $e) {
+			Yii::error("getDependantBirthdays: " . $e->getMessage());
+			return [];
+		}
+	}
+
+	/**
+	 * Get dependants with wedding anniversaries today (only for married dependants)
+	 * @param int $institutionId
+	 * @param string $date
+	 * @return array
+	 */
+	protected function getDependantAnniversaries($institutionId, $date)
+	{
+		try {
+			$todayMonthDay = date('m-d', strtotime($date));
+			
+			$query = "SELECT 
+						d.id, 
+						d.dependantname, 
+						CASE 
+							WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+							WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+							WHEN partner.relation = 'Son in law' THEN 'Daughter'
+							WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+							WHEN partner.relation = 'Daughter in law' THEN 'Son'
+							WHEN partner.relation = 'Father' THEN 'Mother'
+							WHEN partner.relation = 'Mother' THEN 'Father'
+							WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+							WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+							WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+							WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+							WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+							WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+							ELSE 'Spouse'
+						END as relation,
+						d.weddinganniversary, 
+						t.Description as titlename,
+						spouse.dependantname as spousename,
+						st.Description as spousetitle,
+						m.memberid,
+						m.institutionid,
+						mt.description as membertitle,
+						m.firstname,
+						m.middlename,
+						m.lastname,
+						d.dependantmobile as dependant_mobile,
+						d.image as dependant_pic,
+						spouse.image as spouse_pic
+					  FROM dependant d
+					  INNER JOIN member m ON d.memberid = m.memberid
+					  LEFT JOIN title t ON d.titleid = t.TitleId
+					  LEFT JOIN title mt ON mt.TitleId = m.membertitle
+					  LEFT JOIN dependant spouse ON spouse.dependantid = d.id
+					  LEFT JOIN title st ON st.TitleId = spouse.titleid
+					  WHERE m.institutionid = :institutionId 
+					  AND d.ismarried = 2
+					  AND d.weddinganniversary IS NOT NULL
+					  AND d.dependantname IS NOT NULL
+					  AND d.dependantname != ''
+					  AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay
+					  ORDER BY m.firstname, m.lastname, d.dependantname";
+			
+			$dependants = Yii::$app->db->createCommand($query)
+				->bindValue(':institutionId', $institutionId)
+				->bindValue(':todayMonthDay', $todayMonthDay)
+				->queryAll();
+			
+			return $dependants;
+		} catch (\Exception $e) {
+			Yii::error("getDependantAnniversaries: " . $e->getMessage());
+			return [];
+		}
+	}
+	
+	/**
+	 * Format dependant data to match member/spouse structure
+	 * @param array $dependants
+	 * @param string $type ('birthday' or 'anniversary')
+	 * @return array
+	 */
+	protected function formatDependantData($dependants, $type)
+	{
+		$result = [];
+		foreach ($dependants as $dependant) {
+			// Build member full name
+			$memberFullName = trim((isset($dependant['membertitle']) ? $dependant['membertitle'] : '') . ' ' . (isset($dependant['firstname']) ? $dependant['firstname'] : ''));
+			if (isset($dependant['middlename']) && !empty($dependant['middlename'])) {
+				$memberFullName .= ' ' . $dependant['middlename'];
+			}
+			$memberFullName .= ' ' . (isset($dependant['lastname']) ? $dependant['lastname'] : '');
+			$memberFullName = trim($memberFullName);
+			
+			// Build dependant name with relation
+			$dependantFullName = trim((isset($dependant['titlename']) ? $dependant['titlename'] : '') . ' ' . (isset($dependant['dependantname']) ? $dependant['dependantname'] : ''));
+			if (isset($dependant['relation']) && !empty($dependant['relation'])) {
+				$dependantFullName .= ' (' . $dependant['relation'] . ' of ' . $memberFullName . ')';
+			}
+			
+			// Get dependant image if available
+			$dependantImage = '';
+			if (isset($dependant['dependant_pic']) && !empty($dependant['dependant_pic'])) {
+				$dependantImage = (string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'] . $dependant['dependant_pic']);
+			}
+			
+			// Get dependant phone if available
+			$dependantPhone = '';
+			if (isset($dependant['dependant_mobile']) && !empty($dependant['dependant_mobile']) && strlen($dependant['dependant_mobile']) >= 10) {
+				$dependantPhone = $dependant['dependant_mobile'];
+			}
+			
+			$item = [
+				'notificationId' => '',
+				'memberId' => (string)(isset($dependant['memberid']) ? $dependant['memberid'] : ''),
+				'memberName' => $dependantFullName,
+				'memberImage' => $dependantImage,
+				'memberPhone' => $dependantPhone,
+				'rawMemberPh' => (isset($dependant['dependant_mobile']) && !empty($dependant['dependant_mobile'])) ? $dependant['dependant_mobile'] : '',
+				'rawSpousePh' => '',
+				'institution' => (isset($dependant['institutionid']) ? (string)$dependant['institutionid'] : ''),
+			];
+			
+			if ($type == 'birthday') {
+				$item['memberEmail'] = '';
+				$item['spouseName'] = '';
+				$item['spouseImage'] = '';
+				$item['userGroup'] = 0;
+			} else if ($type == 'anniversary') {
+				// For anniversary, add spouse info if available
+				if (isset($dependant['spousename']) && !empty($dependant['spousename'])) {
+					$spouseFullName = trim((isset($dependant['spousetitle']) ? $dependant['spousetitle'] : '') . ' ' . $dependant['spousename']);
+					$item['spouseName'] = $spouseFullName;
+				} else {
+					$item['spouseName'] = '';
+				}
+				// Add spouse image if available
+				if (isset($dependant['spouse_pic']) && !empty($dependant['spouse_pic'])) {
+					$item['spouseImage'] = (string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'] . $dependant['spouse_pic']);
+				} else {
+					$item['spouseImage'] = '';
+				}
+			}
+			
+			$result[] = $item;
+		}
+		return $result;
+	}
 }
 
 
