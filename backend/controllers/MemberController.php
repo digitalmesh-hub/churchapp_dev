@@ -1802,9 +1802,11 @@ class MemberController extends BaseController
 			$difference++;
 		}
 		if (
-			$this->isDiffer($model->spouse_mobile1_countrycode, $tempMemberModel->temp_spouse_mobile1_countrycode) ||
-			$this->isDiffer($model->spouse_mobile1, $tempMemberModel->temp_spouse_mobile1)
+			$this->isDiffer($model->spouse_mobile1_countrycode, $tempMemberModel->temp_spouse_mobile1_countrycode) 
 		) {
+			$difference++;
+		}
+		if ($this->isDiffer($model->spouse_mobile1, $tempMemberModel->temp_spouse_mobile1)) {
 			$difference++;
 		}
 		if ($this->isDiffer($model->homechurch, $tempMemberModel->temp_homechurch)) {
@@ -1850,15 +1852,31 @@ class MemberController extends BaseController
 			$difference++;
 		}
 		if (
-			$this->isDiffer($model->member_business_phone1_countrycode, $tempMemberModel->temp_member_business_phone1_countrycode) ||
-			$this->isDiffer($model->member_business_phone1_areacode, $tempMemberModel->temp_member_business_phone1_areacode) ||
+			$this->isDiffer($model->member_business_phone1_countrycode, $tempMemberModel->temp_member_business_phone1_countrycode)
+		) {
+			$difference++;
+		}
+		if (
+			$this->isDiffer($model->member_business_phone1_areacode, $tempMemberModel->temp_member_business_phone1_areacode)
+		) {
+			$difference++;
+		}
+		if (
 			$this->isDiffer($model->member_musiness_Phone1, $tempMemberModel->temp_member_business_Phone1)
 		) {
 			$difference++;
 		}
 		if (
-			$this->isDiffer($model->member_business_phone3_countrycode, $tempMemberModel->temp_member_business_phone3_countrycode) ||
-			$this->isDiffer($model->member_business_phone3_areacode, $tempMemberModel->temp_member_business_phone3_areacode) ||
+			$this->isDiffer($model->member_business_phone3_countrycode, $tempMemberModel->temp_member_business_phone3_countrycode)
+		) {
+			$difference++;
+		}
+		if (
+			$this->isDiffer($model->member_business_phone3_areacode, $tempMemberModel->temp_member_business_phone3_areacode)
+		) {
+			$difference++;
+		}
+		if (
 			$this->isDiffer($model->member_business_Phone3, $tempMemberModel->temp_member_business_Phone3)
 		) {
 			$difference++;
@@ -1884,8 +1902,16 @@ class MemberController extends BaseController
 			}
 		} */
 		if (
-			$this->isDiffer($model->member_residence_Phone1_countrycode, $tempMemberModel->temp_member_residence_Phone1_countrycode) ||
-			$this->isDiffer($model->member_residence_phone1_areacode, $tempMemberModel->temp_member_residence_Phone1_areacode) ||
+			$this->isDiffer($model->member_residence_Phone1_countrycode, $tempMemberModel->temp_member_residence_Phone1_countrycode)
+		) {
+			$difference++;
+		}
+		if (
+			$this->isDiffer($model->member_residence_phone1_areacode, $tempMemberModel->temp_member_residence_Phone1_areacode)
+		) {
+			$difference++;
+		}
+		if (
 			$this->isDiffer($model->member_residence_Phone1, $tempMemberModel->temp_member_residence_Phone1)
 		) {
 			$difference++;
@@ -1919,9 +1945,11 @@ class MemberController extends BaseController
 			if ($this->isDiffer($dependent['dependantname'], $tempDependent['dependantname'])) {
 				$difference++;
 			}
-			$dependantMobileOld = $dependent['dependantmobilecountrycode'] . $dependent['dependantmobile'];
-			$dependantMobileNew = $tempDependent['dependantmobilecountrycode'] . $tempDependent['dependantmobile'];
-			if ($this->isDiffer($dependantMobileOld, $dependantMobileNew)) {
+			if ($this->isDiffer($dependent['dependantmobilecountrycode'], $tempDependent['dependantmobilecountrycode'])) {
+				$difference++;
+			}
+			
+			if ($this->isDiffer($dependent['dependantmobile'], $tempDependent['dependantmobile'])) {
 				$difference++;
 			}
 			if ($this->isDiffer($dependent['dependantimage'], $tempDependent['tempimage'])) {
@@ -1945,9 +1973,10 @@ class MemberController extends BaseController
 			if ($this->isDiffer($dependent['spousename'], $tempDependent['spousename'])) {
 				$difference++;
 			}
-			$dependantSpouseMobileOld = $dependent['dependantspousemobilecountrycode'] . $dependent['dependantspousemobile'];
-			$dependantSpouseMobileNew = $tempDependent['dependantspousemobilecountrycode'] . $tempDependent['dependantspousemobile'];
-			if ($this->isDiffer($dependantSpouseMobileOld, $dependantSpouseMobileNew)) {
+			if ($this->isDiffer($dependent['dependantspousemobilecountrycode'], $tempDependent['dependantspousemobilecountrycode'])) {
+				$difference++;
+			}
+			if ($this->isDiffer($dependent['dependantspousemobile'], $tempDependent['dependantspousemobile'])) {
 				$difference++;
 			}
 			if ($this->isDiffer($dependent['dependantspouseimage'], $tempDependent['tempdependantspouseimage'])) {
