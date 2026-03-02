@@ -5330,6 +5330,7 @@ class MemberController extends BaseController
 		$memberSinceFrom = Yii::$app->request->get('member_since_from');
 		$memberSinceTo = Yii::$app->request->get('member_since_to');
 		$membershipType = Yii::$app->request->get('membership_type');
+		$membershipNumbers = trim(Yii::$app->request->get('membership_numbers', ''));
 		$marriageMonth = Yii::$app->request->get('marriage_month'); // 1-12 or empty
 		$marriageDateFrom = trim(Yii::$app->request->get('marriage_date_from', ''));
 		$marriageDateTo = trim(Yii::$app->request->get('marriage_date_to', ''));
@@ -5391,6 +5392,21 @@ class MemberController extends BaseController
 		}
 		if (!empty($memberSinceTo)) {
 			$query->andWhere(['<=', 'memberdate', $memberSinceTo]);
+		}
+
+		// Filter by membership numbers
+		if (!empty($membershipNumbers)) {
+			// Split by comma, trim whitespace, and filter out empty values
+			$membershipNumberArray = array_filter(array_map('trim', explode(',', $membershipNumbers)));
+			
+			if (!empty($membershipNumberArray)) {
+				// Sanitize each membership number to prevent SQL injection
+				$membershipNumberArray = array_map(function($num) {
+					return preg_replace('/[^a-zA-Z0-9_-]/', '', $num);
+				}, $membershipNumberArray);
+				
+				$query->andWhere(['memberno' => $membershipNumberArray]);
+			}
 		}
 
 		// For birthday/anniversary exports, we filter at the individual level in PHP

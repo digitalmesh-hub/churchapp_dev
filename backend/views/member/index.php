@@ -158,6 +158,25 @@
                   
                   <div class="row">
                      <div class="col-md-12">
+                        <h5><strong>Membership Number Filter</strong></h5>
+                        <div class="col-md-12">
+                           <div class="form-group">
+                              <label>Membership Numbers</label>
+                              <?= Html::textarea('membership_numbers', '', [
+                                 'class' => 'form-control',
+                                 'rows' => 3,
+                                 'placeholder' => 'Enter membership numbers separated by commas (e.g., M001, M002, M003)'
+                              ]) ?>
+                              <small class="text-muted">Enter one or more membership numbers separated by commas. Leave empty to export all members.</small>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <hr>
+                  
+                  <div class="row">
+                     <div class="col-md-12">
                         <h5><strong>Member Since Date Range</strong></h5>
                         <div class="col-md-6">
                            <div class="form-group">
