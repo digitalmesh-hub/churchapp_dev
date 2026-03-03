@@ -999,21 +999,21 @@ class NotificationsController extends BaseController
 						d.dependantname, 
 						CASE 
 							WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
-							WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
-							WHEN partner.relation = 'Son in law' THEN 'Daughter'
-							WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
-							WHEN partner.relation = 'Daughter in law' THEN 'Son'
-							WHEN partner.relation = 'Father' THEN 'Mother'
-							WHEN partner.relation = 'Mother' THEN 'Father'
-							WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
-							WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
-							WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
-							WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
-							WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
-							WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+							WHEN spouse.relation = 'Son' THEN 'Daughter-in-law'
+							WHEN spouse.relation = 'Son in law' THEN 'Daughter'
+							WHEN spouse.relation = 'Daughter' THEN 'Son-in-law'
+							WHEN spouse.relation = 'Daughter in law' THEN 'Son'
+							WHEN spouse.relation = 'Father' THEN 'Mother'
+							WHEN spouse.relation = 'Mother' THEN 'Father'
+							WHEN spouse.relation = 'Brother' THEN 'Sister-in-law'
+							WHEN spouse.relation = 'Sister' THEN 'Brother-in-law'
+							WHEN spouse.relation = 'Grandfather' THEN 'Grandmother'
+							WHEN spouse.relation = 'Grandmother' THEN 'Grandfather'
+							WHEN spouse.relation = 'Grandson' THEN 'Granddaughter-in-law'
+							WHEN spouse.relation = 'Granddaughter' THEN 'Grandson-in-law'
 							ELSE 'Spouse'
 						END as relation,
-						d.weddinganniversary, 
+						COALESCE(d.weddinganniversary, spouse.weddinganniversary) as weddinganniversary, 
 						t.Description as titlename,
 						spouse.dependantname as spousename,
 						st.Description as spousetitle,
@@ -1030,14 +1030,22 @@ class NotificationsController extends BaseController
 					  INNER JOIN member m ON d.memberid = m.memberid
 					  LEFT JOIN title t ON d.titleid = t.TitleId
 					  LEFT JOIN title mt ON mt.TitleId = m.membertitle
-					  LEFT JOIN dependant spouse ON spouse.dependantid = d.id
+					  LEFT JOIN dependant spouse ON spouse.id = (
+						SELECT MIN(s.id)
+						FROM dependant s
+						WHERE s.dependantid = d.id
+					  )
 					  LEFT JOIN title st ON st.TitleId = spouse.titleid
 					  WHERE m.institutionid = :institutionId 
 					  AND d.ismarried = 2
-					  AND d.weddinganniversary IS NOT NULL
 					  AND d.dependantname IS NOT NULL
 					  AND d.dependantname != ''
-					  AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay
+					  AND (
+					      (d.weddinganniversary IS NOT NULL AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay)
+					      OR
+					      (d.weddinganniversary IS NULL AND spouse.weddinganniversary IS NOT NULL AND DATE_FORMAT(spouse.weddinganniversary, '%m-%d') = :todayMonthDay)
+					  )
+					  AND (d.dependantid IS NULL OR d.id < d.dependantid)
 					  ORDER BY m.firstname, m.lastname, d.dependantname";
 			
 			$dependants = Yii::$app->db->createCommand($query)
