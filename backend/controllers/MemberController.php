@@ -1795,10 +1795,15 @@ class MemberController extends BaseController
 		if ($this->isDiffer($model->spouse_email, $tempMemberModel->temp_spouse_email)) {
 			$difference++;
 		}
-		if ($this->isDiffer($model->member_dob, $tempMemberModel->temp_member_dob)) {
+		$oldDate = !empty($model->member_dob) ? date('y-m-d', strtotimeNew($model->member_dob)) : '';
+		$newDate = !empty($tempMemberModel->temp_member_dob) ? date('y-m-d', strtotimeNew($tempMemberModel->temp_member_dob)) : '';
+		if ($this->isDiffer($oldDate, $newDate)) {
 			$difference++;
 		}
-		if ($this->isDiffer($model->spouse_dob, $tempMemberModel->temp_spouse_dob)) {
+		$oldDate = !empty($model->spouse_dob) ? date('y-m-d', strtotimeNew($model->spouse_dob)) : '';
+		$newDate = !empty($tempMemberModel->temp_spouse_dob) ? date('y-m-d', strtotimeNew($tempMemberModel->temp_spouse_dob)) : '';
+		
+		if ($this->isDiffer($oldDate, $newDate)) {
 			$difference++;
 		}
 		if (
@@ -1824,7 +1829,9 @@ class MemberController extends BaseController
 		if ($this->isDiffer($model->spousebloodgroup, $tempMemberModel->tempspouseBloodGroup)) {
 			$difference++;
 		}
-		if ($this->isDiffer($model->dom, $tempMemberModel->temp_dom)) {
+		$oldDate = !empty($model->dom) ? date('y-m-d', strtotimeNew($model->dom)) : '';
+		$newDate = !empty($tempMemberModel->temp_dom) ? date('y-m-d', strtotimeNew($tempMemberModel->temp_dom)) : '';
+		if ($this->isDiffer($oldDate, $newDate)) {
 			$difference++;
 		}
 		if ($this->isDiffer($model->member_pic, $tempMemberModel->temp_member_pic)) {

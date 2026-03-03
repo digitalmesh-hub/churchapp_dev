@@ -298,6 +298,13 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                         if (typeof $("#txtDependantMobileCountryCode" + k).attr("isapproved") != 'undefined') {
                             var isapproved = $("#txtDependantMobileCountryCode" + k).attr("isapproved");
                             var IsApprovedDependantMobileCountryCode = isapproved == "true" ? true : false
+                            if (IsApprovedDependantMobileCountryCode == true) {
+                                AllRejected = false;
+                                totalApproved++;
+                            } else if (IsApprovedDependantMobileCountryCode == false) {
+                                totalRejected++;
+                                AllAccepted = false;
+                            }
                         } else {
                             var IsApprovedDependantMobileCountryCode = true;
                         }
@@ -417,7 +424,14 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
                         if (typeof $("#txtSpouseMobileCountryCode" + k).attr("isapproved") != 'undefined') {
                             var isapproved = $("#txtSpouseMobileCountryCode" + k).attr("isapproved");
-                            var IsDependantApprovedSpouseMobileCountryCode = isapproved == "true" ? true : false
+                            var IsDependantApprovedSpouseMobileCountryCode = isapproved == "true" ? true : false;
+                            if (IsDependantApprovedSpouseMobileCountryCode == true) {
+                                AllRejected = false;
+                                totalApproved++;
+                            } else if (IsDependantApprovedSpouseMobileCountryCode == false) {
+                                totalRejected++;                                
+                                AllAccepted = false;
+                            }
                         } else {
                             var IsDependantApprovedSpouseMobileCountryCode = true;
                         }
@@ -1303,25 +1317,6 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
                 } else {
                     HomeChurch = null;
-                }
-
-                var TempMemberBusinessPhone3 = $("#txtMemberBusinessPhone3").val();
-
-
-                if (typeof $("#txtMemberBusinessPhone3").attr("isapproved") != 'undefined') {
-                    var isapproved = $("#txtMemberBusinessPhone3").attr("isapproved");
-                    var IsApprovedMemberBusinessPhone3 = isapproved == "true" ? true : false
-                    if (IsApprovedMemberBusinessPhone3 == true) {
-                        AllRejected = false;
-                        totalApproved++;
-                    } else {
-                        AllAccepted = false;
-                    }
-                    if (isapproved == "false") {
-                        totalRejected++;
-                    }
-                } else {
-                    var IsApprovedMemberBusinessPhone3 = true;
                 }
 
                 var TempMemberBusinessPhone3 = $("#txtMemberBusinessPhone3").val();
