@@ -527,7 +527,9 @@ class NotificationSchedulerController extends Controller
 						CASE 
 							WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
 							WHEN spouse.relation = 'Son' THEN 'Daughter-in-law'
+							WHEN spouse.relation = 'Son in law' THEN 'Daughter'
 							WHEN spouse.relation = 'Daughter' THEN 'Son-in-law'
+							WHEN spouse.relation = 'Daughter in law' THEN 'Son'
 							WHEN spouse.relation = 'Father' THEN 'Mother'
 							WHEN spouse.relation = 'Mother' THEN 'Father'
 							WHEN spouse.relation = 'Brother' THEN 'Sister-in-law'
@@ -538,31 +540,39 @@ class NotificationSchedulerController extends Controller
 							WHEN spouse.relation = 'Granddaughter' THEN 'Grandson-in-law'
 							ELSE 'Spouse'
 						END as relation,
-						d.weddinganniversary, 
+						COALESCE(d.weddinganniversary, spouse.weddinganniversary) as weddinganniversary, 
 						t.Description as titlename,
 						spouse.dependantname as spousename,
 						st.Description as spousetitle,
 						m.memberid,
+						m.institutionid,
 						mt.description as membertitle,
 						m.firstname,
 						m.middlename,
-						m.lastname
+						m.lastname,
+						d.dependantmobile as dependant_mobile,
+						d.image as dependant_pic,
+						spouse.image as spouse_pic
 					  FROM dependant d
 					  INNER JOIN member m ON d.memberid = m.memberid
 					  LEFT JOIN title t ON d.titleid = t.TitleId
 					  LEFT JOIN title mt ON mt.TitleId = m.membertitle
-					  LEFT JOIN dependant spouse ON spouse.dependantid = d.id
+					  LEFT JOIN dependant spouse ON spouse.id = (
+						SELECT MIN(s.id)
+						FROM dependant s
+						WHERE s.dependantid = d.id
+					  )
 					  LEFT JOIN title st ON st.TitleId = spouse.titleid
 					  WHERE m.institutionid = :institutionId 
-					  /* AND m.active = 1
-					  AND m.confirmed = 1
-					  AND d.active = 1
-					  AND d.confirmed = 1 */
 					  AND d.ismarried = 2
-					  AND d.weddinganniversary IS NOT NULL
 					  AND d.dependantname IS NOT NULL
 					  AND d.dependantname != ''
-					  AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay
+					  AND (
+					      (d.weddinganniversary IS NOT NULL AND DATE_FORMAT(d.weddinganniversary, '%m-%d') = :todayMonthDay)
+					      OR
+					      (d.weddinganniversary IS NULL AND spouse.weddinganniversary IS NOT NULL AND DATE_FORMAT(spouse.weddinganniversary, '%m-%d') = :todayMonthDay)
+					  )
+					  AND (d.dependantid IS NULL OR d.id < d.dependantid) 
 					  ORDER BY m.firstname, m.lastname, d.dependantname";
 			
 			$dependants = Yii::$app->db->createCommand($query)
