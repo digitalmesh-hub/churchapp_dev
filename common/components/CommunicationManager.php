@@ -193,6 +193,7 @@ class CommunicationManager extends component
 						else {
 							$response->otpInfoText = 'Something went wrong. Please try again';
 						}
+						$response->requiresOtp = true;
 	                }  else {
 	                    $response->ErrorMessage = "The mobile number doest not support OTP. Please set a passcode to continue.";
 						$response->otpInfoText = 'Bypass the OTP - already it is working fine.';
