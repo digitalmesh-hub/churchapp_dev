@@ -899,7 +899,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     }
                 )
                 boolresult = false;
-            } else if ($("#txtMemberNo").val() != "" && !regexMembershipNo.test($("#txtMemberNo").val())) {
+            } else if ($("#txtMemberNo").val() != "" && !regexMembershipNo.test($("#txtMemberNo").val()) && $("#memberType").val() != "Staff") {
                 $('.nav-tabs a[href="#member"]').tab('show');
                 swal({
                         title: '',

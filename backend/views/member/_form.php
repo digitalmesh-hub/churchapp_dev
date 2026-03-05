@@ -259,6 +259,7 @@ echo Html::hiddenInput(
                           <?php }?>
                           </ul>
                          <input type="hidden" id='formType' name='formType' value="<?= $formType ?>">
+                         <input type="hidden" id='memberType' name='memberType' value="<?= $type ?>">
                           <!-- Tab panes -->
                           <div class="tab-content tabcontentborder">
 
