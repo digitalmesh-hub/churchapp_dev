@@ -382,7 +382,19 @@
                                                                             <tr>
                                                                                 <td style="padding:5px;">Date of Birth</td>
                                                                                 <td width="60%" style="padding:5px; color:<?= $approvelDependantDetails['dob_'.$dependantId]['isApproved']?'#000;':'#C00' ?>">
-                                                                                    <?=date('d-F-Y',strtotimeNew($approvelDependantDetails['dob_'.$dependantId]['value'])) ?>
+                                                                                    <?php
+                                                                                        $dobValue = $approvelDependantDetails['dob_'.$dependantId]['value'];
+                                                                                        if (!empty($dobValue) && $dobValue != '0000-00-00' && $dobValue != null) {
+                                                                                            $timestamp = strtotimeNew($dobValue);
+                                                                                            if ($timestamp && $timestamp > 0) {
+                                                                                                echo date('d-F-Y', $timestamp);
+                                                                                            } else {
+                                                                                                echo '';
+                                                                                            }
+                                                                                        } else {
+                                                                                            echo '';
+                                                                                        }
+                                                                                    ?>
                                                                                 </td>
                                                                             </tr>
                                                                             <tr>
@@ -459,7 +471,19 @@
                                                                                     <td style="padding:5px;">Spouse DOB</td>
                                                                                     <?php if ($spouseDetailsAvailable) {?>
                                                                                         <td width="60%" style="padding:5px; color:<?= $approvelDependantDetails['spousedob_'.$dependantId]['isApproved']?'#000;':'#C00' ?>">
-                                                                                            <?= date('d-F-Y',strtotimeNew($approvelDependantDetails['spousedob_'.$dependantId]['value'])) ?>
+                                                                                            <?php
+                                                                                                $spouseDobValue = $approvelDependantDetails['spousedob_'.$dependantId]['value'];
+                                                                                                if (!empty($spouseDobValue) && $spouseDobValue != '0000-00-00' && $spouseDobValue != null) {
+                                                                                                    $timestamp = strtotimeNew($spouseDobValue);
+                                                                                                    if ($timestamp && $timestamp > 0) {
+                                                                                                        echo date('d-F-Y', $timestamp);
+                                                                                                    } else {
+                                                                                                        echo '';
+                                                                                                    }
+                                                                                                } else {
+                                                                                                    echo '';
+                                                                                                }
+                                                                                            ?>
                                                                                         </td>
                                                                                         <?php }else{?>
                                                                                             <td style="padding:5px;">&nbsp; </td>
@@ -469,7 +493,19 @@
                                                                                     <td style="padding:5px;">Wedding Anniversary</td>
                                                                                     <?php if ($spouseDetailsAvailable) {?>
                                                                                         <td width="60%" style="padding:5px; color:<?= $approvelDependantDetails['weddinganniversary_'.$dependantId]['isApproved']?'#000;':'#C00' ?>">
-                                                                                            <?=date('d-F-Y',strtotimeNew($approvelDependantDetails['weddinganniversary_'.$dependantId]['value'])) ?>
+                                                                                            <?php
+                                                                                                $anniversaryValue = $approvelDependantDetails['weddinganniversary_'.$dependantId]['value'];
+                                                                                                if (!empty($anniversaryValue) && $anniversaryValue != '0000-00-00' && $anniversaryValue != null) {
+                                                                                                    $timestamp = strtotimeNew($anniversaryValue);
+                                                                                                    if ($timestamp && $timestamp > 0) {
+                                                                                                        echo date('d-F-Y', $timestamp);
+                                                                                                    } else {
+                                                                                                        echo '';
+                                                                                                    }
+                                                                                                } else {
+                                                                                                    echo '';
+                                                                                                }
+                                                                                            ?>
                                                                                         </td>
                                                                                         <?php }else{?>
                                                                                             <td style="padding:5px;">&nbsp; </td>

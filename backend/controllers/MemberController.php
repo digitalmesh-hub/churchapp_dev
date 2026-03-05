@@ -4683,8 +4683,15 @@ class MemberController extends BaseController
 		$lastName   =  $model->lastName ? $model->lastName : '';
 		$displayName = $srTitle . ' ' . $firstName . ' ' . $middleName . ' ' . $lastName;
 
-		if (!empty($memberResponse['member_dob']['value'])) {
-			$memberResponse['member_dob']['value'] = date('d-F-Y', strtotimeNew($memberResponse['member_dob']['value']));
+		if (!empty($memberResponse['member_dob']['value']) && $memberResponse['member_dob']['value'] != '0000-00-00' && $memberResponse['member_dob']['value'] != null) {
+			$timestamp = strtotimeNew($memberResponse['member_dob']['value']);
+			if ($timestamp && $timestamp > 0) {
+				$memberResponse['member_dob']['value'] = date('d-F-Y', $timestamp);
+			} else {
+				$memberResponse['member_dob']['value'] = '';
+			}
+		} else {
+			$memberResponse['member_dob']['value'] = '';
 		}
 		if (!empty($memberResponse['location']['value'])) {
 			$data = $memberResponse['location']['value'];
@@ -4693,11 +4700,25 @@ class MemberController extends BaseController
 			$location = "latitide :  $latitude longitude : $longitude";
 			$memberResponse['location']['value'] = $location;
 		}
-		if (!empty($memberResponse['spouse_dob']['value'])) {
-			$memberResponse['spouse_dob']['value'] = date('d-F-Y', strtotimeNew($memberResponse['spouse_dob']['value']));
+		if (!empty($memberResponse['spouse_dob']['value']) && $memberResponse['spouse_dob']['value'] != '0000-00-00' && $memberResponse['spouse_dob']['value'] != null) {
+			$timestamp = strtotimeNew($memberResponse['spouse_dob']['value']);
+			if ($timestamp && $timestamp > 0) {
+				$memberResponse['spouse_dob']['value'] = date('d-F-Y', $timestamp);
+			} else {
+				$memberResponse['spouse_dob']['value'] = '';
+			}
+		} else {
+			$memberResponse['spouse_dob']['value'] = '';
 		}
-		if (!empty($memberResponse['dom']['value'])) {
-			$memberResponse['dom']['value'] = date('d-F-Y', strtotimeNew($memberResponse['dom']['value']));
+		if (!empty($memberResponse['dom']['value']) && $memberResponse['dom']['value'] != '0000-00-00' && $memberResponse['dom']['value'] != null) {
+			$timestamp = strtotimeNew($memberResponse['dom']['value']);
+			if ($timestamp && $timestamp > 0) {
+				$memberResponse['dom']['value'] = date('d-F-Y', $timestamp);
+			} else {
+				$memberResponse['dom']['value'] = '';
+			}
+		} else {
+			$memberResponse['dom']['value'] = '';
 		}
 		if (!empty($memberResponse['member_pic']['value'])) {
 			$memberResponse['member_pic']['value'] =  Yii::$app->params['imagePath'] . $memberResponse['member_pic']['value'];
