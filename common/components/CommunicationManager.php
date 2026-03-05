@@ -196,6 +196,7 @@ class CommunicationManager extends component
 	                }  else {
 	                    $response->ErrorMessage = "The mobile number doest not support OTP. Please set a passcode to continue.";
 						$response->otpInfoText = 'Bypass the OTP - already it is working fine.';
+						$response->requiresOtp = false;
 	                    $response->ErrorCode = 502;
 	                    $response->Status = true;
 	                }  

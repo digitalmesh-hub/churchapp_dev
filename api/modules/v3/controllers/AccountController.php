@@ -682,6 +682,9 @@ class AccountController extends \yii\rest\Controller
                     $this->statusCode = $response->ErrorCode;
                     $this->data = new \stdClass();
                     $this->data->otpInfoText = $response->otpInfoText ?? '';
+                    if (property_exists($response, 'requiresOtp')) {
+                        $this->data->requiresOtp = $response->requiresOtp;
+                    }
                 } else {
                     $this->message = "An error occurred while processing the request";
                     $this->statusCode = 500;
