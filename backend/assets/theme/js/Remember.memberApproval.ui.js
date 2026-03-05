@@ -301,8 +301,10 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                             if (IsApprovedDependantMobileCountryCode == true) {
                                 AllRejected = false;
                                 totalApproved++;
-                            } else if (IsApprovedDependantMobileCountryCode == false) {
+                            } else if (isapproved == "false") {
                                 totalRejected++;
+                            }
+                            if (IsApprovedDependantMobileCountryCode == false) {
                                 AllAccepted = false;
                             }
                         } else {
@@ -428,8 +430,10 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                             if (IsDependantApprovedSpouseMobileCountryCode == true) {
                                 AllRejected = false;
                                 totalApproved++;
-                            } else if (IsDependantApprovedSpouseMobileCountryCode == false) {
-                                totalRejected++;                                
+                            } else if (isapproved == "false") {
+                                totalRejected++;
+                            }
+                            if (IsDependantApprovedSpouseMobileCountryCode == false) {
                                 AllAccepted = false;
                             }
                         } else {
