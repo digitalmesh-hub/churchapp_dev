@@ -64,7 +64,8 @@ $config = [
                 '/API/account/checkAppUpateAvailable-json' => 'account/old-system-support',
                 '/service/InstitutionImage/Original/Thumbnail/Thumbnail/48.jpg' => 'account/old-system-support',
                 '//service/InstitutionImage/Original/Thumbnail/Thumbnail/48.jpg' => 'account/old-system-support',
-                '/Account/LogOn' => 'account/login'
+                '/Account/LogOn' => 'account/login',
+                'bible' => 'bible/index',
             ],
         ],
         'assetManager' => [
