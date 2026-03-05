@@ -140,7 +140,9 @@ class Member extends \yii\db\ActiveRecord
             [['institutionid', 'membertitle', 'spousetitle', 'countrycode', 'areacode', 'member_mobile1_countrycode', 'spouse_mobile1_countrycode', 'membertype', 'staffdesignation', 'familyunitid', 'zone_id', 'updated_by'], 'integer'],
             [['membersince', 'member_dob', 'spouse_dob', 'dom', 'app_reg_member', 'app_reg_spouse', 'lastupdated', 'createddate', 'location'], 'safe'],
             [['memberno'], 'string', 'max' => 75],
-            [['memberno'], 'match', 'pattern' => '/^(RM-|FM-)\d+$/', 'message' => 'Membership number must start with either RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)'],
+            [['memberno'], 'match', 'pattern' => '/^(RM-|FM-)\d+$/', 'message' => 'Membership number must start with either RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)', 'when' => function($model) {
+                return $model->membertype != 1; // Skip validation for staff members
+            }],
             [['membershiptype', 'membernickname', 'spousenickname'], 'string', 'max' => 25],
             [['firstName', 'middleName', 'lastName', 'business_district', 'business_state', 'business_pincode', 'spouse_firstName', 'spouse_middleName', 'spouse_lastName', 'residence_address3', 'residence_district', 'residence_state', 'newmembernum'], 'string', 'max' => 45],
             [['business_address1', 'business_address2', 'residence_address1', 'residence_address2', 'homechurch', 'occupation', 'companyname'], 'string', 'max' => 100],
@@ -178,11 +180,13 @@ class Member extends \yii\db\ActiveRecord
             return false;
         }
         
-        // Validate membership number format if it's not empty
-        if (!empty($this->memberno)) {
-            if (!preg_match('/^(RM-|FM-)\d+$/', $this->memberno)) {
-                $this->addError('memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)');
-                return false;
+        // Validate membership number format if it's not empty and not a staff member
+        if ($this->membertype != 1) {
+            if (!empty($this->memberno)) {
+                if (!preg_match('/^(RM-|FM-)\d+$/', $this->memberno)) {
+                    $this->addError('memberno', 'Membership number must start with either RM- or FM- followed by numbers (e.g., RM-1001 or FM-1001)');
+                    return false;
+                }
             }
         }
         
