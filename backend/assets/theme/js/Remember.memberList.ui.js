@@ -66,31 +66,47 @@ _onClickEvents: function () {
          showCancelButton: true,
          confirmButtonClass: 'btn-danger',
          confirmButtonText: 'Yes',
-         closeOnConfirm: false,
-         showLoaderOnConfirm: true
+         closeOnConfirm: false
        },
        function () {
-        $.post(ajaxUrl, // Ajax Post URL
-                {
-                  '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
-                  memberId:memberId,
-                }, // Data
-                	function (res) {
-                        if (typeof (res) !== 'undefined' && res.status === 'success') {
-                          swal({title: 'Success', text: 'The member details are deleted', type: 'success'},
-                                      function () {
-                                        location.reload()
-                                      }
-                          	)
-                        } else {
-                          swal({title: 'Failed', text: 'Sorry! unable to complete the process', type: 'error'}),
-                          function () {
-                            location.reload()
+        swal({
+            title: 'Reason for Deletion',
+            text: 'Please provide a reason for deleting this member:',
+            type: 'input',
+            showCancelButton: true,
+            closeOnConfirm: false,
+            inputPlaceholder: 'Enter reason here...',
+            showLoaderOnConfirm: true
+        }, function(inputValue) {
+            if (inputValue === false) return false;
+            if (inputValue === '') {
+                swal.showInputError('Reason is required!');
+                return false;
+            }
+            
+            $.post(ajaxUrl, // Ajax Post URL
+                    {
+                      '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
+                      memberId: memberId,
+                      deletionReason: inputValue
+                    }, // Data
+                    	function (res) {
+                            if (typeof (res) !== 'undefined' && res.status === 'success') {
+                              swal({title: 'Success', text: 'The member details are deleted', type: 'success'},
+                                          function () {
+                                            location.reload()
+                                          }
+                              	)
+                            } else {
+                              swal({title: 'Failed', text: 'Sorry! unable to complete the process', type: 'error'}),
+                              function () {
+                                location.reload()
+                              }
+                            }
                           }
-                        }
-                      }
-                
-                )
+                    
+                    )
+        });
        });    
   });
 
