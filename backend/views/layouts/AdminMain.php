@@ -138,6 +138,10 @@ $assetName = AppAsset::register($this);
                                 <li class ="<?= Yii::$app->controller->id == 'staffdesignation'?"active":'' ?>"><a href="<?=Url::to(['/staffdesignation/index/'])?>">Staff Designation</a>
                                 </li>
                                 <?php } ?>
+                                <?php if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707'))
+                               { ?>
+                                  <li class="<?= Yii::$app->controller->id == 'sundayservice'?"active":'' ?>"><a href="<?=Url::to(['/sunday-service/index/'])?>">Sunday Service</a></li>
+                                <?php } ?>
                                 
                             </ul>
                     </li>
