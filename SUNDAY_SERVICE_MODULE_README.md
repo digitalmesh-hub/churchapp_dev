@@ -6,6 +6,8 @@ This document outlines the implementation of the Sunday Service module for the i
 
 The Sunday Service module allows administrators to manage Sunday service content with WYSIWYG HTML editing capabilities, date management (preventing past dates), and active/inactive status control. The module includes both backend admin functionality and API endpoints.
 
+**Institution-Level Feature Control**: This module includes environment-based feature flags that allow selective enablement for specific institutions via the `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable. Only institutions listed in this variable will have access to Sunday Service functionality.
+
 ## Database Setup
 
 ### Table Creation
@@ -45,7 +47,7 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
 - `common/models/searchmodels/SundayServiceSearch.php` - Search model for server-side pagination
 
 ### 3. Backend Controller
-- `backend/controllers/SundayServiceController.php` - CRUD operations with server-side pagination
+- `backend/controllers/SundayServiceController.php` - CRUD operations with server-side pagination and institution feature flag check
 
 ### 4. Backend Views
 - `backend/views/sunday-service/index.php` - List view with search and pagination
@@ -54,10 +56,13 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
 - `backend/views/sunday-service/update.php` - Update view
 - `backend/views/sunday-service/view.php` - Detail view
 
-### 5. API Controller
-- `api/modules/v3/controllers/SundayServiceController.php` - API endpoint with pagination support
+### 5. Backend Layout (Modified)
+- `backend/views/layouts/AdminMain.php` - Added Sunday Service menu item with permission and feature flag check
 
-### 6. Helper Class
+### 6. API Controller
+- `api/modules/v3/controllers/SundayServiceController.php` - API endpoint with pagination support and institution feature flag check
+
+### 7. Helper Class
 - `common/helpers/UserHelper.php` - User display name utility (reusable across the application)
 
 ## Features
@@ -90,6 +95,12 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
 5. **Timestamps**
    - `created_at` and `updated_at` fields auto-populated by database
    - Uses standard TIMESTAMP fields with default values
+
+6. **Institution-Level Feature Control**
+   - Environment variable controls which institutions can access Sunday Service
+   - Backend throws 403 Forbidden exception for unauthorized institutions
+   - Menu item only appears for enabled institutions
+   - Configurable via `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable
 
 ### API Features
 
@@ -151,6 +162,15 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
 }
 ```
 
+**Error Response (Feature Not Enabled):**
+```json
+{
+  "status": 403,
+  "message": "Sunday Service feature is not enabled for this institution",
+  "data": {}
+}
+```
+
 **Error Response (No Records):**
 ```json
 {
@@ -166,6 +186,11 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
 ## Usage Examples
 
 ### Backend Access
+
+**Prerequisites:**
+- User must be authenticated
+- User must have the required permission (`b46fb1de-ec46-11e6-b48e-000c2990e707`)
+- Institution ID must be in `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable
 
 1. **List all Sunday Services:**
    - Navigate to: `/backend/sunday-service/index`
@@ -188,6 +213,10 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
    - Click "Update"
 
 ### API Access
+
+**Prerequisites:**
+- Valid session token required
+- Institution ID must be in `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable
 
 1. **Get paginated list (10 per page):**
    ```
@@ -215,8 +244,42 @@ Current setup allows authenticated users (`@`). You may want to replace with spe
 'roles' => ['893232ae-ec46-11e6-b48e-000c2990e707'] // Example role ID
 ```
 
+**Institution-Level Feature Control:**
+The backend controller checks the `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable in the `beforeAction()` method. If the current institution is not in the enabled list, a `403 Forbidden` HTTP exception is thrown.
+
 ### API
 The API inherits authentication from `BaseController`. Ensure users are authenticated before accessing the endpoint.
+
+**Institution-Level Feature Control:**
+The API controller checks the `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable. If the current institution is not in the enabled list, a `403 Forbidden` response is returned.
+
+### Menu Visibility
+The Sunday Service menu item in `backend/views/layouts/AdminMain.php` only appears if:
+1. User has the required permission (`b46fb1de-ec46-11e6-b48e-000c2990e707`)
+2. Institution ID is in the `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable
+
+## Environment Configuration
+
+### Required Environment Variable
+
+Add this to your `.env` file to enable Sunday Service for specific institutions:
+
+```bash
+# Enable Sunday Service for specific institutions (comma-separated IDs)
+SUNDAY_SERVICE_ENABLED_INSTITUTIONS=1,5,12,45
+```
+
+**Configuration Details:**
+- **Variable Name**: `SUNDAY_SERVICE_ENABLED_INSTITUTIONS`
+- **Format**: Comma-separated list of institution IDs (no spaces)
+- **Example**: `1,5,12,45` enables for institutions 1, 5, 12, and 45
+- **Empty/Not Set**: No institutions have access to Sunday Service
+- **Behavior**: Only listed institutions can access backend and API endpoints
+
+**Security & Access:**
+- Backend: Throws `403 Forbidden` exception if institution not enabled
+- API: Returns `403` status code with error message
+- Menu: Sunday Service menu item hidden if institution not enabled
 
 ## Data Validation
 
@@ -280,25 +343,35 @@ This helper eliminates code duplication and provides a consistent way to display
 
 ## Notes
 
+- **Environment Variable Required**: `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` must be set in `.env` file with comma-separated institution IDs for feature access
 - The module follows the same patterns as the News and Zone modules
 - WYSIWYG editor uses Summernote (already included in the project)
-- All dates are handled according to the institution's timezone
-- Soft delete is not implemented; records are permanently deleted
-- Image uploads are stored in institution-specific directories
-Image upload is disabled in the editor
+- Image upload is disabled in the editor
 - All dates are handled according to the institution's timezone
 - Timestamps (`created_at`, `updated_at`) are auto-populated by database
 - Soft delete is not implemented; records are permanently deleted
+- Only institutions listed in `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` can access the feature
+- Menu item is hidden for institutions without access
+- Backend throws 403 Forbidden for unauthorized access attempts
+- API returns 403 status for unauthorized institutions
+
+## Testing Checklist
+
+- [ ] Set up `SUNDAY_SERVICE_ENABLED_INSTITUTIONS` environment variable
+- [ ] Verify menu item appears only for enabled institutions
+- [ ] Test 403 Forbidden response for non-enabled institutions (backend)
+- [ ] Test 403 Forbidden response for non-enabled institutions (API)
 - [ ] Create Sunday Service with future date
 - [ ] Try to create with past date (should fail validation)
 - [ ] Update existing service
 - [ ] Delete service
-- [ ] Test WYSIWYG editor with images
+- [ ] Test WYSIWYG editor
 - [ ] Test pagination in backend
-- [ ] Test API with paginters
+- [ ] Test API with pagination parameters
 - [ ] Test API with 'all' parameter
 - [ ] Verify only active services appear in API
 - [ ] Test search functionality
+- [ ] Test date range filters
 
 ## Future Enhancements
 

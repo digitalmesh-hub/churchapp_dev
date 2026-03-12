@@ -63,6 +63,17 @@ class SundayServiceController extends BaseController
             $institutionId = ExtendedUserCredentials::getUserInstitution($userId);
             $institutionId = $institutionId['institutionid'];
             
+            // Check if Sunday Service is enabled for this institution
+            $enabledInstitutions = env('SUNDAY_SERVICE_ENABLED_INSTITUTIONS', '');
+            $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+            
+            if (!in_array($institutionId, $enabledInstitutionsList)) {
+                $this->statusCode = 403;
+                $this->message = 'Sunday Service feature is not enabled for this institution';
+                $this->data = new \stdClass();
+                return new ApiResponse($this->statusCode, $this->data, $this->message);
+            }
+            
             $all = $request->get('all', false);
 
             // Check if 'all' parameter is set to return all records

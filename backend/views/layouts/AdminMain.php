@@ -138,10 +138,20 @@ $assetName = AppAsset::register($this);
                                 <li class ="<?= Yii::$app->controller->id == 'staffdesignation'?"active":'' ?>"><a href="<?=Url::to(['/staffdesignation/index/'])?>">Staff Designation</a>
                                 </li>
                                 <?php } ?>
-                                <?php if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707'))
-                               { ?>
+                                <?php 
+                                // Check Sunday Service permission and feature flag
+                                if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707')) {
+                                    $institutionId = Yii::$app->user->identity->institution->id ?? null;
+                                    $enabledInstitutions = env('SUNDAY_SERVICE_ENABLED_INSTITUTIONS', '');
+                                    $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+                                    
+                                    if (in_array($institutionId, $enabledInstitutionsList)) {
+                                ?>
                                   <li class="<?= Yii::$app->controller->id == 'sundayservice'?"active":'' ?>"><a href="<?=Url::to(['/sunday-service/index/'])?>">Sunday Service</a></li>
-                                <?php } ?>
+                                <?php 
+                                    }
+                                } 
+                                ?>
                                 
                             </ul>
                     </li>

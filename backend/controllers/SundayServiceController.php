@@ -59,6 +59,31 @@ class SundayServiceController extends BaseController
     }
 
     /**
+     * Check if Sunday Service is enabled for the current institution
+     * @inheritdoc
+     */
+    public function beforeAction($action)
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+
+        // Check if Sunday Service is enabled for this institution
+        $institutionId = $this->currentUser()->institutionid ?? null;
+        
+        if ($institutionId) {
+            $enabledInstitutions = env('SUNDAY_SERVICE_ENABLED_INSTITUTIONS', '');
+            $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+            
+            if (!in_array($institutionId, $enabledInstitutionsList)) {
+                throw new \yii\web\ForbiddenHttpException('Sunday Service feature is not enabled for your institution.');
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Lists all ExtendedSundayService models with server-side pagination.
      * @return mixed
      */
