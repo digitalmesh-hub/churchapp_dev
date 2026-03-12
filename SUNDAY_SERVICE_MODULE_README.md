@@ -109,21 +109,21 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
   "status": 200,
   "message": "Sunday services retrieved successfully",
   "data": {
-    "sunday_services": [
+    "sundayServices": [
       {
         "id": 1,
-        "service_date": "25 December 2024",
-        "service_date_raw": "2024-12-25",
+        "serviceDate": "25 December 2024",
+        "serviceDateRaw": "2024-12-25",
         "content": "<p>Service content in HTML...</p>",
         "active": 1,
-        "created_at": "20 March 2024"
+        "createdAt": "20 March 2024"
       }
     ],
     "pagination": {
-      "total_count": 50,
-      "page_count": 5,
-      "current_page": 1,
-      "per_page": 10
+      "totalCount": 50,
+      "pageCount": 5,
+      "currentPage": 1,
+      "perPage": 10
     }
   }
 }
@@ -135,8 +135,8 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
   "status": 200,
   "message": "Sunday services retrieved successfully",
   "data": {
-    "sunday_services": [...],
-    "total_count": 50,
+    "sundayServices": [...],
+    "totalCount": 50,
     "pagination": false
   }
 }
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `sunday_service` (
   "status": 200,
   "message": "No Sunday services found",
   "data": {
-    "sunday_services": [],
+    "sundayServices": [],
     "pagination": {...}
   }
 }

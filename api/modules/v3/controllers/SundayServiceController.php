@@ -79,18 +79,18 @@ class SundayServiceController extends BaseController
                     foreach ($sundayServices as $service) {
                         $result = [
                             'id' => (int)$service->id,
-                            'service_date' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->service_date)),
-                            'service_date_raw' => $service->service_date,
+                            'serviceDate' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->service_date)),
+                            'serviceDateRaw' => $service->service_date,
                             'content' => $service->content,
                             'active' => (int)$service->active,
-                            'created_at' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->created_at)),
+                            'createdAt' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->created_at)),
                         ];
                         array_push($serviceList, $result);
                     }
 
                     $data = [
-                        'sunday_services' => $serviceList,
-                        'total_count' => count($serviceList),
+                        'sundayServices' => $serviceList,
+                        'totalCount' => count($serviceList),
                         'pagination' => false,
                     ];
                     $this->statusCode = 200;
@@ -99,8 +99,8 @@ class SundayServiceController extends BaseController
                     return new ApiResponse($this->statusCode, $this->data, $this->message);
                 } else {
                     $data = [
-                        'sunday_services' => [],
-                        'total_count' => 0,
+                        'sundayServices' => [],
+                        'totalCount' => 0,
                         'pagination' => false,
                     ];
                     $this->statusCode = 200;
@@ -134,22 +134,22 @@ class SundayServiceController extends BaseController
                     foreach ($sundayServices as $service) {
                         $result = [
                             'id' => (int)$service->id,
-                            'service_date' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->service_date)),
-                            'service_date_raw' => $service->service_date,
+                            'serviceDate' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->service_date)),
+                            'serviceDateRaw' => $service->service_date,
                             'content' => $service->content,
                             'active' => (int)$service->active,
-                            'created_at' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->created_at)),
+                            'createdAt' => date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($service->created_at)),
                         ];
                         array_push($serviceList, $result);
                     }
 
                     $data = [
-                        'sunday_services' => $serviceList,
+                        'sundayServices' => $serviceList,
                         'pagination' => [
-                            'total_count' => (int)$pagination->totalCount,
-                            'page_count' => (int)$pagination->pageCount,
-                            'current_page' => (int)$page,
-                            'per_page' => (int)$perPage,
+                            'totalCount' => (int)$pagination->totalCount,
+                            'pageCount' => (int)$pagination->pageCount,
+                            'currentPage' => (int)$page,
+                            'perPage' => (int)$perPage,
                         ],
                     ];
                     $this->statusCode = 200;
@@ -158,12 +158,12 @@ class SundayServiceController extends BaseController
                     return new ApiResponse($this->statusCode, $this->data, $this->message);
                 } else {
                     $data = [
-                        'sunday_services' => [],
+                        'sundayServices' => [],
                         'pagination' => [
-                            'total_count' => 0,
-                            'page_count' => 0,
-                            'current_page' => (int)$page,
-                            'per_page' => (int)$perPage,
+                            'totalCount' => 0,
+                            'pageCount' => 0,
+                            'currentPage' => (int)$page,
+                            'perPage' => (int)$perPage,
                         ],
                     ];
                     $this->statusCode = 200;
