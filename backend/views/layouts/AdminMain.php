@@ -77,7 +77,7 @@ $assetName = AppAsset::register($this);
                     
                     <li class="<?php if(Yii::$app->controller->id == 'account' || Yii::$app->controller->id == 'institution' || Yii::$app->controller->id == 'affiliatedinstitution'
                     		|| Yii::$app->controller->id == 'conversations' ||Yii::$app->controller->id == 'committee' ||Yii::$app->controller->id == 'prayerrequest' || Yii::$app->controller->id == 'feedback'
-                    		|| Yii::$app->controller->id == 'familyunit' || Yii::$app->controller->id == 'title' || Yii::$app->controller->id == 'staffdesignation' ) { echo 'active'; } ?>">
+                    		|| Yii::$app->controller->id == 'familyunit' || Yii::$app->controller->id == 'title' || Yii::$app->controller->id == 'staffdesignation' || Yii::$app->controller->id == 'vicardirectory' ) { echo 'active'; } ?>">
                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Main Menu<span class="caret"></span></a>
                        <ul class="dropdown-menu">
                                 <li class ="<?= Yii::$app->controller->id == 'account' && Yii::$app->controller->action->id == 'home' ?"active":'' ?>" ><a href="<?=Url::to(['/account/home'])?>">Dashboard</a></li>
@@ -136,6 +136,14 @@ $assetName = AppAsset::register($this);
                             <?php if (Yii::$app->user->can('1041a93a-153b-11e7-b48e-000c2990e707'))
                                { ?>
                                 <li class ="<?= Yii::$app->controller->id == 'staffdesignation'?"active":'' ?>"><a href="<?=Url::to(['/staffdesignation/index/'])?>">Staff Designation</a>
+                                </li>
+                                <?php } ?>
+                                <!-- Vicar Directory Management -->
+                            <?php if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707') && Yii::$app->user->identity->institution->institutiontype == 2)
+                               { ?>
+                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['index','update-vicar'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/index/'])?>">Vicar Directory</a>
+                                </li>
+                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['positions','update-position'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/positions/'])?>">Vicar Positions</a>
                                 </li>
                                 <?php } ?>
                                 
