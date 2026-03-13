@@ -61,6 +61,14 @@ class VicardirectoryController extends BaseController
             $institutionId = $institutionInfo['institutionid'];
             
             if ($institutionId) {
+                $enabledInstitutions = env('VICAR_DIRECTORY_ENABLED_INSTITUTIONS', '');
+                $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+                if (!in_array($institutionId, $enabledInstitutionsList)) {
+                    $this->statusCode = 403;
+                    $this->message = 'Vicar directory feature is not enabled for this institution';
+                    $this->data = new \stdClass();
+                    return new ApiResponse($this->statusCode, $this->data, $this->message);
+                }
                 $vicars = ExtendedVicarDirectory::getVicarDirectoryWithDetails($institutionId, true);
                 
                 if ($vicars) {

@@ -3,13 +3,10 @@
 namespace backend\controllers;
 
 use Yii;
-use common\models\extendedmodels\ExtendedVicarPositions;
-use common\models\extendedmodels\ExtendedVicarDirectory;
-use common\models\extendedmodels\ExtendedMember;
-use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
+use common\models\extendedmodels\{ExtendedVicarDirectory, ExtendedMember, ExtendedVicarPositions};
+use yii\web\{NotFoundHttpException, Response};
+use yii\filters\{AccessControl, VerbFilter};
 use backend\controllers\BaseController;
-use yii\web\Response;
 
 /**
  * VicarDirectoryController implements the CRUD actions for Vicar Directory Management.
@@ -22,18 +19,56 @@ class VicardirectoryController extends BaseController
     public function behaviors()
     {
         return [
+            'access' => [
+                'class' => AccessControl::className(),
+                'only' => [
+                    'index',
+                    'view',
+                    'create',
+                    'update',
+                    'delete'
+                ],
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'actions' => [
+                            'view',
+                            'create',
+                            'update',
+                            'delete'
+                        ],
+                        'roles' => ['@'] // Allow authenticated users - adjust role as needed
+                    ],
+                    [
+                        'allow' => true,
+                        'actions' => [
+                            'index'
+                        ],
+                        'roles' => ['@'] // Allow authenticated users - adjust role as needed
+                    ]
+                ],
+            ],
             'verbs' => [
                 'class' => VerbFilter::className(),
                 'actions' => [
-                    'delete-position' => ['POST'],
-                    'delete-vicar' => ['POST'],
-                    'activate-position' => ['POST'],
-                    'deactivate-position' => ['POST'],
-                    'activate-vicar' => ['POST'],
-                    'deactivate-vicar' => ['POST'],
+                    'delete' => ['POST'],
                 ],
             ],
         ];
+    }
+
+    public function beforeAction($action)
+    {       
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        $institutionId = $this->currentUser()?->institutionid ?? null;
+        $enabledInstitutions = env('VICAR_DIRECTORY_ENABLED_INSTITUTIONS', '');
+        $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+        if (!in_array($institutionId, $enabledInstitutionsList)) {
+            throw new \yii\web\ForbiddenHttpException('Vicar directory feature is not enabled for your institution.');
+        }
+        return true;
     }
 
     /**

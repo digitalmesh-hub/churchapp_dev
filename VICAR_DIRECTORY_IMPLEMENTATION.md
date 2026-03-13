@@ -238,6 +238,50 @@ function beforeAction($action)
 
 ---
 
+## Institution-Level Feature Control
+
+### Environment-Based Access Control
+
+The Vicar Directory feature includes institution-level access control via environment variables. This allows selective enablement for specific institutions based on licensing or feature rollout requirements.
+
+**Backend Controller:**
+The backend controller (`/backend/controllers/VicardirectoryController.php`) checks the `VICAR_DIRECTORY_ENABLED_INSTITUTIONS` environment variable in the `beforeAction()` method. If the current institution is not in the enabled list, a `403 Forbidden` HTTP exception is thrown.
+
+**API Controller:**
+The API controller (`/api/modules/v3/controllers/VicardirectoryController.php`) checks the `VICAR_DIRECTORY_ENABLED_INSTITUTIONS` environment variable. If the current institution is not in the enabled list, a `403 Forbidden` response is returned.
+
+**Menu Visibility:**
+The Vicar Directory menu items should only appear if:
+1. User has the required permission
+2. Institution ID is in the `VICAR_DIRECTORY_ENABLED_INSTITUTIONS` environment variable
+
+---
+
+## Environment Configuration
+
+### Required Environment Variable
+
+Add this to your `.env` file to enable Vicar Directory for specific institutions:
+
+```bash
+# Enable Vicar Directory for specific institutions (comma-separated IDs)
+VICAR_DIRECTORY_ENABLED_INSTITUTIONS=1,5,12,45
+```
+
+**Configuration Details:**
+- **Variable Name**: `VICAR_DIRECTORY_ENABLED_INSTITUTIONS`
+- **Format**: Comma-separated list of institution IDs (no spaces)
+- **Example**: `1,5,12,45` enables for institutions 1, 5, 12, and 45
+- **Empty/Not Set**: No institutions have access to Vicar Directory
+- **Behavior**: Only listed institutions can access backend and API endpoints
+
+**Security & Access:**
+- Backend: Throws `403 Forbidden` exception if institution not enabled
+- API: Returns `403 Forbidden` JSON response if institution not enabled
+- Menu: Vicar Directory links hidden from unauthorized institutions
+
+---
+
 ## Key Features
 
 ✅ **Dynamic Positions** - Create any position type, rename anytime  
@@ -249,6 +293,7 @@ function beforeAction($action)
 ✅ **Multi-Institution** - Works across different institutions  
 ✅ **Mobile API Ready** - Complete REST API with member details  
 ✅ **Photo URLs** - Automatic photo URL generation for API  
+✅ **Institution-Level Access Control** - Environment variable-based feature flags
 
 ---
 

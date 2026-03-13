@@ -141,32 +141,28 @@ $assetName = AppAsset::register($this);
                                 <!-- Vicar Directory Management -->
                             <?php if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707') && Yii::$app->user->identity->institution->institutiontype == 2)
                                { ?>
-                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['index','update-vicar'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/index/'])?>">Vicar Directory</a>
-                                </li>
-                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['positions','update-position'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/positions/'])?>">Vicar Positions</a>
-                                </li>
-                                <?php } ?>
-                                <!-- Vicar Directory Management -->
-                            <?php if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707') && Yii::$app->user->identity->institution->institutiontype == 2)
-                               { ?>
-                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['index','update-vicar'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/index/'])?>">Vicar Directory</a>
-                                </li>
-                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['positions','update-position'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/positions/'])?>">Vicar Positions</a>
-                                </li>
                                 <?php } ?>
                                 <?php 
-                                // Check Sunday Service permission and feature flag
-                                if (Yii::$app->user->can('b46fb1de-ec46-11e6-b48e-000c2990e707')) {
-                                    $institutionId = Yii::$app->user->identity->institution->id ?? null;
+                                  $institutionId = Yii::$app->user->identity->institution->id ?? null;
+                                  $enabledInstitutions = env('VICAR_DIRECTORY_ENABLED_INSTITUTIONS', '');
+                                  $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
+                                  if (in_array($institutionId, $enabledInstitutionsList)) {
+                                ?>
+                                
+                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['index','update-vicar'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/index/'])?>">Vicar Directory</a>
+                                </li>
+                                <li class ="<?= (Yii::$app->controller->id == 'vicardirectory' && in_array(Yii::$app->controller->action->id,['positions','update-position'])) ?"active":'' ?>"><a href="<?=Url::to(['/vicardirectory/positions/'])?>">Vicar Positions</a>
+                                </li>
+                                <?php
+                                    }
+                                    // Check Sunday Service permission
                                     $enabledInstitutions = env('SUNDAY_SERVICE_ENABLED_INSTITUTIONS', '');
                                     $enabledInstitutionsList = array_filter(array_map('trim', explode(',', $enabledInstitutions)));
-                                    
                                     if (in_array($institutionId, $enabledInstitutionsList)) {
                                 ?>
                                   <li class="<?= Yii::$app->controller->id == 'sundayservice'?"active":'' ?>"><a href="<?=Url::to(['/sunday-service/index/'])?>">Sunday Service</a></li>
                                 <?php 
-                                    }
-                                } 
+                                  }
                                 ?>
                                 
                             </ul>
