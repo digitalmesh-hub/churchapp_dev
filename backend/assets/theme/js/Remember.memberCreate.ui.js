@@ -121,49 +121,65 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                         showCancelButton: true,
                         confirmButtonClass: 'btn-danger',
                         confirmButtonText: 'Yes',
-                        closeOnConfirm: false,
-                        showLoaderOnConfirm: true
+                        closeOnConfirm: false
                     },
                     function() {
-                        $("#SpouseTitle option:selected").attr("selected", null);
-                        $("#txtMemberSpouseFirstName").val("");
-                        $("#txtMemberSpouseMiddleName").val("");
-                        $("#txtMemberSpouseLastName").val("");
-                        $("#txtMemberspouseemail").val("");
-                        $("#txtspousemobile1").val("");
-                        $("#txtSpouseDOB").val("");
-                        $("#txtSpouseNickName").val("");
-                        $("#txtSpouseBloodgroup").val("");
-                        $("#txtspousemobile1_countrycode").val("");
-                        $("#txtSpouseOccupation").val("");
+                        swal({
+                            title: 'Reason for Deletion',
+                            text: 'Please provide a reason for removing this spouse:',
+                            type: 'input',
+                            showCancelButton: true,
+                            closeOnConfirm: false,
+                            inputPlaceholder: 'Enter reason here...',
+                            showLoaderOnConfirm: true
+                        }, function(inputValue) {
+                            if (inputValue === false) return false;
+                            if (inputValue === '') {
+                                swal.showInputError('Reason is required!');
+                                return false;
+                            }
+                            
+                            $("#SpouseTitle option:selected").attr("selected", null);
+                            $("#txtMemberSpouseFirstName").val("");
+                            $("#txtMemberSpouseMiddleName").val("");
+                            $("#txtMemberSpouseLastName").val("");
+                            $("#txtMemberspouseemail").val("");
+                            $("#txtspousemobile1").val("");
+                            $("#txtSpouseDOB").val("");
+                            $("#txtSpouseNickName").val("");
+                            $("#txtSpouseBloodgroup").val("");
+                            $("#txtspousemobile1_countrycode").val("");
+                            $("#txtSpouseOccupation").val("");
 
-                        $.post(ajaxUrl, // Ajax Post URL
-                            {
-                                '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
-                                memberId: memberId
-                            }, // Data
-                            function(res) {
-                                if (typeof(res) !== 'undefined' && res.status === 'success') {
-                                    swal({
-                                            title: 'Success',
-                                            text: 'Spouse details removed successfully',
-                                            type: 'success'
-                                        },
-                                        function() {
-                                            window.location.href = $('#homeUrl').val() + 'member/';
-                                        }
-                                    )
-                                } else {
-                                    swal({
-                                            title: 'Failed',
-                                            text: 'Sorry! unable to complete the process',
-                                            type: 'error'
-                                        }),
-                                        function() {
-                                            location.reload()
-                                        }
-                                }
-                            })
+                            $.post(ajaxUrl, // Ajax Post URL
+                                {
+                                    '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
+                                    memberId: memberId,
+                                    deletionReason: inputValue
+                                }, // Data
+                                function(res) {
+                                    if (typeof(res) !== 'undefined' && res.status === 'success') {
+                                        swal({
+                                                title: 'Success',
+                                                text: 'Spouse details removed successfully',
+                                                type: 'success'
+                                            },
+                                            function() {
+                                                window.location.href = $('#homeUrl').val() + 'member/';
+                                            }
+                                        )
+                                    } else {
+                                        swal({
+                                                title: 'Failed',
+                                                text: 'Sorry! unable to complete the process',
+                                                type: 'error'
+                                            }),
+                                            function() {
+                                                location.reload()
+                                            }
+                                    }
+                                })
+                        });
                     })
             });
 
@@ -175,12 +191,27 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                         showCancelButton: true,
                         confirmButtonClass: 'btn-danger',
                         confirmButtonText: 'Yes',
-                        closeOnConfirm: false,
-                        showLoaderOnConfirm: false
+                        closeOnConfirm: false
                     },
                     function() {
-                        var memberid = $("#hdnmemberid").val();
-                        if (__this._ValidateBeforeDeleteMember() == true) {
+                        swal({
+                            title: 'Reason for Deletion',
+                            text: 'Please provide a reason for removing this member:',
+                            type: 'input',
+                            showCancelButton: true,
+                            closeOnConfirm: false,
+                            inputPlaceholder: 'Enter reason here...',
+                            showLoaderOnConfirm: true
+                        }, function(inputValue) {
+                            if (inputValue === false) return false;
+                            if (inputValue === '') {
+                                swal.showInputError('Reason is required!');
+                                return false;
+                            }
+                            
+                            var memberid = $("#hdnmemberid").val();
+                            var deletionReason = inputValue;
+                            if (__this._ValidateBeforeDeleteMember() == true) {
                             $("#memberimage").attr("src", $("#spouseimage").attr('src'));
                             $("#spouseimage").attr('src', $('#base-url').val() + "/theme/images/default-user.png");
                             $("#MemberTitle option:selected").attr("selected", null);
@@ -238,7 +269,8 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                             $.post($('#homeUrl').val() + $('#remove-member').val(), // Ajax Post URL
                                 {
                                     '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
-                                    data: data
+                                    data: data,
+                                    deletionReason: deletionReason
                                 }, // Data
                                 function(res) {
                                     if (typeof(res) !== 'undefined' && res.status === 'success') {
@@ -262,7 +294,8 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                                             }
                                     }
                                 });
-                        }
+                            }
+                        });
                     }
                 )
             });

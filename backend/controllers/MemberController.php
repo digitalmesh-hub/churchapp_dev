@@ -15,6 +15,7 @@ use common\models\extendedmodels\ExtendedUserMember;
 use common\models\extendedmodels\ExtendedMemberadditionalinfo;
 use common\models\extendedmodels\ExtendedTempmemberadditionalinfomail;
 use common\models\extendedmodels\ExtendedDeleteDependant;
+use common\models\extendedmodels\ExtendedMemberDeletionLog;
 use common\models\extendedmodels\ExtendedEditmember;
 use common\models\extendedmodels\ExtendedTempmember;
 use common\models\extendedmodels\ExtendedTempdependantmail;
@@ -707,15 +708,77 @@ class MemberController extends BaseController
 		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 		if (yii::$app->request->isAjax) {
 			$memberId = yii::$app->request->post('memberId');
+			$deletionReason = yii::$app->request->post('deletionReason', '');
 			$member = $this->findModel($memberId);
 			if ($member) {
 				$institutionId = $this->currentUser()->institutionid;
+				$currentUserId = $this->currentUserId();
+				$currentUserName = $this->getUserFullName($currentUserId);
+				
 				try {
+					// Prepare member details for logging before deletion (with title)
+					$memberTitleDesc = $member->membertitle0 ? $member->membertitle0->Description : '';
+					$memberName = trim(implode(' ', array_filter([
+						$memberTitleDesc,
+						$member->firstName,
+						$member->middleName,
+						$member->lastName
+					])));
+					$memberEmail = $member->member_email ?? '';
+					$membershipNo = $member->memberno ?? '';
+					
+					$spouseTitleDesc = $member->spousetitle0 ? $member->spousetitle0->Description : '';
+					$spouseName = trim(implode(' ', array_filter([
+						$spouseTitleDesc,
+						$member->spouse_firstName,
+						$member->spouse_middleName,
+						$member->spouse_lastName
+					])));
+					$spouseEmail = $member->spouse_email ?? '';
+					
+					// Update member table with updated_by before deletion
+					$member->updated_by = $currentUserId;
+					$member->lastupdated = gmdate('Y-m-d H:i:s');
+					$member->save(false);
+					
+					// Delete the member
 					$response = $member->deleteMember($memberId, $institutionId);
+					
 					if ($response) {
+						// Log member deletion
+						if (!empty($memberName)) {
+							ExtendedMemberDeletionLog::logDeletion(
+								$institutionId,
+								$memberId,
+								$membershipNo,
+								$memberName,
+								$memberEmail,
+								'member',
+								$deletionReason,
+								$currentUserId,
+								$currentUserName
+							);
+						}
+						
+						// Log spouse deletion if spouse exists
+						if (!empty($spouseName)) {
+							ExtendedMemberDeletionLog::logDeletion(
+								$institutionId,
+								$memberId,
+								$membershipNo,
+								$spouseName,
+								$spouseEmail,
+								'spouse',
+								$deletionReason,
+								$currentUserId,
+								$currentUserName
+							);
+						}
+						
 						return ['status' => "success", 'msg' => "Member deleted successfully"];
 					}
 				} catch (\Exception $e) {
+					Yii::error('Error deleting member: ' . $e->getMessage());
 					return ['status' => "error", 'msg' => $e->getMessage()];
 				}
 			}
@@ -2131,10 +2194,53 @@ class MemberController extends BaseController
 		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 		if (yii::$app->request->isAjax) {
 			$memberId  = yii::$app->request->post('memberId');
+			$deletionReason = yii::$app->request->post('deletionReason', '');
+			
 			try {
-				$respose = $memberModel->deleteSpouseDetails($memberId);
+				// Get member details before deletion for logging
+				$member = $this->findModel($memberId);
+				if ($member) {
+					$institutionId = $this->currentUser()->institutionid;
+					$currentUserId = $this->currentUserId();
+					$currentUserName = $this->getUserFullName($currentUserId);
+					
+					// Prepare spouse details for logging (with title)
+					$spouseTitleDesc = $member->spousetitle0 ? $member->spousetitle0->Description : '';
+					$spouseName = trim(implode(' ', array_filter([
+						$spouseTitleDesc,
+						$member->spouse_firstName,
+						$member->spouse_middleName,
+						$member->spouse_lastName
+					])));
+					$spouseEmail = $member->spouse_email ?? '';
+					
+					// Update member table with updated_by
+					$member->updated_by = $currentUserId;
+					$member->lastupdated = gmdate('Y-m-d H:i:s');
+					$member->save(false);
+					
+					// Delete spouse details
+					$response = $memberModel->deleteSpouseDetails($memberId);
+					
+					// Log the deletion
+					if ($response && !empty($spouseName)) {
+						ExtendedMemberDeletionLog::logDeletion(
+							$institutionId,
+							$memberId,
+							$member->memberno ?? '',
+							$spouseName,
+							$spouseEmail,
+							'spouse',
+							$deletionReason,
+							$currentUserId,
+							$currentUserName
+						);
+					}
+				}
+				
 				return ['status' => 'success'];
 			} catch (Exception $e) {
+				Yii::error('Error removing spouse: ' . $e->getMessage());
 				return ['status' => 'error'];
 			}
 		}
@@ -2151,10 +2257,50 @@ class MemberController extends BaseController
 		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 		if (yii::$app->request->isAjax) {
 			$memberDetails  = yii::$app->request->post();
+			$deletionReason = yii::$app->request->post('deletionReason', '');
 			$memberDetails = $memberDetails['data'];
 			$institutionId = $this->currentUser()->institutionid;
+			$currentUserId = $this->currentUserId();
+			$currentUserName = $this->getUserFullName($currentUserId);
+			
 			try {
+				// Get member details before deletion for logging
+				$memberId = $memberDetails['MemberID'];
+				$member = $this->findModel($memberId);
+				
+				// Prepare member details for logging (with title)
+				$memberTitleDesc = $member->membertitle0 ? $member->membertitle0->Description : '';
+				$memberName = trim(implode(' ', array_filter([
+					$memberTitleDesc,
+					$member->firstName,
+					$member->middleName,
+					$member->lastName
+				])));
+				$memberEmail = $member->member_email ?? '';
+				$membershipNo = $member->memberno ?? '';
+				
+				// Update member table with updated_by
+				$member->updated_by = $currentUserId;
+				$member->lastupdated = gmdate('Y-m-d H:i:s');
+				$member->save(false);
+				
 				$respose = $memberModel->removePrimaryMemberDetails($memberDetails);
+				
+				// Log the deletion
+				if ($respose && !empty($memberName)) {
+					ExtendedMemberDeletionLog::logDeletion(
+						$institutionId,
+						$memberId,
+						$membershipNo,
+						$memberName,
+						$memberEmail,
+						'member',
+						$deletionReason,
+						$currentUserId,
+						$currentUserName
+					);
+				}
+				
 				$manageUserCount = ExtendedUserMember::find()->where(['memberid' => $memberDetails['MemberID']])->count();
 				if ($manageUserCount > 1) {
 					$memberUser = ExtendedUserMember::find()->where(['memberid' => $memberDetails['MemberID'], 'institutionid' => $institutionId, 'usertype' => 'M'])->one();
@@ -2177,6 +2323,65 @@ class MemberController extends BaseController
 			}
 		}
 	}
+	
+	/**
+	 * Get the full name of a user (including title)
+	 * Uses the same logic as _form.php
+	 * @param int $userId
+	 * @return string
+	 */
+	protected function getUserFullName($userId)
+	{
+		if (!$userId) {
+			return 'Unknown User';
+		}
+		
+		$updatedBy = ExtendedUserCredentials::findOne($userId);
+		if (!$updatedBy) {
+			return 'Unknown User';
+		}
+		
+		$userName = $updatedBy->emailid; // default to email
+		
+		// Try to get the member's name through UserMember
+		$usermember = ExtendedUserMember::find()
+			->where(['userid' => $updatedBy->id])
+			->one();
+			
+		if ($usermember && $usermember->member) {
+			$member = $usermember->member;
+			// Check if user is spouse or member
+			if ($usermember->usertype === 'S') {
+				// Spouse user - use spouse name fields with title
+				$titleDesc = $member->spousetitle0 ? $member->spousetitle0->Description : '';
+				$userName = trim(implode(' ', array_filter([
+					$titleDesc,
+					$member->spouse_firstName,
+					$member->spouse_middleName,
+					$member->spouse_lastName
+				])));
+			} else {
+				// Member user - use primary member name fields with title
+				$titleDesc = $member->membertitle0 ? $member->membertitle0->Description : '';
+				$userName = trim(implode(' ', array_filter([
+					$titleDesc,
+					$member->firstName,
+					$member->middleName,
+					$member->lastName
+				])));
+			}
+		} elseif ($updatedBy->userprofile) {
+			// If not a member, try userprofile
+			$userName = trim(implode(' ', array_filter([
+				$updatedBy->userprofile->firstname,
+				$updatedBy->userprofile->middlename,
+				$updatedBy->userprofile->lastname
+			])));
+		}
+		
+		return $userName ?: 'Unknown User';
+	}
+	
 	/**
 	 * to assing the memebr values into member model
 	 * @param unknown $memberDetails
