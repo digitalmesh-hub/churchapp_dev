@@ -34,7 +34,7 @@ $this->registerJsFile(
 
             <div class="inlinerow Mtop10">
                 <div class="col-md-3 col-sm-3">
-                    <?= $form->field($model, 'position_name')->textInput(['maxlength' => true])->label('Position Name') ?>
+                    <?= $form->field($model, 'position_name')->textInput(['maxlength' => true])->label('Position Name <span style="color:red;">*</span>') ?>
                 </div>
 
                 <div class="col-md-3 col-sm-3">
