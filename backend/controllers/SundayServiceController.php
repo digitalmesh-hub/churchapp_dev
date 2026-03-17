@@ -133,7 +133,7 @@ class SundayServiceController extends BaseController
                 $model->service_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->service_date));
                 
                 if ($model->save(false)) {
-                    Yii::$app->session->setFlash('success', 'Sunday Service created successfully.');
+                    Yii::$app->session->setFlash('success', ['Sunday Service created successfully.']);
                     return $this->redirect(['index']);
                 }
             }
@@ -173,7 +173,7 @@ class SundayServiceController extends BaseController
                 $model->service_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->service_date));
                 
                 if ($model->save(false)) {
-                    Yii::$app->session->setFlash('success', 'Sunday Service updated successfully.');
+                    Yii::$app->session->setFlash('success', ['Sunday Service updated successfully.']);
                     return $this->redirect(['view', 'id' => $model->id]);
                 }
             }
@@ -198,7 +198,7 @@ class SundayServiceController extends BaseController
     public function actionDelete($id)
     {
         $this->findModel($id)->delete();
-        Yii::$app->session->setFlash('success', 'Sunday Service deleted successfully.');
+        Yii::$app->session->setFlash('success', ['Sunday Service deleted successfully.']);
 
         return $this->redirect(['index']);
     }

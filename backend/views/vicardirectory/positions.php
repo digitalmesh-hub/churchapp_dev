@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use backend\assets\AppAsset;
+use backend\components\widgets\FlashResult;
 
 $assetName = AppAsset::register($this);
 $this->registerJsFile(
@@ -18,6 +19,8 @@ $this->registerJsFile(
 <div class="col-md-12 col-sm-12 pageheader Mtop15">Vicar Positions</div>
 <div class="col-md-12 col-sm-12 contentbg">
     <div class="col-md-12 col-sm-12 Mtopbot20">
+
+        <?= FlashResult::widget(); ?>
 
         <?php
         $path = (isset($update) && $update) ? 'vicardirectory/update-position/' . $model->id : 'vicardirectory/create-position';

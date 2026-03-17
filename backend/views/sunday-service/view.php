@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 use yii\widgets\DetailView;
 use common\helpers\UserHelper;
+use backend\components\widgets\FlashResult;
 
 $this->title = 'Sunday Service - ' . date(Yii::$app->params['dateFormat']['viewDateFormat'], strtotime($model->service_date));
 $this->params['breadcrumbs'][] = ['label' => 'Sunday Services', 'url' => ['index']];
@@ -12,6 +13,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="col-md-12 col-sm-12 pageheader Mtop15"><?= Html::encode($this->title) ?></div>
     <div class="col-md-12 col-sm-12 contentbg">
         <div class="col-md-12 col-sm-12 Mtopbot20">
+            <?= FlashResult::widget(); ?>
             <div class="blockrow Mtop20">
                 <p>
                     <?= Html::a('Update', ['update', 'id' => $model->id], ['class' => 'btn btn-primary']) ?>

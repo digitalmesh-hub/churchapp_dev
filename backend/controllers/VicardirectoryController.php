@@ -108,9 +108,9 @@ class VicardirectoryController extends BaseController
             $model->createdby = Yii::$app->user->identity->id;
             
             if ($model->save()) {
-                Yii::$app->session->setFlash('success', 'Vicar position created successfully.');
+                Yii::$app->session->setFlash('success', ['Vicar position created successfully.']);
             } else {
-                Yii::$app->session->setFlash('error', 'Failed to create vicar position.');
+                Yii::$app->session->setFlash('error', ['Failed to create vicar position.']);
             }
             
             return $this->redirect(['positions']);
@@ -138,9 +138,9 @@ class VicardirectoryController extends BaseController
             $model->modifiedby = Yii::$app->user->identity->id;
             
             if ($model->save()) {
-                Yii::$app->session->setFlash('success', 'Vicar position updated successfully.');
+                Yii::$app->session->setFlash('success', ['Vicar position updated successfully.']);
             } else {
-                Yii::$app->session->setFlash('error', 'Failed to update vicar position.');
+                Yii::$app->session->setFlash('error', ['Failed to update vicar position.']);
             }
             
             return $this->redirect(['positions']);
@@ -283,12 +283,12 @@ class VicardirectoryController extends BaseController
                 }
                 
                 if ($model->save(false)) {
-                    Yii::$app->session->setFlash('success', 'Vicar assigned successfully.');
+                    Yii::$app->session->setFlash('success', ['Vicar assigned successfully.']);
                 } else {
-                    Yii::$app->session->setFlash('error', 'Failed to assign vicar.');
+                    Yii::$app->session->setFlash('error', ['Failed to assign vicar.']);
                 }
             } else {
-                Yii::$app->session->setFlash('error', 'Validation failed.');
+                Yii::$app->session->setFlash('error', ['Validation failed.']);
             }
             
             return $this->redirect(['index']);
@@ -353,12 +353,12 @@ class VicardirectoryController extends BaseController
                 }
                 
                 if ($model->save(false)) {
-                    Yii::$app->session->setFlash('success', 'Vicar updated successfully.');
+                    Yii::$app->session->setFlash('success', ['Vicar updated successfully.']);
                 } else {
-                    Yii::$app->session->setFlash('error', 'Failed to update vicar.');
+                    Yii::$app->session->setFlash('error', ['Failed to update vicar.']);
                 }
             } else {
-                Yii::$app->session->setFlash('error', 'Validation failed.');
+                Yii::$app->session->setFlash('error', ['Validation failed.']);
             }
             
             return $this->redirect(['index']);

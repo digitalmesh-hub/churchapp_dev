@@ -7,6 +7,7 @@ use yii\helpers\ArrayHelper;
 use yii\widgets\LinkPager;
 use backend\assets\AppAsset;
 use kartik\date\DatePicker;
+use backend\components\widgets\FlashResult;
 
 $assetName = AppAsset::register($this);
 $this->registerJsFile(
@@ -22,6 +23,8 @@ $this->registerJsFile(
 <div class="col-md-12 col-sm-12 pageheader Mtop15">Vicar Directory Management</div>
 <div class="col-md-12 col-sm-12 contentbg">
     <div class="col-md-12 col-sm-12 Mtopbot20">
+        
+        <?= FlashResult::widget(); ?>
         
         <?php
         $path = (isset($update) && $update) ? 'vicardirectory/update-vicar/' . $model->id : 'vicardirectory/create-vicar';

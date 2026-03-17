@@ -6,6 +6,7 @@ use yii\widgets\Pjax;
 use yii\widgets\ActiveForm;
 use kartik\date\DatePicker;
 use backend\assets\AppAsset;
+use backend\components\widgets\FlashResult;
 
 $assetName = AppAsset::register($this);
 $this->title = 'Sunday Services';
@@ -15,6 +16,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="col-md-12 col-sm-12 pageheader Mtop15"><?= Html::encode($this->title) ?></div>
     <div class="col-md-12 col-sm-12 contentbg">
         <div class="col-md-12 col-sm-12 Mtopbot20">
+            <?= FlashResult::widget(); ?>
             <div class="blockrow Mtop20">
                 <div class="inlinerow Mtop10">
                     <div class="col-md-12">
