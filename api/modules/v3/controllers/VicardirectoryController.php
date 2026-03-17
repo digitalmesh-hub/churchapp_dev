@@ -110,8 +110,6 @@ class VicardirectoryController extends BaseController
                     
                     $data = [
                         'positions' => $positions,
-                        'totalPositions' => count($positions),
-                        'totalVicars' => count($vicars),
                     ];
                     
                     $this->statusCode = 200;
@@ -121,8 +119,6 @@ class VicardirectoryController extends BaseController
                 } else {
                     $data = [
                         'positions' => [],
-                        'totalPositions' => 0,
-                        'totalVicars' => 0,
                     ];
                     
                     $this->statusCode = 200;
