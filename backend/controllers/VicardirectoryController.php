@@ -275,10 +275,20 @@ class VicardirectoryController extends BaseController
             $model->createdby = Yii::$app->user->identity->id;
             $model->is_active = 1;
             
-            if ($model->save()) {
-                Yii::$app->session->setFlash('success', 'Vicar assigned successfully.');
+            if ($model->validate()) {
+                // Convert date format before saving
+                $model->start_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->start_date));
+                if (!empty($model->end_date)) {
+                    $model->end_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->end_date));
+                }
+                
+                if ($model->save(false)) {
+                    Yii::$app->session->setFlash('success', 'Vicar assigned successfully.');
+                } else {
+                    Yii::$app->session->setFlash('error', 'Failed to assign vicar.');
+                }
             } else {
-                Yii::$app->session->setFlash('error', 'Failed to assign vicar.');
+                Yii::$app->session->setFlash('error', 'Validation failed.');
             }
             
             return $this->redirect(['index']);
@@ -335,10 +345,20 @@ class VicardirectoryController extends BaseController
         if ($model->load(Yii::$app->request->post())) {
             $model->modifiedby = Yii::$app->user->identity->id;
             
-            if ($model->save()) {
-                Yii::$app->session->setFlash('success', 'Vicar updated successfully.');
+            if ($model->validate()) {
+                // Convert date format before saving
+                $model->start_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->start_date));
+                if (!empty($model->end_date)) {
+                    $model->end_date = date(Yii::$app->params['dateFormat']['sqlDateFormat'], strtotimeNew($model->end_date));
+                }
+                
+                if ($model->save(false)) {
+                    Yii::$app->session->setFlash('success', 'Vicar updated successfully.');
+                } else {
+                    Yii::$app->session->setFlash('error', 'Failed to update vicar.');
+                }
             } else {
-                Yii::$app->session->setFlash('error', 'Failed to update vicar.');
+                Yii::$app->session->setFlash('error', 'Validation failed.');
             }
             
             return $this->redirect(['index']);

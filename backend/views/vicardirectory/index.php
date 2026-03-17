@@ -38,7 +38,7 @@ $this->registerJsFile(
                     <?= $form->field($model, 'vicar_position_id')->dropDownList(
                         ArrayHelper::map($positions, 'id', 'position_name'),
                         ['prompt' => 'Select Position', 'id' => 'position-select']
-                    )->label('Position') ?>
+                    )->label('Position *') ?>
                 </div>
                 
                 <div class="col-md-3 col-sm-3">
@@ -54,7 +54,7 @@ $this->registerJsFile(
                             return $fullName . ' (' . $member->memberno . ')';
                         }),
                         ['prompt' => 'Select Member', 'id' => 'member-select']
-                    )->label('Member') ?>
+                    )->label('Member *') ?>
                 </div>
                 
                 <div class="col-md-3 col-sm-3">
@@ -72,7 +72,7 @@ $this->registerJsFile(
                             'autoclose' => true,
                             'format' => 'dd MM yyyy',
                         ]
-                    ])->label('Start Date') ?>
+                    ])->label('Start Date *') ?>
                 </div>
                 
                 <div class="col-md-3 col-sm-3 Mtop25">
