@@ -255,11 +255,11 @@ class VicardirectoryController extends BaseController
         $photoFullUrl = '';
         
         if (!empty($vicar['memberImageThumbnail'])) {
-            $photoThumbnailUrl = Yii::$app->params['image']['member']['memberImageUrl'] . '/' . $vicar['memberImageThumbnail'];
+            $photoThumbnailUrl =  yii::$app->params['imagePath'] . $vicar['memberImageThumbnail'];
         }
         
         if (!empty($vicar['memberImage'])) {
-            $photoFullUrl = Yii::$app->params['image']['member']['memberImageUrl'] . '/' . $vicar['memberImage'];
+            $photoFullUrl = Yii::$app->params['imagePath'] . $vicar['memberImage'];
         }
         
         // Build full name without extra spaces
