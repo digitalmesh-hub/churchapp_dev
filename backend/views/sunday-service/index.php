@@ -35,10 +35,12 @@ $this->params['breadcrumbs'][] = $this->title;
                                     <?= $form->field($searchModel, 'service_date_from')->widget(DatePicker::classname(), [
                                         'options' => [
                                             'placeholder' => 'From date',
+                                            'id' => 'service-date-from'
                                         ],
                                         'pluginOptions' => [
                                             'autoclose' => true,
-                                            'format' => 'dd MM yyyy'
+                                            'format' => 'dd MM yyyy',
+                                            'todayHighlight' => true
                                         ]
                                     ])->label('From Date'); ?>
                                 </div>
@@ -46,10 +48,12 @@ $this->params['breadcrumbs'][] = $this->title;
                                     <?= $form->field($searchModel, 'service_date_to')->widget(DatePicker::classname(), [
                                         'options' => [
                                             'placeholder' => 'To date',
+                                            'id' => 'service-date-to'
                                         ],
                                         'pluginOptions' => [
                                             'autoclose' => true,
-                                            'format' => 'dd MM yyyy'
+                                            'format' => 'dd MM yyyy',
+                                            'todayHighlight' => true
                                         ]
                                     ])->label('To Date'); ?>
                                 </div>
@@ -62,10 +66,12 @@ $this->params['breadcrumbs'][] = $this->title;
                                     <?= $form->field($searchModel, 'created_at_from')->widget(DatePicker::classname(), [
                                         'options' => [
                                             'placeholder' => 'From date',
+                                            'id' => 'created-at-from'
                                         ],
                                         'pluginOptions' => [
                                             'autoclose' => true,
-                                            'format' => 'dd MM yyyy'
+                                            'format' => 'dd MM yyyy',
+                                            'todayHighlight' => true
                                         ]
                                     ])->label('From Date'); ?>
                                 </div>
@@ -73,10 +79,12 @@ $this->params['breadcrumbs'][] = $this->title;
                                     <?= $form->field($searchModel, 'created_at_to')->widget(DatePicker::classname(), [
                                         'options' => [
                                             'placeholder' => 'To date',
+                                            'id' => 'created-at-to'
                                         ],
                                         'pluginOptions' => [
                                             'autoclose' => true,
-                                            'format' => 'dd MM yyyy'
+                                            'format' => 'dd MM yyyy',
+                                            'todayHighlight' => true
                                         ]
                                     ])->label('To Date'); ?>
                                 </div>
@@ -172,3 +180,86 @@ $this->params['breadcrumbs'][] = $this->title;
         </div>
     </div>
 </div>
+
+<?php
+$this->registerJs("
+    // Function to parse date string 'dd MM yyyy' to timestamp for comparison
+    function parseDateToTimestamp(dateStr) {
+        if (!dateStr || dateStr.trim() === '') return null;
+        var parts = dateStr.trim().split(' ');
+        if (parts.length !== 3) return null;
+        
+        var months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+        var monthIndex = months.indexOf(parts[1]);
+        if (monthIndex === -1) return null;
+        
+        var day = parseInt(parts[0]);
+        var year = parseInt(parts[2]);
+        var date = new Date(year, monthIndex, day);
+        return date.getTime();
+    }
+
+    // Service Date Range Validation
+    $('#service-date-from').on('change', function() {
+        var fromDateStr = $(this).val();
+        var toDateStr = $('#service-date-to').val();
+        
+        if (fromDateStr && toDateStr) {
+            var fromTime = parseDateToTimestamp(fromDateStr);
+            var toTime = parseDateToTimestamp(toDateStr);
+            
+            if (fromTime && toTime && fromTime > toTime) {
+                $('#service-date-to').val('');
+                alert('From date cannot be greater than To date. To date has been cleared.');
+            }
+        }
+    });
+
+    $('#service-date-to').on('change', function() {
+        var fromDateStr = $('#service-date-from').val();
+        var toDateStr = $(this).val();
+        
+        if (fromDateStr && toDateStr) {
+            var fromTime = parseDateToTimestamp(fromDateStr);
+            var toTime = parseDateToTimestamp(toDateStr);
+            
+            if (fromTime && toTime && toTime < fromTime) {
+                $('#service-date-from').val('');
+                alert('To date cannot be less than From date. From date has been cleared.');
+            }
+        }
+    });
+
+    // Created Date Range Validation
+    $('#created-at-from').on('change', function() {
+        var fromDateStr = $(this).val();
+        var toDateStr = $('#created-at-to').val();
+        
+        if (fromDateStr && toDateStr) {
+            var fromTime = parseDateToTimestamp(fromDateStr);
+            var toTime = parseDateToTimestamp(toDateStr);
+            
+            if (fromTime && toTime && fromTime > toTime) {
+                $('#created-at-to').val('');
+                alert('From date cannot be greater than To date. To date has been cleared.');
+            }
+        }
+    });
+
+    $('#created-at-to').on('change', function() {
+        var fromDateStr = $('#created-at-from').val();
+        var toDateStr = $(this).val();
+        
+        if (fromDateStr && toDateStr) {
+            var fromTime = parseDateToTimestamp(fromDateStr);
+            var toTime = parseDateToTimestamp(toDateStr);
+            
+            if (fromTime && toTime && toTime < fromTime) {
+                $('#created-at-from').val('');
+                alert('To date cannot be less than From date. From date has been cleared.');
+            }
+        }
+    });
+", \yii\web\View::POS_READY);
+?>
