@@ -60,7 +60,7 @@ class SundayServiceSearch extends ExtendedSundayService
                 ]
             ],
             'pagination' => [
-                'pageSize' => 1, // Set to 1 for testing pagination
+                'pageSize' => 20,
             ],
         ]);
 
