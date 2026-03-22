@@ -51,7 +51,7 @@ use backend\assets\AppAsset;
                             'pluginOptions' => [
                                 'autoclose'=>true,
                                 'format' => 'dd MM yyyy',
-                                'startDate' =>'0d',
+                                // 'startDate' =>'0d',
                                 'clearBtn' => false
                             ]])->label(false); ?>
                     </div>
@@ -72,7 +72,7 @@ use backend\assets\AppAsset;
                             'pluginOptions' => [
                                 'autoclose'=>true,
                                 'format' => 'dd MM yyyy',
-                                'startDate' =>'0d'
+                                // 'startDate' =>'0d'
                             ]
                         ])->label(false); ?>
                     </div>
