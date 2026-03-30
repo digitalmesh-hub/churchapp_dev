@@ -11,10 +11,6 @@ use common\models\extendedmodels\ExtendedTitle;
 use common\models\extendedmodels\ExtendedUserCredentials;
 use common\models\extendedmodels\ExtendedUserMember;
 use common\models\extendedmodels\ExtendedSettings;
-use common\models\extendedmodels\ExtendedZone;
-use common\models\basemodels\CustomRoleModel;
-use phpseclib3\Math\BigInteger\Engines\PHP;
-use yii\helpers\ArrayHelper;
 
 /**
  * Import controller for CSV data imports
@@ -46,12 +42,6 @@ class ImportController extends Controller
     private $lastProcessedFamily = null;
     private $titleMap = [];
     private $previewData = [];
-    private $zoneMap = [];
-    private $familyZoneMap = [];
-    private $familyAddressMap = [];
-    private $roleCategories = [];
-    private $firstRoleCategoryId = null;
-    private $firstRoleId = null;
     
     public function options($actionID)
     {
@@ -159,24 +149,6 @@ class ImportController extends Controller
         // Initialize title map
         $this->initializeTitleMap();
         
-        // Initialize zone map and family-zone mapping
-        $this->initializeZoneMap();
-        $this->loadFamilyZoneMapping();
-        
-        // Initialize role categories and get first role
-        $this->initializeRoleCategories();
-        /* echo PHP_EOL;
-        echo "role categories: ";
-        print_r($this->roleCategories);
-        echo PHP_EOL;
-        echo "first role category id: ";
-        print_r($this->firstRoleCategoryId);
-        echo PHP_EOL;
-        echo "first role id: ";
-        print_r($this->firstRoleId);
-        echo PHP_EOL;
-        exit; */
-        
         // Determine starting point
         $shouldSkip = $this->resume && $this->lastProcessedFamily !== null;
         $skippedCount = 0;
@@ -189,14 +161,14 @@ class ImportController extends Controller
         
         // Process each family
         $processedCount = 0;
-        foreach ($families as $familyKey => $members) {
+        foreach ($families as $familyId => $members) {
             // Skip until we reach the last processed family
             if ($shouldSkip) {
                 $skippedCount++;
-                if ($familyKey == $this->lastProcessedFamily) {
+                if ($familyId == $this->lastProcessedFamily) {
                     $shouldSkip = false;
-                    $this->stdout("Resuming from Family: ", Console::FG_CYAN, Console::BOLD);
-                    $this->stdout($familyKey . "\n\n");
+                    $this->stdout("Resuming from Family ID: ", Console::FG_CYAN, Console::BOLD);
+                    $this->stdout($familyId . "\n\n");
                 }
                 continue;
             }
@@ -204,16 +176,11 @@ class ImportController extends Controller
             $processedCount++;
             $currentPosition = $skippedCount + $processedCount;
             
-            // Extract display info from first member
-            $firstMember = $members[0];
-            $displayId = $firstMember['PersonIDPrefix'];
-            
             $this->stdout("[{$currentPosition}/{$totalFamilies}] ");
-            $this->stdout("Processing Family: ", Console::FG_CYAN);
-            $this->stdout("{$displayId} ", Console::BOLD);
-            $this->stdout("(FamilyID: {$firstMember['FamilyID']})\n");
+            $this->stdout("Processing Family ID: ", Console::FG_CYAN);
+            $this->stdout($familyId . "\n", Console::BOLD);
             
-            $result = $this->processFamily($familyKey, $members);
+            $result = $this->processFamily($familyId, $members);
             
             if ($result['success']) {
                 $this->stdout("  ✓ ", Console::FG_GREEN, Console::BOLD);
@@ -224,7 +191,7 @@ class ImportController extends Controller
             }
             
             // Save progress after each family
-            $this->saveProgress($familyKey);
+            $this->saveProgress($familyId);
         }
         
         // Save error log
@@ -248,9 +215,7 @@ class ImportController extends Controller
     }
     
     /**
-     * Group CSV rows by PersonID prefix (actual family grouping)
-     * PersonID format: A-04-1, A-04-2, etc.
-     * Family key will be: FamilyID + PersonID prefix (e.g., "4_A-04")
+     * Group CSV rows by FamilyID
      */
     private function groupByFamily($csvData)
     {
@@ -260,30 +225,15 @@ class ImportController extends Controller
             if (count($row) < 16) continue;
             
             $familyId = trim($row[0]);
-            $personId = trim($row[1]);
+            if (empty($familyId)) continue;
             
-            if (empty($familyId) || empty($personId)) continue;
-            
-            // Extract PersonID prefix (e.g., "A-04" from "A-04-1")
-            // Match pattern: letters/numbers followed by dash and numbers, before the last dash
-            if (preg_match('/^(.+-\d+)-\d+$/', $personId, $matches)) {
-                $personIdPrefix = $matches[1]; // e.g., "A-04"
-            } else {
-                // Fallback: use the personId as-is if pattern doesn't match
-                $personIdPrefix = $personId;
+            if (!isset($families[$familyId])) {
+                $families[$familyId] = [];
             }
             
-            // Create unique family key: FamilyID_PersonIDPrefix
-            $familyKey = $familyId . '_' . $personIdPrefix;
-            
-            if (!isset($families[$familyKey])) {
-                $families[$familyKey] = [];
-            }
-            
-            $families[$familyKey][] = [
-                'FamilyID' => $familyId,
-                'PersonID' => $personId,
-                'PersonIDPrefix' => $personIdPrefix,
+            $families[$familyId][] = [
+                'FamilyID' => trim($row[0]),
+                'PersonID' => trim($row[1]),
                 'Prefix' => trim($row[2]),
                 'Name' => trim($row[3]),
                 'Nickname' => trim($row[4]),
@@ -308,67 +258,163 @@ class ImportController extends Controller
     
     /**
      * Process a single family
-     * @param string $familyKey Unique key (FamilyID_PersonIDPrefix)
-     * @param array $members Array of family members
      */
-    private function processFamily($familyKey, $members)
+    private function processFamily($familyId, $members)
     {
-        // Extract actual FamilyID and PersonIDPrefix from first member
-        $familyId = $members[0]['FamilyID'];
-        $personIdPrefix = $members[0]['PersonIDPrefix'];
+        // Find head of family, spouse, and dependants
+        $headOfFamily = null;
+        $spouse = null;
+        $dependants = [];
+        $husbandCount = 0;
+        $wifeCount = 0;
+        $headCount = 0;
         
-        // Filter only active and non-deceased members
-        $activeMembers = [];
         foreach ($members as $member) {
-            // Only include members where Active='Y' AND DeathStatus!='Yes'
-            if ($member['Active'] === 'Y' && $member['DeathStatus'] !== 'Yes') {
-                $activeMembers[] = $member;
+            $relation = $member['Relation'];
+            
+            if ($relation === 'HEAD OF FAMILY') {
+                $headOfFamily = $member;
+                $headCount++;
+            } elseif ($relation === 'HUSBAND') {
+                $husbandCount++;
+                if (!$spouse) $spouse = $member;
+            } elseif ($relation === 'WIFE') {
+                $wifeCount++;
+                if (!$spouse) $spouse = $member;
+            } else {
+                $dependants[] = $member;
             }
         }
         
-        // Check if we have any active members
-        if (empty($activeMembers)) {
-            $this->stdout("  ⊘ SKIPPED: No active and alive members found\n", Console::FG_GREY);
+        // Validate family structure
+        // Check for invalid combinations
+        if ($headCount > 1) {
+            $this->stdout("  ⊘ SKIPPED: Multiple HEAD OF FAMILY members found\n", Console::FG_GREY);
             $this->errorLog[] = [
-                'No Active Members',
-                $personIdPrefix,
+                'Invalid Family Structure',
+                $familyId,
                 '',
                 '',
                 '',
-                'All members are either inactive or deceased'
+                "Multiple HEAD OF FAMILY members found ($headCount)"
             ];
             $this->stats['skipped']++;
             return ['success' => true];
         }
         
-        // New logic: First active non-dead entry is member, next one is spouse, rest are dependants
-        $headOfFamily = null;
-        $spouse = null;
-        $dependants = [];
+        // Check for conflicting relation data: HEAD OF FAMILY + HUSBAND/WIFE
+        if ($headCount > 0 && ($husbandCount > 0 || $wifeCount > 0)) {
+            $this->stdout("  ⊘ SKIPPED: Conflicting relation data (HEAD OF FAMILY with HUSBAND/WIFE)\n", Console::FG_GREY);
+            $relations = [];
+            if ($headCount > 0) $relations[] = "HEAD OF FAMILY";
+            if ($husbandCount > 0) $relations[] = "HUSBAND($husbandCount)";
+            if ($wifeCount > 0) $relations[] = "WIFE($wifeCount)";
+            
+            $this->errorLog[] = [
+                'Conflicting Relation Data',
+                $familyId,
+                '',
+                '',
+                '',
+                'Cannot have ' . implode(' + ', $relations) . ' in same family. Use only HEAD OF FAMILY with WIFE/HUSBAND as spouse.'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
         
-        foreach ($activeMembers as $index => $member) {
-            if ($index === 0) {
-                // First active member becomes the primary member
-                $headOfFamily = $member;
-            } elseif ($index === 1) {
-                // Second active member becomes the spouse
-                $spouse = $member;
-            } else {
-                // Rest become dependants
-                $dependants[] = $member;
+        // Check for multiple spouses
+        if (($husbandCount + $wifeCount) > 1) {
+            $this->stdout("  ⊘ SKIPPED: Multiple spouse entries found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Invalid Family Structure',
+                $familyId,
+                '',
+                '',
+                '',
+                "Multiple spouse entries: HUSBAND($husbandCount) + WIFE($wifeCount)"
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        // Validate head of family
+        if (!$headOfFamily) {
+            $this->stdout("  ⊘ SKIPPED: No head of family found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Missing Head of Family',
+                $familyId,
+                '',
+                '',
+                '',
+                'No HEAD OF FAMILY found in the family'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        // Validate spouse marriage date
+        if ($spouse) {
+            // Check if both have marriage dates
+            $headDOM = trim($headOfFamily['DOM']);
+            $spouseDOM = trim($spouse['DOM']);
+            
+            if (empty($headDOM) && empty($spouseDOM)) {
+                // Both missing marriage date
+                $this->stdout("  ⚠ ", Console::FG_YELLOW, Console::BOLD);
+                $this->stdout("WARNING: Both head and spouse missing marriage date\n");
+            } elseif (empty($headDOM) || empty($spouseDOM)) {
+                // One missing marriage date
+                $this->stdout("  ⊘ SKIPPED: Incomplete marriage data\n", Console::FG_GREY);
+                $this->errorLog[] = [
+                    'Incomplete Marriage Data',
+                    $familyId,
+                    $spouse['PersonID'],
+                    $spouse['Name'],
+                    $spouse['Relation'],
+                    "Head DOM: " . ($headDOM ?: 'missing') . ", Spouse DOM: " . ($spouseDOM ?: 'missing')
+                ];
+                $this->stats['skipped']++;
+                return ['success' => true];
+            } elseif ($headDOM !== $spouseDOM) {
+                // Marriage dates don't match
+                $this->stdout("  ⊘ SKIPPED: Marriage dates don't match\n", Console::FG_GREY);
+                $this->errorLog[] = [
+                    'Marriage Date Mismatch',
+                    $familyId,
+                    $spouse['PersonID'],
+                    $spouse['Name'],
+                    $spouse['Relation'],
+                    "Head DOM: {$headDOM}, Spouse DOM: {$spouseDOM} - dates must match exactly"
+                ];
+                $this->stats['skipped']++;
+                return ['success' => true];
             }
         }
         
-        // Validate we have at least a primary member
-        if (!$headOfFamily) {
-            $this->stdout("  ⊘ SKIPPED: No primary member found\n", Console::FG_GREY);
+        // Skip inactive or deceased
+        if ($headOfFamily['Active'] !== 'Y') {
+            $this->stdout("  ⊘ SKIPPED: Head of family is inactive\n", Console::FG_GREY);
             $this->errorLog[] = [
-                'Missing Primary Member',
-                $personIdPrefix,
-                '',
-                '',
-                '',
-                'No active member found to be primary'
+                'Inactive Member',
+                $familyId,
+                $headOfFamily['PersonID'],
+                $headOfFamily['Name'],
+                $headOfFamily['Relation'],
+                'Head of family marked as inactive'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        if ($headOfFamily['DeathStatus'] === 'Yes') {
+            $this->stdout("  ⊘ SKIPPED: Head of family is deceased\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Deceased Member',
+                $familyId,
+                $headOfFamily['PersonID'],
+                $headOfFamily['Name'],
+                $headOfFamily['Relation'],
+                'Head of family marked as deceased'
             ];
             $this->stats['skipped']++;
             return ['success' => true];
@@ -383,7 +429,7 @@ class ImportController extends Controller
             $this->stdout("  ⊘ SKIPPED: Member already exists with ID: $memberId\n", Console::FG_GREY);
             $this->errorLog[] = [
                 'Duplicate Member',
-                $personIdPrefix,
+                $familyId,
                 $headOfFamily['PersonID'],
                 $headOfFamily['Name'],
                 $headOfFamily['Relation'],
@@ -396,7 +442,7 @@ class ImportController extends Controller
         // Dry run mode - collect data without database transaction
         if ($this->dryRun) {
             try {
-                $familyPreview = $this->collectFamilyData($personIdPrefix, $headOfFamily, $spouse, $dependants, $memberId, $members);
+                $familyPreview = $this->collectFamilyData($familyId, $headOfFamily, $spouse, $dependants, $memberId, $members);
                 $this->previewData[] = $familyPreview;
                 
                 $this->stdout("  ✓ Collected data for: ", Console::FG_CYAN);
@@ -410,27 +456,11 @@ class ImportController extends Controller
                 }
                 
                 foreach ($dependants as $dependantData) {
-                    // Skip deceased dependants in preview too
-                    /* if ($dependantData['DeathStatus'] === 'Yes') {
-                        $this->stdout("  ⊘ SKIPPED Dependant (Deceased): ", Console::FG_GREY);
+                    if ($dependantData['Active'] === 'Y' && $dependantData['DeathStatus'] !== 'Yes') {
+                        $this->stdout("  ✓ Dependant data collected: ", Console::FG_CYAN);
                         $this->stdout("{$dependantData['Name']}\n");
-                        continue;
-                    } */
-                    
-                    $this->stdout("  ✓ Dependant data collected: ", Console::FG_CYAN);
-                    $this->stdout("{$dependantData['Name']}");
-                    
-                    // Show status indicators
-                    $statusInfo = [];
-                    if ($dependantData['Active'] !== 'Y') {
-                        $statusInfo[] = 'Inactive';
+                        $this->stats['dependants_created']++;
                     }
-                    if (!empty($statusInfo)) {
-                        $this->stdout(" [" . implode(', ', $statusInfo) . "]", Console::FG_YELLOW);
-                    }
-                    $this->stdout("\n");
-                    
-                    $this->stats['dependants_created']++;
                 }
                 
                 return ['success' => true];
@@ -438,7 +468,7 @@ class ImportController extends Controller
             } catch (\Throwable $e) {
                 $this->errorLog[] = [
                     'Data Collection Error',
-                    $personIdPrefix,
+                    $familyId,
                     $headOfFamily['PersonID'] ?? '',
                     $headOfFamily['Name'] ?? '',
                     $headOfFamily['Relation'] ?? '',
@@ -453,15 +483,12 @@ class ImportController extends Controller
         $transaction = Yii::$app->db->beginTransaction();
         
         try {
-            // Create user credentials for primary member only if phone or email exists
-            $memberUserCredentialId = null;
-            if (!empty($headOfFamily['Phone'])/*  || !empty($headOfFamily['Email']) */) {
-                $memberUserCredentialId = $this->createUserCredentials(
-                    $headOfFamily['Email'],
-                    $headOfFamily['Phone'],
-                    'M'
-                );
-            }
+            // Create user credentials for primary member
+            $memberUserCredentialId = $this->createUserCredentials(
+                $headOfFamily['Email'],
+                $headOfFamily['Phone'],
+                'M'
+            );
             
             // Create primary member
             $member = $this->createMember($headOfFamily, $spouse, $memberId);
@@ -471,74 +498,40 @@ class ImportController extends Controller
             }
             
             $this->stdout("  ✓ Created member: ", Console::FG_GREEN);
-            $this->stdout("{$headOfFamily['Name']} (ID: $memberId)");
-            
-            // Show status indicators for head of family
-            if ($headOfFamily['Active'] !== 'Y') {
-                $this->stdout(" [Inactive]", Console::FG_YELLOW);
-            }
-            $this->stdout("\n");
-            
+            $this->stdout("{$headOfFamily['Name']} (ID: $memberId)\n");
             $this->stats['members_created']++;
             
-            // Link user credential to member only if credentials were created
-            if ($memberUserCredentialId) {
-                $this->createUserMember($memberUserCredentialId, $member->memberid, 'M');
-            }
-            
-            // Create settings for member with all notifications set to 1
-            $this->createMemberSettings($member->memberid);
+            // Link user credential to member
+            $this->createUserMember($memberUserCredentialId, $member->id, 'M');
             
             if ($spouse) {
                 $this->stdout("  ✓ Added spouse: ", Console::FG_GREEN);
-                $this->stdout("{$spouse['Name']}");
-                
-                // Show status indicators for spouse
-                if ($spouse['Active'] !== 'Y') {
-                    $this->stdout(" [Inactive]", Console::FG_YELLOW);
-                }
-                $this->stdout("\n");
-                
+                $this->stdout("{$spouse['Name']}\n");
                 $this->stats['spouses_added']++;
                 
-                // Create user credentials for spouse only if they have phone or email
-                if (!empty($spouse['Phone'])/*  || !empty($spouse['Email']) */) {
+                // Create user credentials for spouse if they have phone/email
+                if (!empty($spouse['Phone']) || !empty($spouse['Email'])) {
                     $spouseUserCredentialId = $this->createUserCredentials(
                         $spouse['Email'],
                         $spouse['Phone'],
                         'S'
                     );
-                    if ($spouseUserCredentialId) {
-                        $this->createUserMember($spouseUserCredentialId, $member->memberid, 'S');
-                    }
+                    $this->createUserMember($spouseUserCredentialId, $member->id, 'S');
                 }
             }
             
             // Process dependants
             foreach ($dependants as $dependantData) {
-                // Skip deceased dependants
-                /* if ($dependantData['DeathStatus'] === 'Yes') {
-                    $this->stdout("  ⊘ SKIPPED Dependant (Deceased): ", Console::FG_GREY);
-                    $this->stdout("{$dependantData['Name']}\n");
+                if ($dependantData['Active'] !== 'Y' || $dependantData['DeathStatus'] === 'Yes') {
+                    $this->stdout("  ⊘ Skipped dependant: {$dependantData['Name']} (inactive/deceased)\n", Console::FG_GREY);
                     continue;
-                } */
+                }
                 
-                $dependant = $this->createDependant($member->memberid, $dependantData, $members);
+                $dependant = $this->createDependant($member->id, $dependantData, $members);
                 
                 if ($dependant) {
                     $this->stdout("  ✓ Added dependant: ", Console::FG_GREEN);
-                    $this->stdout("{$dependantData['Name']}");
-                    
-                    // Show status indicators
-                    $statusInfo = [];
-                    if ($dependantData['Active'] !== 'Y') {
-                        $statusInfo[] = 'Inactive';
-                    }
-                    if (!empty($statusInfo)) {
-                        $this->stdout(" [" . implode(', ', $statusInfo) . "]", Console::FG_YELLOW);
-                    }
-                    $this->stdout("\n");
-                    
+                    $this->stdout("{$dependantData['Name']}\n");
                     $this->stats['dependants_created']++;
                 }
             }
@@ -550,7 +543,7 @@ class ImportController extends Controller
             $transaction->rollBack();
             $this->errorLog[] = [
                 'Processing Error',
-                $personIdPrefix,
+                $familyId,
                 $headOfFamily['PersonID'] ?? '',
                 $headOfFamily['Name'] ?? '',
                 $headOfFamily['Relation'] ?? '',
@@ -577,34 +570,16 @@ class ImportController extends Controller
     
     /**
      * Collect family data for preview (dry run mode)
-     * @param string $personIdPrefix The PersonID prefix (e.g., A-04)
      */
-    private function collectFamilyData($personIdPrefix, $headOfFamily, $spouse, $dependants, $memberId, $allMembers)
+    private function collectFamilyData($familyId, $headOfFamily, $spouse, $dependants, $memberId, $allMembers)
     {
         $phone = $this->parsePhoneNumber($headOfFamily['Phone']);
         
-        // Get zone and address information
-        $zoneName = null;
-        $address = null;
-        $familyId = $headOfFamily['FamilyID'];
-        
-        if (isset($this->familyZoneMap[$familyId])) {
-            $zoneName = $this->familyZoneMap[$familyId];
-        }
-        
-        if (isset($this->familyAddressMap[$familyId])) {
-            $address = $this->familyAddressMap[$familyId];
-        }
-        
         $familyData = [
-            'family_id' => $personIdPrefix,
-            'original_family_id' => $headOfFamily['FamilyID'],
-            'zone' => $zoneName,
-            'address' => $address,
+            'family_id' => $familyId,
             'member' => [
                 'member_no' => $memberId,
                 'person_id' => $headOfFamily['PersonID'],
-                'person_id_prefix' => $personIdPrefix,
                 'membership_type' => 'Regular',
                 'title' => $headOfFamily['Prefix'],
                 'title_id' => $this->getTitleId($headOfFamily['Prefix']),
@@ -618,10 +593,6 @@ class ImportController extends Controller
                 'email' => $headOfFamily['Email'],
                 'member_since' => date('Y-m-d'),
                 'confirmed' => $headOfFamily['Confirmed'],
-                'confirmed_value' => $headOfFamily['Confirmed'] === 'Yes' ? 1 : 0,
-                'active' => $headOfFamily['Active'],
-                'active_value' => $headOfFamily['Active'] === 'Y' ? 1 : 0,
-                'death_status' => $headOfFamily['DeathStatus'],
                 'marital_status' => $headOfFamily['MaritalStatus']
             ],
             'user_credentials' => [
@@ -647,12 +618,7 @@ class ImportController extends Controller
                 'mobile_country_code' => $spousePhone['code'],
                 'mobile' => $spousePhone['number'],
                 'email' => $spouse['Email'],
-                'relation' => $spouse['Relation'],
-                'active_spouse' => $spouse['Active'],
-                'active_spouse_value' => $spouse['Active'] === 'Y' ? 1 : 0,
-                'confirmed' => $spouse['Confirmed'],
-                'confirmed_spouse' => $spouse['Confirmed'] === 'Yes' ? 1 : 0,
-                'death_status' => $spouse['DeathStatus']
+                'relation' => $spouse['Relation']
             ];
             
             if (!empty($spouse['Phone']) || !empty($spouse['Email'])) {
@@ -665,14 +631,12 @@ class ImportController extends Controller
             }
         }
         
-        // Add dependants - skip deceased dependants
+        // Add dependants
         $familyData['dependants'] = [];
-        
         foreach ($dependants as $dependantData) {
-            // Skip deceased dependants
-            /* if ($dependantData['DeathStatus'] === 'Yes') {
+            if ($dependantData['Active'] !== 'Y' || $dependantData['DeathStatus'] === 'Yes') {
                 continue;
-            } */
+            }
             
             $relationMap = [
                 'SON' => 'Son',
@@ -702,16 +666,10 @@ class ImportController extends Controller
                 'name' => $dependantData['Name'],
                 'relation' => $relation,
                 'dob' => $this->parseDate($dependantData['DOB']),
-                'occupation' => $dependantData['Occupation'],
                 'mobile_country_code' => $dependantPhone['code'],
                 'mobile' => $dependantPhone['number'],
                 'marital_status' => $dependantData['MaritalStatus'],
-                'is_married' => $isMarried,
-                'active' => $dependantData['Active'],
-                'active_value' => $dependantData['Active'] === 'Y' ? 1 : 0,
-                'confirmed' => $dependantData['Confirmed'],
-                'confirmed_value' => $dependantData['Confirmed'] === 'Yes' ? 1 : 0,
-                'death_status' => $dependantData['DeathStatus']
+                'is_married' => $isMarried
             ];
             
             // Check for dependant spouse
@@ -734,9 +692,7 @@ class ImportController extends Controller
                                 'dob' => $this->parseDate($potentialSpouse['DOB']),
                                 'mobile_country_code' => $spousePhone['code'],
                                 'mobile' => $spousePhone['number'],
-                                'wedding_anniversary' => $this->parseDate($marriageDate),
-                                'active' => $potentialSpouse['Active'],
-                                'death_status' => $potentialSpouse['DeathStatus']
+                                'wedding_anniversary' => $this->parseDate($marriageDate)
                             ];
                             break;
                         }
@@ -783,18 +739,8 @@ class ImportController extends Controller
      */
     private function createUserCredentials($email, $phone, $userType)
     {
-        // Skip if both phone and email are empty
-        if (empty($phone) && empty($email)) {
-            return null;
-        }
-        
         $phone = $this->parsePhoneNumber($phone);
         $mobileNo = $phone['code'] . $phone['number'];
-        
-        // Skip if parsed phone is empty and email is empty
-        if (empty($mobileNo) && empty($email)) {
-            return null;
-        }
         
         // Check if already exists
         $userCredentialModel = new ExtendedUserCredentials();
@@ -833,85 +779,16 @@ class ImportController extends Controller
         // Check if already exists
         $existing = $userMemberModel->userMemberExist($userCredentialId, $memberId, $this->institutionId, $userType);
         if (!empty($existing)) {
-            // If exists, still try to set role
-            if ($this->firstRoleId) {
-                $userMemberId = ExtendedUserMember::getUserMemberId($memberId, $this->institutionId, $userType);
-                if ($userMemberId) {
-                    $this->setRole($this->firstRoleId, $userMemberId);
-                }
-            }
             return true;
         }
         
         $userMember = new ExtendedUserMember();
-        $userMember->userid = $userCredentialId;
+        $userMember->usercredentialid = $userCredentialId;
         $userMember->memberid = $memberId;
         $userMember->institutionid = $this->institutionId;
-        $userMember->usertype = $userType;
+        $userMember->membertype = $userType;
         
-        if ($userMember->save(false)) {
-            // Set role if available - get the UserMember ID from the saved record
-            if ($this->firstRoleId) {
-                $userMemberId = ExtendedUserMember::getUserMemberId($memberId, $this->institutionId, $userType);
-                if ($userMemberId) {
-                    $this->setRole($this->firstRoleId, $userMemberId);
-                }
-            }
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Set role for user member using Yii's authManager (same as MemberController)
-     */
-    private function setRole($roleId, $userMemberId)
-    {
-        try {
-            $auth = Yii::$app->authManager;
-            $role = $auth->getRole($roleId);
-            $ifRoleExist = $auth->getRolesByUser($userMemberId);
-            if ($ifRoleExist) {
-                $auth->revokeAll($userMemberId);
-            }
-            if ($role) {
-                $auth->assign($role, $userMemberId);
-            }
-            return true;
-        } catch (\Exception $e) {
-            Yii::error($e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Create member settings with all notifications set to 1
-     */
-    private function createMemberSettings($memberId)
-    {
-        // Check if settings already exist
-        $existing = ExtendedSettings::findOne(['memberid' => $memberId]);
-        if ($existing) {
-            return true;
-        }
-        
-        $settings = new ExtendedSettings();
-        $settings->memberid = $memberId;
-        
-        // Set all member notifications to 1
-        $settings->membernotification = 1;
-        $settings->birthday = 1;
-        $settings->anniversary = 1;
-        $settings->memberemail = 1;
-        
-        // Set all spouse notifications to 1
-        $settings->spousenotification = 1;
-        $settings->spousebirthday = 1;
-        $settings->spouseanniversary = 1;
-        $settings->spouseemail = 1;
-        
-        return $settings->save(false);
+        return $userMember->save(false);
     }
     
     /**
@@ -922,84 +799,49 @@ class ImportController extends Controller
         $member = new ExtendedMember();
         $member->institutionid = $this->institutionId;
         $member->memberno = $memberId;
-        $member->membershiptype = 'Primary';
+        $member->membershiptype = 'Regular';
         $member->firstName = $headOfFamily['Name'];
         $member->middleName = '';
         $member->lastName = '';
         $member->membernickname = $headOfFamily['Nickname'];
         $member->member_dob = $this->parseDate($headOfFamily['DOB']);
-        // $member->membersince = date('Y-m-d');
-        $member->occupation = $headOfFamily['Occupation'];
+        $member->memberdate = date('Y-m-d');
+        $member->membersince = date('Y-m-d');
+        $member->member_occupation = $headOfFamily['Occupation'];
         
         $phone = $this->parsePhoneNumber($headOfFamily['Phone']);
-        $member->member_mobile1_countrycode = $phone['code'];
-        $member->member_mobile1 = $phone['number'];
+        $member->member_mobile_country_code = $phone['code'];
+        $member->member_mobile = $phone['number'];
         
         $member->member_email = $headOfFamily['Email'];
-        
-        // Set new fields for member - store actual status from CSV
-        $member->active = $headOfFamily['Active'] === 'Y' ? 1 : 0;
-        $member->confirmed = $headOfFamily['Confirmed'] === 'Yes' ? 1 : 0;
+        $member->sex = $headOfFamily['Sex'] === 'Male' ? 'm' : 'f';
         
         $titleId = $this->getTitleId($headOfFamily['Prefix']);
         if ($titleId) {
-            $member->membertitle = $titleId;
-        }
-        
-        // Set zone from Families_cleaned.csv mapping
-        $familyId = $headOfFamily['FamilyID'];
-        if (isset($this->familyZoneMap[$familyId])) {
-            $zoneName = $this->familyZoneMap[$familyId];
-            $zoneId = $this->getOrCreateZoneId($zoneName);
-            if ($zoneId) {
-                $member->zone_id = $zoneId;
-            }
-        }
-        
-        // Set address from Families_cleaned.csv mapping
-        if (isset($this->familyAddressMap[$familyId])) {
-            $address = $this->familyAddressMap[$familyId];
-            if (!empty($address)) {
-                $member->residence_address1 = $address;
-            }
+            $member->titleid = $titleId;
         }
         
         // Add spouse info
         if ($spouse) {
-            $member->spouse_firstName = $spouse['Name'];
+            $member->spouse_name = $spouse['Name'];
             $member->spousenickname = $spouse['Nickname'];
             $member->spouse_dob = $this->parseDate($spouse['DOB']);
-            
-            // Set marriage date - use whichever is available (spouse DOM or head DOM)
-            $spouseDOM = $this->parseDate($spouse['DOM']);
-            $headDOM = $this->parseDate($headOfFamily['DOM']);
-            
-            if ($spouseDOM) {
-                $member->dom = $spouseDOM;
-            } elseif ($headDOM) {
-                $member->dom = $headDOM;
-            }
-            // If neither has a valid date, dom will remain null
-            
-            $member->spouseoccupation = $spouse['Occupation'];
-            
-            // Set spouse active and confirmed status from CSV
-            $member->active_spouse = $spouse['Active'] === 'Y' ? 1 : 0;
-            $member->confirmed_spouse = $spouse['Confirmed'] === 'Yes' ? 1 : 0;
+            $member->dom = $this->parseDate($spouse['DOM']);
+            $member->spouse_occupation = $spouse['Occupation'];
             
             $spousePhone = $this->parsePhoneNumber($spouse['Phone']);
-            $member->spouse_mobile1_countrycode = $spousePhone['code'];
-            $member->spouse_mobile1 = $spousePhone['number'];
+            $member->spouse_mobile_country_code = $spousePhone['code'];
+            $member->spouse_mobile = $spousePhone['number'];
             
             $member->spouse_email = $spouse['Email'];
             
             $spouseTitleId = $this->getTitleId($spouse['Prefix']);
             if ($spouseTitleId) {
-                $member->spousetitle = $spouseTitleId;
+                $member->spouse_titleid = $spouseTitleId;
             }
         }
         
-        if ($member->save(false)) {
+        if ($member->save()) {
             return $member;
         }
         
@@ -1024,16 +866,13 @@ class ImportController extends Controller
             'GRAND MOTHER' => 'Grand mother'
         ];
         
-        // Map relation if found, otherwise use empty string if relation is not in the map
-        $csvRelation = strtoupper(trim($dependantData['Relation']));
-        $relation = $relationMap[$csvRelation] ?? '';
+        $relation = $relationMap[$dependantData['Relation']] ?? $dependantData['Relation'];
         
         $dependant = new ExtendedDependant();
         $dependant->memberid = $memberId;
         $dependant->dependantname = $dependantData['Name'];
-        $dependant->relation = $relation; // Will be empty if no matching relation found
+        $dependant->relation = $relation;
         $dependant->dob = $this->parseDate($dependantData['DOB']);
-        $dependant->occupation = $dependantData['Occupation'];
         
         $phone = $this->parsePhoneNumber($dependantData['Phone']);
         $dependant->dependantmobilecountrycode = $phone['code'];
@@ -1043,10 +882,6 @@ class ImportController extends Controller
         if ($titleId) {
             $dependant->titleid = $titleId;
         }
-        
-        // Set new fields for dependant - store actual status from CSV
-        $dependant->active = $dependantData['Active'] === 'Y' ? 1 : 0;
-        $dependant->confirmed = $dependantData['Confirmed'] === 'Yes' ? 1 : 0;
         
         $isMarried = 1; // Single
         if (in_array($dependantData['MaritalStatus'], ['Married', 'Widow'])) {
@@ -1147,27 +982,12 @@ class ImportController extends Controller
     {
         if (empty($phone)) return ['code' => '', 'number' => ''];
         
-        // Convert to string and remove any decimals
         $phone = sprintf("%.0f", $phone);
-        
-        // Remove any non-digit characters
-        $phone = preg_replace('/\D/', '', $phone);
         
         if (strlen($phone) >= 10) {
             if (strlen($phone) > 10) {
-                // Extract country code (max 3 digits)
-                $extraDigits = strlen($phone) - 10;
-                
-                // Limit country code to max 3 digits
-                if ($extraDigits > 3) {
-                    // Phone number is malformed, try to salvage it
-                    // Take last 10 digits as the number and use default country code
-                    $code = '+91';
-                    $number = substr($phone, -10);
-                } else {
-                    $code = '+' . substr($phone, 0, $extraDigits);
-                    $number = substr($phone, $extraDigits);
-                }
+                $code = '+' . substr($phone, 0, strlen($phone) - 10);
+                $number = substr($phone, -10);
             } else {
                 $code = '+91';
                 $number = $phone;
@@ -1212,7 +1032,7 @@ class ImportController extends Controller
         // Title doesn't exist, create it
         $newTitle = new ExtendedTitle();
         $newTitle->institutionid = $this->institutionId;
-        $newTitle->Description = $prefix; // Use cleaned prefix with original case
+        $newTitle->Description = $cleanPrefix; // Use cleaned prefix with original case
         
         if ($newTitle->save(false)) {
             // Add to cache with lowercase key
@@ -1290,158 +1110,5 @@ class ImportController extends Controller
         
         $this->stdout(str_repeat("=", 80) . "\n", Console::BOLD);
         $this->stdout("\n");
-    }
-    
-    /**
-     * Initialize zone map from database
-     */
-    private function initializeZoneMap()
-    {
-        $zoneModel = new ExtendedZone();
-        $zones = $zoneModel->getActiveZones($this->institutionId);
-        
-        $this->zoneMap = [];
-        foreach ($zones as $zone) {
-            // Map zone description to zone ID (case-insensitive)
-            $this->zoneMap[strtolower(trim($zone['description']))] = $zone['zoneid'];
-        }
-        
-        $this->stdout("Loaded " . count($this->zoneMap) . " existing zones\n", Console::FG_CYAN);
-    }
-    
-    /**
-     * Load family to zone and address mapping from Families_cleaned.csv
-     */
-    private function loadFamilyZoneMapping()
-    {
-        $familiesCsvPath = Yii::getAlias('@app') . '/service/institution/Families_cleaned.csv';
-        
-        if (!file_exists($familiesCsvPath)) {
-            $this->stdout("Warning: Families_cleaned.csv not found at: {$familiesCsvPath}\n", Console::FG_YELLOW);
-            $this->stdout("Members will be created without zone and address assignment.\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        $csvData = array_map('str_getcsv', file($familiesCsvPath));
-        $headers = array_shift($csvData);
-        
-        // Find column indices
-        $familyIdIndex = array_search('FamilyID', $headers);
-        $wardZoneIndex = array_search('WardZone', $headers);
-        $addressIndex = array_search('Address', $headers);
-        
-        if ($familyIdIndex === false) {
-            $this->stdout("Warning: FamilyID column not found in Families_cleaned.csv\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        $this->familyZoneMap = [];
-        $this->familyAddressMap = [];
-        
-        foreach ($csvData as $row) {
-            if (count($row) <= $familyIdIndex) continue;
-            
-            $familyId = trim($row[$familyIdIndex]);
-            
-            if (!empty($familyId)) {
-                // Load zone if available
-                if ($wardZoneIndex !== false && isset($row[$wardZoneIndex])) {
-                    $wardZone = trim($row[$wardZoneIndex]);
-                    if (!empty($wardZone)) {
-                        $this->familyZoneMap[$familyId] = $wardZone;
-                    }
-                }
-                
-                // Load address if available
-                if ($addressIndex !== false && isset($row[$addressIndex])) {
-                    $address = trim($row[$addressIndex]);
-                    if (!empty($address)) {
-                        $this->familyAddressMap[$familyId] = $address;
-                    }
-                }
-            }
-        }
-        
-        $this->stdout("Loaded zone mapping for " . count($this->familyZoneMap) . " families\n", Console::FG_CYAN);
-        $this->stdout("Loaded address mapping for " . count($this->familyAddressMap) . " families\n", Console::FG_CYAN);
-    }
-    
-    /**
-     * Get or create zone ID for a zone name
-     */
-    private function getOrCreateZoneId($zoneName)
-    {
-        if (empty($zoneName)) {
-            return null;
-        }
-        
-        $normalizedZoneName = strtolower(trim($zoneName));
-        
-        // Check if zone exists
-        if (isset($this->zoneMap[$normalizedZoneName])) {
-            return $this->zoneMap[$normalizedZoneName];
-        }
-        
-        // Create new zone
-        $newZone = new ExtendedZone();
-        $newZone->institutionid = $this->institutionId;
-        $newZone->description = trim($zoneName);
-        $newZone->active = 1;
-        
-        if ($newZone->save(false)) {
-            // Add to cache
-            $this->zoneMap[$normalizedZoneName] = $newZone->zoneid;
-            
-            $this->stdout("    ℹ Created new zone: ", Console::FG_BLUE);
-            $this->stdout("{$zoneName}\n");
-            
-            return $newZone->zoneid;
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Initialize role categories and get first role
-     */
-    private function initializeRoleCategories()
-    {
-        // Get Member role group ID
-        $sql = "SELECT RoleGroupID FROM rolegroup WHERE description = :type";
-        $roleGroupId = Yii::$app->db->createCommand($sql)
-            ->bindValue(':type', 'Member')
-            ->queryScalar();
-        
-        if (!$roleGroupId) {
-            $this->stdout("Warning: Member role group not found\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        // Get role categories
-        $this->roleCategories = ArrayHelper::map(
-            CustomRoleModel::getRoleCategories($roleGroupId, $this->institutionId),
-            "RoleCategoryID",
-            "Description"
-        );
-        
-        if (empty($this->roleCategories)) {
-            $this->stdout("Warning: No role categories found\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        // Get first role category (index 0)
-        $roleCategoryIds = array_keys($this->roleCategories);
-        $this->firstRoleCategoryId = $roleCategoryIds[0];
-        
-        // Get first role from first category
-        $roles = CustomRoleModel::getselectedRoles($this->firstRoleCategoryId, $this->institutionId);
-        
-        if (!empty($roles)) {
-            $this->firstRoleId = $roles[0]['roleid'];
-            $this->stdout("Using role category: " . $this->roleCategories[$this->firstRoleCategoryId] . "\n", Console::FG_CYAN);
-            $this->stdout("Using role: " . $roles[0]['roledescription'] . "\n", Console::FG_CYAN);
-        } else {
-            $this->stdout("Warning: No roles found for first role category\n", Console::FG_YELLOW);
-        }
     }
 }

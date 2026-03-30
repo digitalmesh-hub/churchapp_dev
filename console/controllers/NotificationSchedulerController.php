@@ -20,20 +20,43 @@ class NotificationSchedulerController extends Controller
 	 */
 	public function actionMemberNotifications()
 	{
-
+		echo env('APNS_IS_PRODUCTION');
+		echo "\n";
+		echo env('APNS_IS_PRODUCTION') == 'true' ? true : false;
+		echo "\n";
 		$institutions = ExtendedInstitution::getAllInstitutions();
 
 		foreach ($institutions as $institution) {
 			$institutionId   = $institution['id'];
+			print_r($institutionId);
+			echo "\n";
 			$timeZone 	     = trim($institution['timezone']);
 			$institutionName = trim($institution['name']);
 			date_default_timezone_set($timeZone);
 			$date =  date("Y-m-d H:i:s");
-			if (!(date("H") >= 7 && date("H") < 10)) {
+			/* if (!(date("H") >= 7 && date("H") < 10)) {
 				continue;
-			}
+			} */
 			// get all devices
-			$birthdayDevices = BaseModel::getNotificationDevices($institutionId, $date, "B");
+			// $birthdayDevices = BaseModel::getNotificationDevices($institutionId, $date, "B");
+			
+			// Test data for birthday devices
+			$birthdayDevices = [
+				[
+					'usertype' => 'M',
+					'deviceid' => 'fweetVsow2fKYxlHJueqn3:APA91bFyeZQC8Jwxbw71bcrCcCSDS2H_E4tkfomXpu8yb_1Hu8wsRiS1jlf6gz4Oo_FRpP46O9GN5J5VQzMxpe63V8cfPPr0DMwuOAizTTEz9BcrPUWjW2Y',
+					'devicetype' => 'android',
+					'userid' => '3',
+					'birthday' => '1',
+					'anniversary' => '1',
+					'spousebirthday' => '1',
+					'spouseanniversary' => '1',
+					'memberemail' => '1',
+					'spouseemail' => '1',
+					'member_email' => '',
+					'spouse_email' => 'manu@digitalmesh.com'
+				]
+			];
 
 			// Only proceed if there are devices to send notifications to
 			if (empty($birthdayDevices)) {
@@ -92,6 +115,12 @@ class NotificationSchedulerController extends Controller
 				$notificationInserIdDetails = ExtendedNotificationsentdetails::addNotification($subject, $birthdayMsg, $institutionId, 1, $date);
 
 				$notificationInserId = $notificationInserIdDetails['id'];
+				print_r($birthdayMsg);
+				echo "\n";
+				print_r($notificationInserId);
+				echo "\n";
+				print_r($birthdayDevices);
+				echo "\n";
 				$this->sendPushNotification($birthdayDevices, $birthdayMsg, "birthday", $institutionId, $notificationInserId, $institutionName, $date, 'B', date("d-m-Y"));
 			}
 		}
@@ -144,13 +173,31 @@ class NotificationSchedulerController extends Controller
 		if (empty($institutions))
 			return;
 
+		echo "Total Institutions: " . count($institutions) . "\n";
+
 		foreach ($institutions as $key => $institution) {
 			date_default_timezone_set(trim($institution['timezone']));
 			$currentDate =  date("Y-m-d");
-			if (!(date("H") >= 7 && date("H") < 10)) {
+			/* if (!(date("H") >= 7 && date("H") < 10)) {
 				continue;
-			}
-			$devicesToPush = BaseModel::getNotificationDevices($institution['id'], $currentDate, "w");
+			} */
+			// $devicesToPush = BaseModel::getNotificationDevices($institution['id'], $currentDate, "w");
+			$devicesToPush = [
+				[
+					'usertype' => 'M',
+					'deviceid' => 'fweetVsow2fKYxlHJueqn3:APA91bFyeZQC8Jwxbw71bcrCcCSDS2H_E4tkfomXpu8yb_1Hu8wsRiS1jlf6gz4Oo_FRpP46O9GN5J5VQzMxpe63V8cfPPr0DMwuOAizTTEz9BcrPUWjW2Y',
+					'devicetype' => 'android',
+					'userid' => '3',
+					'birthday' => '1',
+					'anniversary' => '1',
+					'spousebirthday' => '1',
+					'spouseanniversary' => '1',
+					'memberemail' => '1',
+					'spouseemail' => '1',
+					'member_email' => '',
+					'spouse_email' => 'manu@digitalmesh.com'
+				]
+			];
 			if (empty($devicesToPush)) {
 				continue;
 			}
@@ -184,6 +231,9 @@ class NotificationSchedulerController extends Controller
 				
 				$message = rtrim($message, ', ');
 				$subject = $institution['name'] . " members Wedding Anniversary today " . date("d-m-Y ");
+				print_r($message);
+				echo "\n";
+
 				$anniversaryDetails = ExtendedNotificationsentdetails::addNotification(
 					$subject,
 					$message,

@@ -11,10 +11,6 @@ use common\models\extendedmodels\ExtendedTitle;
 use common\models\extendedmodels\ExtendedUserCredentials;
 use common\models\extendedmodels\ExtendedUserMember;
 use common\models\extendedmodels\ExtendedSettings;
-use common\models\extendedmodels\ExtendedZone;
-use common\models\basemodels\CustomRoleModel;
-use phpseclib3\Math\BigInteger\Engines\PHP;
-use yii\helpers\ArrayHelper;
 
 /**
  * Import controller for CSV data imports
@@ -22,7 +18,7 @@ use yii\helpers\ArrayHelper;
  * Usage:
  * php yii import/family-members --file=/path/to/file.csv --institution=1
  */
-class ImportController extends Controller
+class ImportControllerStep1 extends Controller
 {
     public $institutionId = 1;
     public $csvFile = '';
@@ -46,12 +42,6 @@ class ImportController extends Controller
     private $lastProcessedFamily = null;
     private $titleMap = [];
     private $previewData = [];
-    private $zoneMap = [];
-    private $familyZoneMap = [];
-    private $familyAddressMap = [];
-    private $roleCategories = [];
-    private $firstRoleCategoryId = null;
-    private $firstRoleId = null;
     
     public function options($actionID)
     {
@@ -158,24 +148,6 @@ class ImportController extends Controller
         
         // Initialize title map
         $this->initializeTitleMap();
-        
-        // Initialize zone map and family-zone mapping
-        $this->initializeZoneMap();
-        $this->loadFamilyZoneMapping();
-        
-        // Initialize role categories and get first role
-        $this->initializeRoleCategories();
-        /* echo PHP_EOL;
-        echo "role categories: ";
-        print_r($this->roleCategories);
-        echo PHP_EOL;
-        echo "first role category id: ";
-        print_r($this->firstRoleCategoryId);
-        echo PHP_EOL;
-        echo "first role id: ";
-        print_r($this->firstRoleId);
-        echo PHP_EOL;
-        exit; */
         
         // Determine starting point
         $shouldSkip = $this->resume && $this->lastProcessedFamily !== null;
@@ -317,62 +289,173 @@ class ImportController extends Controller
         $familyId = $members[0]['FamilyID'];
         $personIdPrefix = $members[0]['PersonIDPrefix'];
         
-        // Filter only active and non-deceased members
-        $activeMembers = [];
-        foreach ($members as $member) {
-            // Only include members where Active='Y' AND DeathStatus!='Yes'
-            if ($member['Active'] === 'Y' && $member['DeathStatus'] !== 'Yes') {
-                $activeMembers[] = $member;
-            }
-        }
-        
-        // Check if we have any active members
-        if (empty($activeMembers)) {
-            $this->stdout("  ⊘ SKIPPED: No active and alive members found\n", Console::FG_GREY);
-            $this->errorLog[] = [
-                'No Active Members',
-                $personIdPrefix,
-                '',
-                '',
-                '',
-                'All members are either inactive or deceased'
-            ];
-            $this->stats['skipped']++;
-            return ['success' => true];
-        }
-        
-        // New logic: First active non-dead entry is member, next one is spouse, rest are dependants
+        // Find head of family, spouse, and dependants
         $headOfFamily = null;
         $spouse = null;
         $dependants = [];
+        $husbandCount = 0;
+        $wifeCount = 0;
+        $headCount = 0;
         
-        foreach ($activeMembers as $index => $member) {
-            if ($index === 0) {
-                // First active member becomes the primary member
+        foreach ($members as $member) {
+            $relation = $member['Relation'];
+            
+            if ($relation === 'HEAD OF FAMILY') {
                 $headOfFamily = $member;
-            } elseif ($index === 1) {
-                // Second active member becomes the spouse
-                $spouse = $member;
+                $headCount++;
+            } elseif ($relation === 'HUSBAND') {
+                $husbandCount++;
+                if (!$spouse) $spouse = $member;
+            } elseif ($relation === 'WIFE') {
+                $wifeCount++;
+                if (!$spouse) $spouse = $member;
             } else {
-                // Rest become dependants
                 $dependants[] = $member;
             }
         }
         
-        // Validate we have at least a primary member
-        if (!$headOfFamily) {
-            $this->stdout("  ⊘ SKIPPED: No primary member found\n", Console::FG_GREY);
+        // Validate family structure
+        // Check for invalid combinations
+        if ($headCount > 1) {
+            $this->stdout("  ⊘ SKIPPED: Multiple HEAD OF FAMILY members found\n", Console::FG_GREY);
             $this->errorLog[] = [
-                'Missing Primary Member',
+                'Invalid Family Structure',
                 $personIdPrefix,
                 '',
                 '',
                 '',
-                'No active member found to be primary'
+                "Multiple HEAD OF FAMILY members found ($headCount)"
             ];
             $this->stats['skipped']++;
             return ['success' => true];
         }
+        
+        // Check for multiple spouses (both HUSBAND and WIFE, or multiple of same type)
+        if ($husbandCount > 0 && $wifeCount > 0) {
+            $this->stdout("  ⊘ SKIPPED: Both HUSBAND and WIFE entries found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Conflicting Relation Data',
+                $personIdPrefix,
+                '',
+                '',
+                '',
+                "Cannot have both HUSBAND($husbandCount) and WIFE($wifeCount) in same family. Use only one spouse type."
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        if ($husbandCount > 1) {
+            $this->stdout("  ⊘ SKIPPED: Multiple HUSBAND entries found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Invalid Family Structure',
+                $personIdPrefix,
+                '',
+                '',
+                '',
+                "Multiple HUSBAND entries found ($husbandCount)"
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        if ($wifeCount > 1) {
+            $this->stdout("  ⊘ SKIPPED: Multiple WIFE entries found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Invalid Family Structure',
+                $personIdPrefix,
+                '',
+                '',
+                '',
+                "Multiple WIFE entries found ($wifeCount)"
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        // Validate head of family
+        if (!$headOfFamily) {
+            $this->stdout("  ⊘ SKIPPED: No head of family found\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Missing Head of Family',
+                $personIdPrefix,
+                '',
+                '',
+                '',
+                'No HEAD OF FAMILY found in the family'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        }
+        
+        // Validate spouse marriage date
+        if ($spouse) {
+            // Check if both have marriage dates
+            $headDOM = trim($headOfFamily['DOM']);
+            $spouseDOM = trim($spouse['DOM']);
+            
+            if (empty($headDOM) && empty($spouseDOM)) {
+                // Both missing marriage date
+                $this->stdout("  ⚠ ", Console::FG_YELLOW, Console::BOLD);
+                $this->stdout("WARNING: Both head and spouse missing marriage date\n");
+            } elseif (empty($headDOM) || empty($spouseDOM)) {
+                // One missing marriage date
+                $this->stdout("  ⊘ SKIPPED: Incomplete marriage data\n", Console::FG_GREY);
+                $this->errorLog[] = [
+                    'Incomplete Marriage Data',
+                    $personIdPrefix,
+                    $spouse['PersonID'],
+                    $spouse['Name'],
+                    $spouse['Relation'],
+                    "Head DOM: " . ($headDOM ?: 'missing') . ", Spouse DOM: " . ($spouseDOM ?: 'missing')
+                ];
+                $this->stats['skipped']++;
+                return ['success' => true];
+            } elseif ($headDOM !== $spouseDOM) {
+                // Marriage dates don't match
+                $this->stdout("  ⊘ SKIPPED: Marriage dates don't match\n", Console::FG_GREY);
+                $this->errorLog[] = [
+                    'Marriage Date Mismatch',
+                    $personIdPrefix,
+                    $spouse['PersonID'],
+                    $spouse['Name'],
+                    $spouse['Relation'],
+                    "Head DOM: {$headDOM}, Spouse DOM: {$spouseDOM} - dates must match exactly"
+                ];
+                $this->stats['skipped']++;
+                return ['success' => true];
+            }
+        }
+        
+        // Skip deceased HEAD OF FAMILY
+        /* if ($headOfFamily['DeathStatus'] === 'Yes') {
+            $this->stdout("  ⊘ SKIPPED: HEAD OF FAMILY is deceased\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Deceased Member',
+                $personIdPrefix,
+                $headOfFamily['PersonID'],
+                $headOfFamily['Name'],
+                $headOfFamily['Relation'],
+                'HEAD OF FAMILY is deceased'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        } */
+        
+        // Skip deceased spouse
+        /* if ($spouse && $spouse['DeathStatus'] === 'Yes') {
+            $this->stdout("  ⊘ SKIPPED: Spouse is deceased\n", Console::FG_GREY);
+            $this->errorLog[] = [
+                'Deceased Spouse',
+                $personIdPrefix,
+                $spouse['PersonID'],
+                $spouse['Name'],
+                $spouse['Relation'],
+                'Spouse is deceased'
+            ];
+            $this->stats['skipped']++;
+            return ['success' => true];
+        } */
         
         // Extract member ID
         $memberId = $this->getMemberIdFromPersonId($headOfFamily['PersonID']);
@@ -486,9 +569,6 @@ class ImportController extends Controller
                 $this->createUserMember($memberUserCredentialId, $member->memberid, 'M');
             }
             
-            // Create settings for member with all notifications set to 1
-            $this->createMemberSettings($member->memberid);
-            
             if ($spouse) {
                 $this->stdout("  ✓ Added spouse: ", Console::FG_GREEN);
                 $this->stdout("{$spouse['Name']}");
@@ -583,24 +663,9 @@ class ImportController extends Controller
     {
         $phone = $this->parsePhoneNumber($headOfFamily['Phone']);
         
-        // Get zone and address information
-        $zoneName = null;
-        $address = null;
-        $familyId = $headOfFamily['FamilyID'];
-        
-        if (isset($this->familyZoneMap[$familyId])) {
-            $zoneName = $this->familyZoneMap[$familyId];
-        }
-        
-        if (isset($this->familyAddressMap[$familyId])) {
-            $address = $this->familyAddressMap[$familyId];
-        }
-        
         $familyData = [
             'family_id' => $personIdPrefix,
             'original_family_id' => $headOfFamily['FamilyID'],
-            'zone' => $zoneName,
-            'address' => $address,
             'member' => [
                 'member_no' => $memberId,
                 'person_id' => $headOfFamily['PersonID'],
@@ -833,13 +898,6 @@ class ImportController extends Controller
         // Check if already exists
         $existing = $userMemberModel->userMemberExist($userCredentialId, $memberId, $this->institutionId, $userType);
         if (!empty($existing)) {
-            // If exists, still try to set role
-            if ($this->firstRoleId) {
-                $userMemberId = ExtendedUserMember::getUserMemberId($memberId, $this->institutionId, $userType);
-                if ($userMemberId) {
-                    $this->setRole($this->firstRoleId, $userMemberId);
-                }
-            }
             return true;
         }
         
@@ -849,69 +907,7 @@ class ImportController extends Controller
         $userMember->institutionid = $this->institutionId;
         $userMember->usertype = $userType;
         
-        if ($userMember->save(false)) {
-            // Set role if available - get the UserMember ID from the saved record
-            if ($this->firstRoleId) {
-                $userMemberId = ExtendedUserMember::getUserMemberId($memberId, $this->institutionId, $userType);
-                if ($userMemberId) {
-                    $this->setRole($this->firstRoleId, $userMemberId);
-                }
-            }
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Set role for user member using Yii's authManager (same as MemberController)
-     */
-    private function setRole($roleId, $userMemberId)
-    {
-        try {
-            $auth = Yii::$app->authManager;
-            $role = $auth->getRole($roleId);
-            $ifRoleExist = $auth->getRolesByUser($userMemberId);
-            if ($ifRoleExist) {
-                $auth->revokeAll($userMemberId);
-            }
-            if ($role) {
-                $auth->assign($role, $userMemberId);
-            }
-            return true;
-        } catch (\Exception $e) {
-            Yii::error($e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Create member settings with all notifications set to 1
-     */
-    private function createMemberSettings($memberId)
-    {
-        // Check if settings already exist
-        $existing = ExtendedSettings::findOne(['memberid' => $memberId]);
-        if ($existing) {
-            return true;
-        }
-        
-        $settings = new ExtendedSettings();
-        $settings->memberid = $memberId;
-        
-        // Set all member notifications to 1
-        $settings->membernotification = 1;
-        $settings->birthday = 1;
-        $settings->anniversary = 1;
-        $settings->memberemail = 1;
-        
-        // Set all spouse notifications to 1
-        $settings->spousenotification = 1;
-        $settings->spousebirthday = 1;
-        $settings->spouseanniversary = 1;
-        $settings->spouseemail = 1;
-        
-        return $settings->save(false);
+        return $userMember->save(false);
     }
     
     /**
@@ -922,7 +918,7 @@ class ImportController extends Controller
         $member = new ExtendedMember();
         $member->institutionid = $this->institutionId;
         $member->memberno = $memberId;
-        $member->membershiptype = 'Primary';
+        $member->membershiptype = 'Regular';
         $member->firstName = $headOfFamily['Name'];
         $member->middleName = '';
         $member->lastName = '';
@@ -946,41 +942,12 @@ class ImportController extends Controller
             $member->membertitle = $titleId;
         }
         
-        // Set zone from Families_cleaned.csv mapping
-        $familyId = $headOfFamily['FamilyID'];
-        if (isset($this->familyZoneMap[$familyId])) {
-            $zoneName = $this->familyZoneMap[$familyId];
-            $zoneId = $this->getOrCreateZoneId($zoneName);
-            if ($zoneId) {
-                $member->zone_id = $zoneId;
-            }
-        }
-        
-        // Set address from Families_cleaned.csv mapping
-        if (isset($this->familyAddressMap[$familyId])) {
-            $address = $this->familyAddressMap[$familyId];
-            if (!empty($address)) {
-                $member->residence_address1 = $address;
-            }
-        }
-        
         // Add spouse info
         if ($spouse) {
             $member->spouse_firstName = $spouse['Name'];
             $member->spousenickname = $spouse['Nickname'];
             $member->spouse_dob = $this->parseDate($spouse['DOB']);
-            
-            // Set marriage date - use whichever is available (spouse DOM or head DOM)
-            $spouseDOM = $this->parseDate($spouse['DOM']);
-            $headDOM = $this->parseDate($headOfFamily['DOM']);
-            
-            if ($spouseDOM) {
-                $member->dom = $spouseDOM;
-            } elseif ($headDOM) {
-                $member->dom = $headDOM;
-            }
-            // If neither has a valid date, dom will remain null
-            
+            $member->dom = $this->parseDate($spouse['DOM']);
             $member->spouseoccupation = $spouse['Occupation'];
             
             // Set spouse active and confirmed status from CSV
@@ -1024,14 +991,12 @@ class ImportController extends Controller
             'GRAND MOTHER' => 'Grand mother'
         ];
         
-        // Map relation if found, otherwise use empty string if relation is not in the map
-        $csvRelation = strtoupper(trim($dependantData['Relation']));
-        $relation = $relationMap[$csvRelation] ?? '';
+        $relation = $relationMap[$dependantData['Relation']] ?? $dependantData['Relation'];
         
         $dependant = new ExtendedDependant();
         $dependant->memberid = $memberId;
         $dependant->dependantname = $dependantData['Name'];
-        $dependant->relation = $relation; // Will be empty if no matching relation found
+        $dependant->relation = $relation;
         $dependant->dob = $this->parseDate($dependantData['DOB']);
         $dependant->occupation = $dependantData['Occupation'];
         
@@ -1290,158 +1255,5 @@ class ImportController extends Controller
         
         $this->stdout(str_repeat("=", 80) . "\n", Console::BOLD);
         $this->stdout("\n");
-    }
-    
-    /**
-     * Initialize zone map from database
-     */
-    private function initializeZoneMap()
-    {
-        $zoneModel = new ExtendedZone();
-        $zones = $zoneModel->getActiveZones($this->institutionId);
-        
-        $this->zoneMap = [];
-        foreach ($zones as $zone) {
-            // Map zone description to zone ID (case-insensitive)
-            $this->zoneMap[strtolower(trim($zone['description']))] = $zone['zoneid'];
-        }
-        
-        $this->stdout("Loaded " . count($this->zoneMap) . " existing zones\n", Console::FG_CYAN);
-    }
-    
-    /**
-     * Load family to zone and address mapping from Families_cleaned.csv
-     */
-    private function loadFamilyZoneMapping()
-    {
-        $familiesCsvPath = Yii::getAlias('@app') . '/service/institution/Families_cleaned.csv';
-        
-        if (!file_exists($familiesCsvPath)) {
-            $this->stdout("Warning: Families_cleaned.csv not found at: {$familiesCsvPath}\n", Console::FG_YELLOW);
-            $this->stdout("Members will be created without zone and address assignment.\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        $csvData = array_map('str_getcsv', file($familiesCsvPath));
-        $headers = array_shift($csvData);
-        
-        // Find column indices
-        $familyIdIndex = array_search('FamilyID', $headers);
-        $wardZoneIndex = array_search('WardZone', $headers);
-        $addressIndex = array_search('Address', $headers);
-        
-        if ($familyIdIndex === false) {
-            $this->stdout("Warning: FamilyID column not found in Families_cleaned.csv\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        $this->familyZoneMap = [];
-        $this->familyAddressMap = [];
-        
-        foreach ($csvData as $row) {
-            if (count($row) <= $familyIdIndex) continue;
-            
-            $familyId = trim($row[$familyIdIndex]);
-            
-            if (!empty($familyId)) {
-                // Load zone if available
-                if ($wardZoneIndex !== false && isset($row[$wardZoneIndex])) {
-                    $wardZone = trim($row[$wardZoneIndex]);
-                    if (!empty($wardZone)) {
-                        $this->familyZoneMap[$familyId] = $wardZone;
-                    }
-                }
-                
-                // Load address if available
-                if ($addressIndex !== false && isset($row[$addressIndex])) {
-                    $address = trim($row[$addressIndex]);
-                    if (!empty($address)) {
-                        $this->familyAddressMap[$familyId] = $address;
-                    }
-                }
-            }
-        }
-        
-        $this->stdout("Loaded zone mapping for " . count($this->familyZoneMap) . " families\n", Console::FG_CYAN);
-        $this->stdout("Loaded address mapping for " . count($this->familyAddressMap) . " families\n", Console::FG_CYAN);
-    }
-    
-    /**
-     * Get or create zone ID for a zone name
-     */
-    private function getOrCreateZoneId($zoneName)
-    {
-        if (empty($zoneName)) {
-            return null;
-        }
-        
-        $normalizedZoneName = strtolower(trim($zoneName));
-        
-        // Check if zone exists
-        if (isset($this->zoneMap[$normalizedZoneName])) {
-            return $this->zoneMap[$normalizedZoneName];
-        }
-        
-        // Create new zone
-        $newZone = new ExtendedZone();
-        $newZone->institutionid = $this->institutionId;
-        $newZone->description = trim($zoneName);
-        $newZone->active = 1;
-        
-        if ($newZone->save(false)) {
-            // Add to cache
-            $this->zoneMap[$normalizedZoneName] = $newZone->zoneid;
-            
-            $this->stdout("    ℹ Created new zone: ", Console::FG_BLUE);
-            $this->stdout("{$zoneName}\n");
-            
-            return $newZone->zoneid;
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Initialize role categories and get first role
-     */
-    private function initializeRoleCategories()
-    {
-        // Get Member role group ID
-        $sql = "SELECT RoleGroupID FROM rolegroup WHERE description = :type";
-        $roleGroupId = Yii::$app->db->createCommand($sql)
-            ->bindValue(':type', 'Member')
-            ->queryScalar();
-        
-        if (!$roleGroupId) {
-            $this->stdout("Warning: Member role group not found\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        // Get role categories
-        $this->roleCategories = ArrayHelper::map(
-            CustomRoleModel::getRoleCategories($roleGroupId, $this->institutionId),
-            "RoleCategoryID",
-            "Description"
-        );
-        
-        if (empty($this->roleCategories)) {
-            $this->stdout("Warning: No role categories found\n", Console::FG_YELLOW);
-            return;
-        }
-        
-        // Get first role category (index 0)
-        $roleCategoryIds = array_keys($this->roleCategories);
-        $this->firstRoleCategoryId = $roleCategoryIds[0];
-        
-        // Get first role from first category
-        $roles = CustomRoleModel::getselectedRoles($this->firstRoleCategoryId, $this->institutionId);
-        
-        if (!empty($roles)) {
-            $this->firstRoleId = $roles[0]['roleid'];
-            $this->stdout("Using role category: " . $this->roleCategories[$this->firstRoleCategoryId] . "\n", Console::FG_CYAN);
-            $this->stdout("Using role: " . $roles[0]['roledescription'] . "\n", Console::FG_CYAN);
-        } else {
-            $this->stdout("Warning: No roles found for first role category\n", Console::FG_YELLOW);
-        }
     }
 }
