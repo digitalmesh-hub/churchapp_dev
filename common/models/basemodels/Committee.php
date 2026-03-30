@@ -13,8 +13,9 @@ use Yii;
  * @property int $datefrom
  * @property int $dateto
  * @property int $memberid
+ * @property int $dependantid (NULL=regular member/spouse, NOT NULL=dependant)
  * @property int $institutionid
- * @property int $isspouse
+ * @property int $isspouse (0=member, 1=spouse - unchanged from original)
  * @property int $active
  * @property string $createddatetime
  * @property int $createdby
@@ -27,6 +28,7 @@ use Yii;
  * @property Usercredentials $createdby0
  * @property Designation $designation
  * @property Member $member
+ * @property Dependant $dependant
  * @property Usercredentials $user
  */
 class Committee extends \yii\db\ActiveRecord
@@ -46,15 +48,15 @@ class Committee extends \yii\db\ActiveRecord
     {
         return [
             [['userid', 'designationid', 'memberid', 'institutionid', 'isspouse', 'createddatetime', 'createdby'], 'required'],
-            [['userid', 'designationid', 'datefrom', 'dateto', 'memberid', 'institutionid', 'createdby', 'committeegroupid', 'committeeperiodid'], 'integer'],
+            [['userid', 'designationid', 'datefrom', 'dateto', 'memberid', 'dependantid', 'institutionid', 'createdby', 'committeegroupid', 'committeeperiodid', 'isspouse', 'active'], 'integer'],
             [['createddatetime'], 'safe'],
-            [['isspouse', 'active'], 'string', 'max' => 4],
             [['institutionid'], 'exist', 'skipOnError' => true, 'targetClass' => Institution::className(), 'targetAttribute' => ['institutionid' => 'id']],
             [['committeegroupid'], 'exist', 'skipOnError' => true, 'targetClass' => Committeegroup::className(), 'targetAttribute' => ['committeegroupid' => 'committeegroupid']],
             [['committeeperiodid'], 'exist', 'skipOnError' => true, 'targetClass' => CommitteePeriod::className(), 'targetAttribute' => ['committeeperiodid' => 'committee_period_id']],
             [['createdby'], 'exist', 'skipOnError' => true, 'targetClass' => Usercredentials::className(), 'targetAttribute' => ['createdby' => 'id']],
             [['designationid'], 'exist', 'skipOnError' => true, 'targetClass' => Designation::className(), 'targetAttribute' => ['designationid' => 'designationid']],
             [['memberid'], 'exist', 'skipOnError' => true, 'targetClass' => Member::className(), 'targetAttribute' => ['memberid' => 'memberid']],
+            [['dependantid'], 'exist', 'skipOnError' => true, 'targetClass' => Dependant::className(), 'targetAttribute' => ['dependantid' => 'id']],
             [['userid'], 'exist', 'skipOnError' => true, 'targetClass' => Usercredentials::className(), 'targetAttribute' => ['userid' => 'id']],
         ];
     }
@@ -71,6 +73,7 @@ class Committee extends \yii\db\ActiveRecord
             'datefrom' => 'Datefrom',
             'dateto' => 'Dateto',
             'memberid' => 'Memberid',
+            'dependantid' => 'Dependantid',
             'institutionid' => 'Institutionid',
             'isspouse' => 'Isspouse',
             'active' => 'Active',
@@ -127,6 +130,14 @@ class Committee extends \yii\db\ActiveRecord
     public function getMember()
     {
         return $this->hasOne(Member::className(), ['memberid' => 'memberid']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getDependant()
+    {
+        return $this->hasOne(Dependant::className(), ['id' => 'dependantid']);
     }
 
     /**

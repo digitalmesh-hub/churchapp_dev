@@ -3,6 +3,13 @@
    use yii\helpers\Html;
    use yii\widgets\ActiveForm;
    ?>
+<style>
+.dependant-card.selected-dependant {
+    border: 3px solid #5cb85c !important;
+    background: #f0fff0 !important;
+    box-shadow: 0 0 10px rgba(92, 184, 92, 0.5);
+}
+</style>
 <?php if($committeMemberDetails) { ?>
 <div class="memberprofile">
    <div class="row">
@@ -72,7 +79,30 @@
                </tbody>
             </table>
       </div>
-      <div class="col-md-12 col-sm-8">
+      
+      <!-- Dependants Section -->
+      <div class="col-md-12 col-sm-8" id="MemberDependantsSection" style="display:none;">
+         <table class="table defaulttab" cellspacing="0" cellpadding="0">
+            <tbody>
+               <tr>
+                  <th colspan="2" bgcolor="#FFF4E6" class="text-center" style="color: #ff9800; font-size: 16px;">
+                     <i class="glyphicon glyphicon-list"></i> Member's Dependants
+                  </th>
+               </tr>
+               <tr>
+                  <td colspan="2">
+                     <div class="alert alert-info" style="margin-bottom: 0;">
+                        <i class="glyphicon glyphicon-info-sign"></i>
+                        <strong>Add Dependant to Committee:</strong> Select a dependant below to add them instead of the member.
+                     </div>
+                  </td>
+               </tr>
+            </tbody>
+         </table>
+         <div id="DependantsListDiv"></div>
+      </div>
+      
+      <div class="col-md-12 col-sm-8" id="CommitteeAssignmentSection">
          <?php $form = ActiveForm::begin() ?>
          <?php echo Html::hiddenInput(
             'admin-save-committee-member-Url',
@@ -81,10 +111,22 @@
                 'id'=>'admin-save-committee-member-Url'
             ]
             ); ?>
+         <?php echo Html::hiddenInput('selected-dependant-id', '',
+            [
+                'id'=>'selected-dependant-id'
+            ]
+         ); ?>
+         <?php echo Html::hiddenInput('is-dependant-selected', '0',
+            [
+                'id'=>'is-dependant-selected'
+            ]
+         ); ?>
       <table class="table defaulttab" cellspacing="0" cellpadding="0">
             <tbody>
                <tr>
-                  <th colspan="2" bgcolor="#ADF7EE" class="text-center">Assign Member To Committe</th>
+                  <th colspan="2" bgcolor="#ADF7EE" class="text-center">
+                     <span id="AssignmentTypeLabel">Assign Member To Committe</span>
+                  </th>
                </tr>
                <tr>
                   <td><strong>Committee:</strong>&nbsp; <span style="color: red;">*</span></td>

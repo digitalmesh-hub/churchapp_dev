@@ -100,15 +100,24 @@ class CommitteeController extends BaseController
 				if($committeeMemberDetails){
 					foreach($committeeMemberDetails as $model){
 						if($model['active']){
+							// Determine member type based on dependantid and isspouse
+							$isDependant = (!empty($model['dependantid']) && $model['dependantid'] > 0);
+							$isSpouseVal = isset($model['isspouse']) ? (int)$model['isspouse'] : 0;
+							$isSpouse = ($isSpouseVal == 1 && !$isDependant);
+							
 							$result = [
 								'memberId' => (!empty($model['memberid'])) ? (int)$model['memberid'] : 0,
+								'dependantId' => (!empty($model['dependantid'])) ? (int)$model['dependantid'] : 0,
 								'title' => (!empty($model['title'])) ? $model['title'] : '',
 								'name' => (!empty($model['membername'])) ? $model['membername'] : '',
+								'relation' => (!empty($model['relation'])) ? $model['relation'] : '',
+								'remarks' => (!empty($model['remarks'])) ? $model['remarks'] : '',
 								'userThumbnailImage' => (!empty($model['memberimage'])) ? (string)preg_replace('/\s/', "%20",yii::$app->params['imagePath'].$model['memberimage']) : '',
 								'contactNumber' => (!empty($model['memberphone'])) ? (int)$model['memberphone'] : 0,
 								'email' => (!empty($model['memberemail'])) ? $model['memberemail'] : '',
 								'position' => (!empty($model['description'])) ? $model['description'] : '',
-								'isSpouse' => $model['isspouse'] == 1 ? true : false
+								'isSpouse' => $isSpouse,
+								'isDependant' => $isDependant
 							];
 							array_push($committeeMembers,$result);
 						}

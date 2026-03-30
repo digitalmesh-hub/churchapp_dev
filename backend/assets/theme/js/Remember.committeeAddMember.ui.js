@@ -52,6 +52,13 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
       function (res) {
         if (typeof (res) != 'undefined' && res.status == 'success') {
           $('#CommitteeMemberDetailsDiv').html(res.data);
+          
+          // Reset dependant selection flags
+          $('#selected-dependant-id').val('');
+          $('#is-dependant-selected').val('0');
+          
+          // Load dependants for this member
+          __this._loadMemberDependants(memberId);
         } 
         else {
           $('.modal-title').text('Committee');
@@ -61,12 +68,63 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
       });
     });
 
+    // Select dependant for committee
+    $(document).on('click', '.select-dependant-for-committee', function(){
+      var dependantId = $(this).data('dependantid');
+      var dependantName = $(this).data('dependantname');
+      var relation = $(this).data('relation');
+      
+      // Update hidden fields
+      $('#selected-dependant-id').val(dependantId);
+      $('#is-dependant-selected').val('1');
+      
+      // Update UI to show selected dependant
+      $('#AssignmentTypeLabel').html('<i class="glyphicon glyphicon-user"></i> Assign Dependant: <strong>' + dependantName + '</strong> (' + relation + ')');
+      $('#CommitteeAssignmentSection').find('th:first').css('background-color', '#FFF4E6').css('color', '#ff9800');
+      
+      // Update save button data attributes
+      $('.saveCommitteeMember').attr('data-dependantid', dependantId);
+      
+      // Highlight selected dependant
+      $('.dependant-card').removeClass('selected-dependant');
+      $(this).closest('.dependant-card').addClass('selected-dependant');
+      
+      // Show success message
+      $('#DependantsListDiv').prepend(
+        '<div class="alert alert-success temp-alert" style="margin: 10px;">' +
+        '<i class="glyphicon glyphicon-ok"></i> ' +
+        '<strong>Selected:</strong> ' + dependantName + ' will be added to the committee. ' +
+        '<button type="button" class="btn btn-xs btn-default clear-dependant-selection" style="margin-left: 10px;">' +
+        '<i class="glyphicon glyphicon-remove"></i> Clear Selection (Add Member Instead)' +
+        '</button>' +
+        '</div>'
+      );
+      
+      // Scroll to assignment section
+      $('html, body').animate({
+        scrollTop: $('#CommitteeAssignmentSection').offset().top - 100
+      }, 500);
+    });
+
+    // Clear dependant selection
+    $(document).on('click', '.clear-dependant-selection', function(){
+      $('#selected-dependant-id').val('');
+      $('#is-dependant-selected').val('0');
+      $('#AssignmentTypeLabel').html('Assign Member To Committe');
+      $('#CommitteeAssignmentSection').find('th:first').css('background-color', '#ADF7EE').css('color', '');
+      $('.saveCommitteeMember').removeAttr('data-dependantid');
+      $('.dependant-card').removeClass('selected-dependant');
+      $('.temp-alert').remove();
+    });
+
 
     //Save committee
     $(document).on('click', '.saveCommitteeMember', function(){
       var committeeTypeId = $('#committeeTypeId').val();
       var designationType = $('#designationType').val();
       var periodType = $('#periodType').val();
+      var isDependantSelected = $('#is-dependant-selected').val();
+      var dependantId = $('#selected-dependant-id').val();
 
       if(committeeType != '' && designationType != '' && periodType != ''){
         if ($('#MemberMobileLabel').text().trim() != '' || 
@@ -83,6 +141,11 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
               "isSpouse": $(this).attr('data-isspouse'),
               "committeeGroupId": $('#committeeTypeId').val()
             };
+            
+            // Add dependant info if selected
+            if (isDependantSelected == '1' && dependantId) {
+              data.dependantId = dependantId;
+            }
 
             var ajaxUrl = $('#admin-save-committee-member-Url').val();
             $.post(ajaxUrl, // Ajax Post URL            
@@ -91,7 +154,10 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 if (typeof (res) != 'undefined' && res.status == 'success') {
                   $('.message').html('');
                   $('.message').removeClass('alert-danger').addClass('alert-success');
-                  $('.message').html('<strong>Member  successfully added to committee</strong>');
+                  var successMsg = isDependantSelected == '1' ? 
+                    '<strong>Dependant successfully added to committee</strong>' : 
+                    '<strong>Member successfully added to committee</strong>';
+                  $('.message').html(successMsg);
                   $('#SuccessMessageDiv').show();
                   setTimeout(function() {
                     $('#SuccessMessageDiv').fadeOut();
@@ -192,6 +258,62 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
   },
   _onKeyEvents: function () {
     var __this = this
+  },
+
+  // Load member's dependants
+  _loadMemberDependants: function (memberId) {
+    var ajaxUrl = $('#homeUrl').val() + $('#admin-get-member-dependants-Url').val();
+    
+    $.get(ajaxUrl, {
+      memberId: memberId
+    },
+    function (res) {
+      if (typeof (res) != 'undefined' && res.status == 'success') {
+        if (res.count > 0) {
+          // Show dependants section
+          $('#MemberDependantsSection').show();
+          
+          var html = '';
+          $.each(res.data, function(index, dependant) {
+            html += '<div class="dependant-card" style="border: 1px solid #ddd; margin: 10px; padding: 15px; border-radius: 5px; background: #f9f9f9;">';
+            html += '<div class="row">';
+            html += '<div class="col-md-8">';
+            html += '<h4 style="margin-top: 0; color: #333;">';
+            if (dependant.title) {
+              html += dependant.title + ' ';
+            }
+            html += '<strong>' + dependant.dependantname + '</strong></h4>';
+            html += '<p style="margin: 5px 0;"><strong>Relation:</strong> ' + (dependant.relation || 'Not specified') + '</p>';
+            if (dependant.dob) {
+              html += '<p style="margin: 5px 0;"><strong>DOB:</strong> ' + dependant.dob + '</p>';
+            }
+            if (dependant.dependantmobile) {
+              html += '<p style="margin: 5px 0;"><strong>Mobile:</strong> ' + dependant.dependantmobile + '</p>';
+            }
+            html += '</div>';
+            html += '<div class="col-md-4 text-right">';
+            html += '<button class="btn btn-success btn-lg select-dependant-for-committee" ';
+            html += 'data-dependantid="' + dependant.dependantid + '" ';
+            html += 'data-dependantname="' + dependant.dependantname + '" ';
+            html += 'data-relation="' + (dependant.relation || '') + '" ';
+            html += 'style="margin-top: 20px;">';
+            html += '<i class="glyphicon glyphicon-plus-sign"></i> Add to Committee';
+            html += '</button>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+          });
+          
+          $('#DependantsListDiv').html(html);
+        } else {
+          // No dependants, hide section
+          $('#MemberDependantsSection').hide();
+        }
+      } else {
+        // Error or no dependants
+        $('#MemberDependantsSection').hide();
+      }
+    });
   },
 
   //Get all category types
