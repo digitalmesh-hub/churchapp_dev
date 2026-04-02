@@ -47,6 +47,12 @@ $this->registerJsFile ( $assetName->baseUrl . '/theme/js/Remember.committee.ui.j
     ]
 ]);
 
+$this->registerJsFile ( $assetName->baseUrl . '/theme/js/Remember.committeeAddDependant.ui.js',[
+        'depends' => [
+            AppAsset::className ()
+    ]
+]);
+
 $this->title = 'Committee'; 
 ?>
 <?php echo Html::hiddenInput(
@@ -82,6 +88,9 @@ $this->title = 'Committee';
                         </li>
                         <li role="presentation" class="" id="CommitteeAddli">
                             <a href="#members" aria-controls="Members" role="tab" data-toggle="tab" aria-expanded="true">Add Members To Committee</a>
+                        </li>
+                        <li role="presentation" class="" id="CommitteeDependantAddli" style="display: none;">
+                            <a href="#dependants" aria-controls="Dependants" role="tab" data-toggle="tab" aria-expanded="false">Add Dependants To Committee</a>
                         </li>
                         <li role="presentation" class="" id="Committeeli">
                             <a href="#committee" aria-controls="CommitteeMembers" role="tab" data-toggle="tab" aria-expanded="false">View Committee Members</a>
@@ -129,6 +138,27 @@ $this->title = 'Committee';
                             'id'=>'admin-get-committee-members-Url'
                         ]
                     ); ?>
+                    <?php echo Html::hiddenInput(
+                        'admin-get-dependant-for-search-Url',
+                        \Yii::$app->params['ajaxUrl']['admin-get-dependant-for-search-Url'],
+                        [
+                            'id'=>'admin-get-dependant-for-search-Url'
+                        ]
+                    ); ?>
+                    <?php echo Html::hiddenInput(
+                        'admin-get-dependant-details-Url',
+                        \Yii::$app->params['ajaxUrl']['admin-get-dependant-details-Url'],
+                        [
+                            'id'=>'admin-get-dependant-details-Url'
+                        ]
+                    ); ?>
+                    <?php echo Html::hiddenInput(
+                        'admin-get-member-dependants-Url',
+                        \Yii::$app->params['ajaxUrl']['admin-get-member-dependants-Url'],
+                        [
+                            'id'=>'admin-get-member-dependants-Url'
+                        ]
+                    ); ?>
 
                     <div class="tab-content tabcontentborder" id="AddCommitteeType">
                         <?= $this->render('_committeetype', ['model' => $model,
@@ -149,10 +179,14 @@ $this->title = 'Committee';
                             'memberSearch' => $memberSearch,
                             'committeMemberList' => $committeMemberList]) ?>
                     </div> 
+                    <div class="tab-content tabcontentborder" id="AddDependantDiv" style="display: none;">
+                        <?= $this->render('_dependantsearch') ?>
+                    </div>
                     <div class="tab-content tabcontentborder" id="CommitteeMemberListDiv" style="display: none;">
                         <?= $this->render('_committeelist', [
                             'memberModel' => $memberModel,'committeTypeList' => $committeTypeList]) ?>
                     </div>  
+                </div>
                 </div>
             </div>
             <div class="blockrow Mtop25 text-right">

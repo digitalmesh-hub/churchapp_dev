@@ -16,6 +16,7 @@ use Exception;
  * @property int $datefrom
  * @property int $dateto
  * @property int $memberid
+ * @property int $dependantid
  * @property int $institutionid
  * @property int $isspouse
  * @property int $active
@@ -30,6 +31,7 @@ use Exception;
  * @property Usercredentials $createdby0
  * @property Designation $designation
  * @property Member $member
+ * @property Dependant $dependant
  * @property Usercredentials $user
  */
 class ExtendedCommittee extends Committee
@@ -46,15 +48,15 @@ class ExtendedCommittee extends Committee
 	{
 		return [
 				[['userid', 'designationid', 'memberid', 'institutionid', 'isspouse', 'createddatetime', 'createdby'], 'required'],
-				[['userid', 'designationid', 'datefrom', 'dateto', 'memberid', 'institutionid', 'createdby','committeeperiodid'], 'integer'],
+				[['userid', 'designationid', 'datefrom', 'dateto', 'memberid', 'dependantid', 'institutionid', 'createdby','committeeperiodid', 'isspouse', 'active'], 'integer'],
 				[['createddatetime'], 'safe'],
-				[['isspouse', 'active'], 'string', 'max' => 4],
 				[['institutionid'], 'exist', 'skipOnError' => true, 'targetClass' => Institution::className(), 'targetAttribute' => ['institutionid' => 'id']],
 				[['committeegroupid'], 'exist', 'skipOnError' => true, 'targetClass' => Committeegroup::className(), 'targetAttribute' => ['committeegroupid' => 'committeegroupid'],'message' => 'Committee type can not be blank'],
 				[['committeeperiodid'], 'exist', 'skipOnError' => true, 'targetClass' => CommitteePeriod::className(), 'targetAttribute' => ['committeeperiodid' => 'committee_period_id']],
 				[['createdby'], 'exist', 'skipOnError' => true, 'targetClass' => Usercredentials::className(), 'targetAttribute' => ['createdby' => 'id']],
 				[['designationid'], 'exist', 'skipOnError' => true, 'targetClass' => Designation::className(), 'targetAttribute' => ['designationid' => 'designationid']],
 				[['memberid'], 'exist', 'skipOnError' => true, 'targetClass' => Member::className(), 'targetAttribute' => ['memberid' => 'memberid']],
+				[['dependantid'], 'exist', 'skipOnError' => true, 'targetClass' => Dependant::className(), 'targetAttribute' => ['dependantid' => 'id']],
 				[['userid'], 'exist', 'skipOnError' => true, 'targetClass' => Usercredentials::className(), 'targetAttribute' => ['userid' => 'id']],
 		];
 	}
@@ -123,18 +125,45 @@ class ExtendedCommittee extends Committee
 	 * @param $memberId int
 	 * @param $committeeGroupid int
 	 */
-	public static function checkMemberAvailbaleInCommittee($committeePeriodId, $designationId, $memberId, $committeeGroupId)
+	public static function checkMemberAvailbaleInCommittee($committeePeriodId, $designationId, $memberId, $committeeGroupId, $isSpouse = 0, $dependantId = null)
 	{	
-
-		$sql = "select count(committeeid) as count from committee where committeeperiodid=:committeeperiodid and designationid = :designationid and memberid = :memberid  and committeegroupid=:committeegroupid and active = 1";
+		// Check for specific combination: member + isspouse + dependantid
+		// This allows same member ID to exist as member, spouse, and multiple dependants
+		if ($dependantId && $dependantId > 0) {
+			// Check if this specific dependant already exists
+			$sql = "SELECT COUNT(committeeid) as count FROM committee 
+			        WHERE committeeperiodid = :committeeperiodid 
+			        AND designationid = :designationid 
+			        AND memberid = :memberid  
+			        AND committeegroupid = :committeegroupid 
+			        AND dependantid = :dependantid
+			        AND active = 1";
+		} else {
+			// Check if member or spouse already exists (dependantid must be NULL)
+			$sql = "SELECT COUNT(committeeid) as count FROM committee 
+			        WHERE committeeperiodid = :committeeperiodid 
+			        AND designationid = :designationid 
+			        AND memberid = :memberid  
+			        AND committeegroupid = :committeegroupid 
+			        AND isspouse = :isspouse
+			        AND dependantid IS NULL
+			        AND active = 1";
+		}
+		
 		try {
-			$committeeCount = Yii::$app->db->createCommand($sql)
+			$command = Yii::$app->db->createCommand($sql)
 				->bindValue(':committeeperiodid', $committeePeriodId)
 				->bindValue(':designationid', $designationId)
 				->bindValue(':memberid', $memberId)
-				->bindValue(':committeegroupid', $committeeGroupId)
-				->queryScalar();
-
+				->bindValue(':committeegroupid', $committeeGroupId);
+			
+			if ($dependantId && $dependantId > 0) {
+				$command->bindValue(':dependantid', $dependantId);
+			} else {
+				$command->bindValue(':isspouse', $isSpouse ? 1 : 0);
+			}
+			
+			$committeeCount = $command->queryScalar();
 			return $committeeCount;
 		} catch (ErrorException $e) {
 			return 0;
@@ -152,21 +181,21 @@ class ExtendedCommittee extends Committee
 	 * @param $createdBy int
 	 * @param $committeeGroupid int
 	 * @param $committeePeriodId int
-	
+	 * @param $dependantId int|null
 	 */
 	public static function saveCommitteeMember($userId, 
         $designationId, $memberId, $institutionId,
         $isSpouse, $createdDatetime, 
         $createdBy, $committeGroupId, 
-        $committePeriodId)
+        $committePeriodId, $dependantId = null)
 	{
 		try {
 			$sql = 'INSERT INTO committee(userid,designationid,'.
-				'memberid,institutionid,isspouse,'. 
+				'memberid,dependantid,institutionid,isspouse,'. 
 				'active,createddatetime,createdby,'.
 				'committeegroupid,committeeperiodid)'. 
 				'VALUES(:userid,:designationId,'. 
-				':memberid,:institutionid,:isspouse,:active,'.
+				':memberid,:dependantid,:institutionid,:isspouse,:active,'.
 				':createddatetime,:createdby,'.
 				':committegroupid,'.
 				':committeperiodid)';
@@ -175,6 +204,7 @@ class ExtendedCommittee extends Committee
 				->bindValue(':userid', $userId)
 				->bindValue(':designationId', $designationId)
 				->bindValue(':memberid', $memberId)
+				->bindValue(':dependantid', $dependantId)
 				->bindValue(':institutionid', $institutionId)
 				->bindValue(':isspouse', $isSpouse)
 				->bindValue(':active', 1)

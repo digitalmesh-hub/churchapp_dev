@@ -30,7 +30,10 @@ $config = [
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
+                    // 'levels' => ['error', 'warning', 'info', 'trace'],
                     'levels' => ['error', 'warning'],
+                    'logFile' => '@runtime/logs/app.log',
+                    
                     'logVars' => [],
                 ],
                 // Uncomment this to log database queries for debugging

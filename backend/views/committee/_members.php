@@ -28,13 +28,14 @@ echo Html::hiddenInput(
         <div class="inlinerow">
             <div class="col-md-4 col-sm-4">
                 <div class="labelbox">
-                    <strong>Search by Name/Member Number</strong>
+                    <strong>Search by Member Name/Membership No.</strong>
                 </div>
                 <div class="inlinerow Mtop5">
                    <?= AutoComplete::widget([
                         'name' => 'member_name',
                         'options' => [
-                            'class' => 'form-control member-name'
+                            'class' => 'form-control member-name',
+                            'placeholder' => 'Enter member name/membership no. to search...'
                         ],
                         'clientOptions' => [
                         'source' => $committeMemberList,
@@ -45,13 +46,6 @@ echo Html::hiddenInput(
                         }")
                     ],
                     ]);?>
-                </div>
-                <div class="inlinerow Mtop15">
-                    <div class="checkbox">
-                        <label>
-                            <?= Html::checkbox('isSpouse', false, ['label' => 'Spouse', 'class' => 'spouse-check','labelOptions' => ['style' => 'padding:5px;']]) ?>
-                        </label>
-                    </div>
                 </div>
             </div>
             <div class="col-md-4 col-sm-4">

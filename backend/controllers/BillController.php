@@ -28,6 +28,10 @@ class BillController extends BaseController
 	}
 	function beforeAction($action)
     {   
+        if (Yii::$app->user->isGuest) { 
+            Yii::$app->response->redirect(Yii::$app->urlManager->createAbsoluteUrl(['account/login']))->send();
+            Yii::$app->end();
+        }
         //if manage bills permission is enabled user can access.
         if (!Yii::$app->user->can('a65b8d57-ec46-11e6-b48e-000c2990e707')) {
             throw new \yii\web\ForbiddenHttpException('You are not allowed to perform the requested action');
