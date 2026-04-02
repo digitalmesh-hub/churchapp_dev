@@ -649,15 +649,57 @@ class CommitteeController extends BaseController
                 $institutionId = $this->currentUser()->institutionid;
                 $memberModel = new ExtendedMember();
                 $memberName = yii::$app->request->get('memberName');
-                $isSpouse = yii::$app->request->get('isSpouse');
-                $isSpouse = strtolower($isSpouse) == 'true' ? 's' : 'm';
                 $memberId = yii::$app->request->get('memberId');
-               /* if($memberName){
-                    $memberName = preg_replace('!\s+!', ' ', $memberName);
-                }*/
-                //get committee members
-                $committeMemberDetails = $memberModel->getCommitteeMemberDetails(
-                    $memberName, $isSpouse, $institutionId, $memberId);
+                
+                // Get member details
+                $memberDetails = $memberModel->getCommitteeMemberDetails(
+                    $memberName, 'm', $institutionId, $memberId);
+                
+                // Get spouse details
+                $spouseDetails = $memberModel->getCommitteeMemberDetails(
+                    $memberName, 's', $institutionId, $memberId);
+                
+                // Get dependants with relation inference
+                $dependants = [];
+                if ($memberId) {
+                    $sql = "SELECT 
+                                d.id as id,
+                                d.dependantname,
+                                IFNULL(t.Description, '') as title,
+                                CASE 
+                                    WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+                                    WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                                    WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                                    WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                                    WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                                    WHEN partner.relation = 'Father' THEN 'Mother'
+                                    WHEN partner.relation = 'Mother' THEN 'Father'
+                                    WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                                    WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                                    WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                                    WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                                    WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                                    WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                                    WHEN d.dependantid IS NOT NULL THEN 'Spouse'
+                                    ELSE ''
+                                END as relation,
+                                d.image,
+                                d.dob,
+                                d.dependantmobile
+                            FROM dependant d
+                            INNER JOIN member m ON d.memberid = m.memberid
+                            LEFT JOIN title t ON d.titleid = t.TitleId
+                            LEFT JOIN dependant partner ON partner.id = d.dependantid
+                            WHERE m.institutionid = :institutionid
+                            AND m.memberid = :memberid
+                            ORDER BY d.dependantname";
+                    
+                    $dependants = Yii::$app->db->createCommand($sql)
+                        ->bindValue(':institutionid', $institutionId)
+                        ->bindValue(':memberid', $memberId)
+                        ->queryAll();
+                }
+                
                 //committe add
                 $committeeModel = new \yii\base\DynamicModel(['committeeType', 'designationType','periodType']);
                 $query = ExtendedDesignation::find()
@@ -675,7 +717,9 @@ class CommitteeController extends BaseController
                     ->all(),'committeegroupid','description');
 
                 $html = $this->renderPartial('_addmember',
-                            ['committeMemberDetails' => $committeMemberDetails, 
+                            ['memberDetails' => $memberDetails, 
+                            'spouseDetails' => $spouseDetails,
+                            'dependants' => $dependants,
                             'committeeModel' => $committeeModel,
                             'committeDesignationList' => $committeDesignationList,
                             'committeTypeList' => $committeTypeList]);
@@ -685,10 +729,13 @@ class CommitteeController extends BaseController
             }
         } catch(Exception $e){
             yii::error($e->getMessage());
-            return ['status' => 'error','data' => $e->getMessage().$$e->getLine()];
+            return ['status' => 'error','data' => $e->getMessage().' '.$e->getLine()];
         }
     }
-
+    
+    /**
+     * Infer relation from partner's relation
+     * @param string $partnerRelation
     /**
      * Save committee member.
      * If the model is not found, a 404 HTTP exception will be thrown.
