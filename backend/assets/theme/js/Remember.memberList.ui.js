@@ -60,16 +60,6 @@ _onClickEvents: function () {
   	  var ajaxUrl = $('#homeUrl').val() + $('#delete-member').val();
   	  var memberId = $(this).attr('data-member-id');
   	 swal({
-         title: 'Are you sure?',
-         text: 'Are You sure that you need to Delete member  !',
-         type: 'warning',
-         showCancelButton: true,
-         confirmButtonClass: 'btn-danger',
-         confirmButtonText: 'Yes',
-         closeOnConfirm: false
-       },
-       function () {
-        swal({
             title: 'Reason for Deletion',
             text: 'Please provide a reason for deleting this member:',
             type: 'input',
@@ -106,8 +96,7 @@ _onClickEvents: function () {
                           }
                     
                     )
-        });
-       });    
+        });   
   });
 
     $('#addfamilyunit').on('click', function () {})
