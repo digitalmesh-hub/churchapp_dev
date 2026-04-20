@@ -115,16 +115,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 var ajaxUrl = $('#homeUrl').val() + $('#remove-spouse').val()
                 var memberId = $("#hdnmemberid").val();
                 swal({
-                        title: 'Are you sure?',
-                        text: 'Do you want to delete spouse?',
-                        type: 'warning',
-                        showCancelButton: true,
-                        confirmButtonClass: 'btn-danger',
-                        confirmButtonText: 'Yes',
-                        closeOnConfirm: false
-                    },
-                    function() {
-                        swal({
                             title: 'Reason for Deletion',
                             text: 'Please provide a reason for removing this spouse:',
                             type: 'input',
@@ -180,21 +170,10 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                                     }
                                 })
                         });
-                    })
             });
 
             $("#btnremoveprimarymember").on("click", function() {
                 swal({
-                        title: 'Are you sure?',
-                        text: 'Do you want to delete primary member?',
-                        type: 'warning',
-                        showCancelButton: true,
-                        confirmButtonClass: 'btn-danger',
-                        confirmButtonText: 'Yes',
-                        closeOnConfirm: false
-                    },
-                    function() {
-                        swal({
                             title: 'Reason for Deletion',
                             text: 'Please provide a reason for removing this member:',
                             type: 'input',
@@ -296,8 +275,6 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                                 });
                             }
                         });
-                    }
-                )
             });
             $("#btnsentmail").unbind().click(function() {
                 $('#btnsentmail').attr('disabled', 'true')
