@@ -32,7 +32,7 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
     var __this = this;
 
-    //View member details
+    //View member details - now fetches member + spouse + dependants
     $(document).on('click', '.add-member' ,function(e)
     {
       var ajaxUrl = $('#homeUrl').val() + $('#admin-get-committee-member-details-Url').val();
@@ -40,18 +40,19 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
       memberName = memberName.substr(memberName.indexOf(' ')+1);
       memberName = memberName.split('/');
-      var isSpouse = $('.spouse-check').is(':checked');
       var memberId = $('#member-id').val();
 
       $.get(ajaxUrl, // Ajax Get URL
       {
         memberName:"", 
-        isSpouse: isSpouse,
         memberId: memberId 
       },
       function (res) {
         if (typeof (res) != 'undefined' && res.status == 'success') {
           $('#CommitteeMemberDetailsDiv').html(res.data);
+          
+          // Reset selection
+          __this._clearPersonSelection();
         } 
         else {
           $('.modal-title').text('Committee');
@@ -61,73 +62,146 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
       });
     });
 
+    // Select person (member/spouse/dependant) for committee
+    $(document).on('click', '.select-person-for-committee', function(){
+      var personType = $(this).data('person-type');
+      var memberId = $(this).data('member-id');
+      var userId = $(this).data('user-id');
+      var institutionId = $(this).data('institution-id');
+      var isSpouse = $(this).data('is-spouse');
+      var dependantId = $(this).data('dependant-id') || '';
+      var personName = $(this).data('person-name');
+      
+      // Update hidden fields
+      $('#selected-person-type').val(personType);
+      $('#selected-member-id').val(memberId);
+      $('#selected-user-id').val(userId);
+      $('#selected-institution-id').val(institutionId);
+      $('#selected-is-spouse').val(isSpouse);
+      $('#selected-dependant-id').val(dependantId);
+      $('#selected-person-name').val(personName);
+      
+      // Update UI
+      var typeLabel = personType.charAt(0).toUpperCase() + personType.slice(1);
+      var badgeClass = 'label-primary';
+      if (personType === 'spouse') badgeClass = 'label-danger';
+      if (personType === 'dependant') badgeClass = 'label-warning';
+      
+      $('#AssignmentTypeLabel').html(
+        '<i class="glyphicon glyphicon-user"></i> Assign ' + typeLabel + ' to Committee: ' +
+        '<span class="label ' + badgeClass + '" style="font-size: 14px; margin-left: 10px;">' + 
+        personName + '</span>'
+      );
+      
+      $('#SelectedPersonInfo').html(
+        '<strong><i class="glyphicon glyphicon-ok-circle"></i> Selected:</strong> ' +
+        '<span class="label ' + badgeClass + '">' + typeLabel.toUpperCase() + '</span> ' +
+        personName + ' will be added to the committee.'
+      );
+      
+      // Highlight selected card
+      $('.person-card').removeClass('selected-person');
+      $(this).closest('.person-card').addClass('selected-person');
+      
+      // Show assignment section
+      $('#CommitteeAssignmentSection').slideDown();
+      
+      // Scroll to assignment section
+      $('html, body').animate({
+        scrollTop: $('#CommitteeAssignmentSection').offset().top - 50
+      }, 500);
+    });
+
+    // Cancel selection
+    $(document).on('click', '.cancel-selection', function(){
+      __this._clearPersonSelection();
+    });
+
 
     //Save committee
     $(document).on('click', '.saveCommitteeMember', function(){
       var committeeTypeId = $('#committeeTypeId').val();
       var designationType = $('#designationType').val();
       var periodType = $('#periodType').val();
+      var personType = $('#selected-person-type').val();
+      var memberId = $('#selected-member-id').val();
+      var userId = $('#selected-user-id').val();
+      var institutionId = $('#selected-institution-id').val();
+      var isSpouse = $('#selected-is-spouse').val();
+      var dependantId = $('#selected-dependant-id').val();
+      var personName = $('#selected-person-name').val();
 
-      if(committeeType != '' && designationType != '' && periodType != ''){
-        if ($('#MemberMobileLabel').text().trim() != '' || 
-          $('#MemberEmailLabel').text().trim() != '') {
-            $('#errorDiv').hide();
+      if(!personType || !memberId) {
+        $('#errorDiv').show();
+        $('#errorMessageDiv').html('<strong>Please select a person to add to committee</strong>');
+        setTimeout(function() {
+          $('#errorDiv').fadeOut();
+        }, 3000);
+        return;
+      }
 
-            var data = {
-              "_csrf-backend": $("meta[name='csrf-token']").attr('content'),
-              "designationId": $('#designationType').val(),
-              "committeePeriodId": $('#periodType').val(),
-              "institutionId": $(this).attr('data-institutionid'),
-              "memberId": $(this).attr('data-memberid'),
-              "userId": $(this).attr('data-userid'),
-              "isSpouse": $(this).attr('data-isspouse'),
-              "committeeGroupId": $('#committeeTypeId').val()
-            };
+      if(committeeTypeId != '' && designationType != '' && periodType != ''){
+        $('#errorDiv').hide();
 
-            var ajaxUrl = $('#admin-save-committee-member-Url').val();
-            $.post(ajaxUrl, // Ajax Post URL            
-              data,
-              function (res) {
-                if (typeof (res) != 'undefined' && res.status == 'success') {
-                  $('.message').html('');
-                  $('.message').removeClass('alert-danger').addClass('alert-success');
-                  $('.message').html('<strong>Member  successfully added to committee</strong>');
-                  $('#SuccessMessageDiv').show();
-                  setTimeout(function() {
-                    $('#SuccessMessageDiv').fadeOut();
-                  }, 3000);
-                  $('.saveCommitteeMember').hide();
-                } else if (typeof (res) != 'undefined' && res.status == 'message') {
-                  $('#SuccessMessageDiv').show();
-                  $('.message').html('');
-                  $('.message').removeClass('alert-success').addClass('alert-danger');
-                  $('.message').html('<strong>'+res.data+'</strong>');
-                  setTimeout(function() {
-                    $('#SuccessMessageDiv').fadeOut();
-                  }, 3000); 
-                } else {
-                  $('#SuccessMessageDiv').show();
-                  $('.message').html('');
-                  $('.message').removeClass('alert-success').addClass('alert-danger');
-                  $('.message').html('<strong>An error occured</strong>');
-                  setTimeout(function() {
-                    $('#SuccessMessageDiv').fadeOut();
-                  }, 3000);
-
-                }
-              }
-            );
-
-
+        // Ensure userId is a valid value (convert empty string to null or 0)
+        if (!userId || userId.trim() === '') {
+          userId = '0';
         }
-        else{
-          $('#errorDiv').show();
-          $('#errorMessageDiv').html('');
-          $('#errorMessageDiv').html('<strong>Invalid contact details. Please contact administrator</strong>');
-          setTimeout(function() {
-            $('#errorDiv').fadeOut();
-          }, 3000);
+
+        var data = {
+          "_csrf-backend": $("meta[name='csrf-token']").attr('content'),
+          "designationId": designationType,
+          "committeePeriodId": periodType,
+          "institutionId": institutionId,
+          "memberId": memberId,
+          "userId": userId,
+          "isSpouse": isSpouse,
+          "committeeGroupId": committeeTypeId
+        };
+        
+        // Add dependant info if selected
+        if (personType === 'dependant' && dependantId) {
+          data.dependantId = dependantId;
         }
+
+        var ajaxUrl = $('#admin-save-committee-member-Url').val();
+        $.post(ajaxUrl, // Ajax Post URL            
+          data,
+          function (res) {
+            if (typeof (res) != 'undefined' && res.status == 'success') {
+              $('.message').html('');
+              $('.message').removeClass('alert-danger').addClass('alert-success');
+              var successMsg = '<strong>' + personName + ' successfully added to committee as ' + 
+                             personType + '</strong>';
+              $('.message').html(successMsg);
+              $('#SuccessMessageDiv').show();
+              setTimeout(function() {
+                $('#SuccessMessageDiv').fadeOut();
+                __this._clearPersonSelection();
+                $('#CommitteeMemberDetailsDiv').html('');
+                $('.member-name').val('');
+              }, 3000);
+              $('.saveCommitteeMember').hide();
+            } else if (typeof (res) != 'undefined' && res.status == 'message') {
+              $('#SuccessMessageDiv').show();
+              $('.message').html('');
+              $('.message').removeClass('alert-success').addClass('alert-danger');
+              $('.message').html('<strong>'+res.data+'</strong>');
+              setTimeout(function() {
+                $('#SuccessMessageDiv').fadeOut();
+              }, 3000); 
+            } else {
+              $('#SuccessMessageDiv').show();
+              $('.message').html('');
+              $('.message').removeClass('alert-success').addClass('alert-danger');
+              $('.message').html('<strong>An error occured</strong>');
+              setTimeout(function() {
+                $('#SuccessMessageDiv').fadeOut();
+              }, 3000);
+
+            }
+          }
+        );
       }
       else{
         $('#errorDiv').show();
@@ -137,38 +211,6 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
           $('#errorDiv').fadeOut();
         }, 3000);
       }
-    });
-
-    $(document).on('click', '.spouse-check', function(e){
-      var isSpouse = false;
-      var memberName = $('.member-name').val();
-      if ($(this).prop('checked') == true){
-          isSpouse = true;
-      }
-
-      var ajaxUrl = $('#homeUrl').val() + $('#admin-get-member-for-search-Url').val();
-
-      $.post(ajaxUrl, // Ajax Get URL
-      {
-        '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
-        isSpouse: isSpouse,
-        memberName: ''
-      },
-      function (res) {
-        if (typeof (res) != 'undefined' && res.status == 'success') {
-          $( ".member-name" ).autocomplete({source: res.list});
-          $('#CommitteeMemberDetailsDiv').html('');
-          $('.member-name').val('');
-          /*$('#AddMemberDiv').html(res.data);*/
-          if (isSpouse == true) {
-              $('.spouse-check').prop('checked', true);
-          }
-        } else {
-          $('.modal-title').text('Committee');
-          $('.content-div').text("An error occured while processing the request.");
-          $("#myModal").modal('show');
-        }
-      });
     });
   },
   _onChangeEvents: function () {
@@ -192,6 +234,28 @@ Remember.committeeAddMember.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
   },
   _onKeyEvents: function () {
     var __this = this
+  },
+
+  // Clear person selection
+  _clearPersonSelection: function () {
+    $('#selected-person-type').val('');
+    $('#selected-member-id').val('');
+    $('#selected-user-id').val('');
+    $('#selected-institution-id').val('');
+    $('#selected-is-spouse').val('');
+    $('#selected-dependant-id').val('');
+    $('#selected-person-name').val('');
+    
+    $('.person-card').removeClass('selected-person');
+    $('#CommitteeAssignmentSection').slideUp();
+    $('#AssignmentTypeLabel').html('<i class="glyphicon glyphicon-user"></i> Assign to Committee');
+    $('#SelectedPersonInfo').html('');
+    $('.saveCommitteeMember').show();
+    
+    // Reset form
+    $('#committeeTypeId').val('');
+    $('#designationType').val('');
+    $('#periodType').html('<option>Please Select</option>');
   },
 
   //Get all category types

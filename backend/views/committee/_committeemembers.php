@@ -33,8 +33,12 @@
                   <?php } ?>
                </td>
                <td width="15%"><strong>Name:</strong></td>
-               <td width="60%"><?= Html::encode($model['title']) ?><span class="capitalize">
+               <td width="60%">
+                  <?= Html::encode($model['title']) ?><span class="capitalize">
                   <?= Html::encode($model['membername']) ?></span>
+                  <?php if (!empty($model['remarks'])) { ?>
+                     <br><small style="color: #666;"><em><?= Html::encode($model['remarks']) ?></em></small>
+                  <?php } ?>
                </td>
                <td width="10%">
                   <?php if($model['active']) { ?>

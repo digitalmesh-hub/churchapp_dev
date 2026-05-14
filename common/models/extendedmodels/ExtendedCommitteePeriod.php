@@ -170,13 +170,147 @@ class ExtendedCommitteePeriod extends CommitteePeriod
     */
     public function getCommitteeMembers($committeeType, $committeePeriod, $institutionId, $date)
     {   
+        // Direct SQL query with dependant support (no stored procedure needed)
+        // Note: Spouse data is stored in member table columns (spouse_firstName, spouse_pic, etc.)
+        $sql = "SELECT 
+            c.committeegroupid,
+            cg.description as committeegroupdescription,
+            cg.`order` as CommitteeTypeSortOrder,
+            c.committeeid,
+            c.memberid,
+            c.isspouse,
+            c.dependantid,
+            
+            -- Display name: check dependantid first, then isspouse, then member (without title - title shown separately)
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN 
+                    CASE 
+                        WHEN dep.id IS NULL THEN '[Deleted Dependant]'
+                        ELSE COALESCE(dep.dependantname, '')
+                    END
+                WHEN c.isspouse = 1 THEN 
+                    TRIM(CONCAT_WS(' ', 
+                           NULLIF(m.spouse_firstName, ''), 
+                           NULLIF(m.spouse_middleName, ''), 
+                           NULLIF(m.spouse_lastName, '')))
+                ELSE 
+                    TRIM(CONCAT_WS(' ', 
+                           NULLIF(m.firstName, ''), 
+                           NULLIF(m.middleName, ''), 
+                           NULLIF(m.lastName, '')))
+            END AS membername,
+            
+            -- Title
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN COALESCE(dept.Description, '')
+                WHEN c.isspouse = 1 THEN COALESCE(st.Description, '')
+                ELSE COALESCE(mt.Description, '')
+            END AS title,
+            
+            -- Image
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN COALESCE(dep.image, '')
+                WHEN c.isspouse = 1 THEN COALESCE(m.spouse_pic, '')
+                ELSE COALESCE(m.member_pic, '')
+            END AS memberimage,
+            
+            -- Phone
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN COALESCE(dep.dependantmobile, '')
+                WHEN c.isspouse = 1 THEN COALESCE(m.spouse_mobile1, '')
+                ELSE COALESCE(m.member_mobile1, '')
+            END AS memberphone,
+            
+            -- Email
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN COALESCE(m.member_email, '')
+                WHEN c.isspouse = 1 THEN COALESCE(m.spouse_email, '')
+                ELSE COALESCE(m.member_email, '')
+            END AS memberemail,
+            
+            -- Relation (for dependants)
+            CASE 
+                WHEN c.dependantid IS NOT NULL THEN 
+                    CASE 
+                        WHEN dep.id IS NULL THEN ''
+                        WHEN dep.relation IS NOT NULL AND dep.relation != '' THEN dep.relation
+                        WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                        WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                        WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                        WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                        WHEN partner.relation = 'Father' THEN 'Mother'
+                        WHEN partner.relation = 'Mother' THEN 'Father'
+                        WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                        WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                        WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                        WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                        WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                        WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                        WHEN dep.dependantid IS NOT NULL THEN 'Spouse'
+                        ELSE ''
+                    END
+                ELSE ''
+            END AS relation,
+            
+            CASE 
+                WHEN c.dependantid IS NOT NULL AND dep.id IS NOT NULL THEN 
+                    TRIM(CONCAT(
+                        CASE 
+                            WHEN dep.relation IS NOT NULL AND dep.relation != '' THEN dep.relation
+                            WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                            WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                            WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                            WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                            WHEN partner.relation = 'Father' THEN 'Mother'
+                            WHEN partner.relation = 'Mother' THEN 'Father'
+                            WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                            WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                            WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                            WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                            WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                            WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                            WHEN dep.dependantid IS NOT NULL THEN 'Spouse'
+                            ELSE ''
+                        END,
+                        ' of ',
+                        CASE WHEN mt.Description IS NOT NULL THEN CONCAT(mt.Description, ' ') ELSE '' END,
+                        TRIM(CONCAT_WS(' ', 
+                            NULLIF(m.firstName, ''), 
+                            NULLIF(m.middleName, ''), 
+                            NULLIF(m.lastName, '')))
+                    ))
+                ELSE ''
+            END AS remarks,
+            
+            d.designationid,
+            d.description,
+            d.designationorder,
+            c.active
+        FROM committee c
+        INNER JOIN committeegroup cg ON cg.committeegroupid = c.committeegroupid AND cg.active = 1
+        INNER JOIN designation d ON d.designationid = c.designationid
+        INNER JOIN member m ON m.memberid = c.memberid
+        LEFT JOIN title mt ON m.membertitle = mt.TitleId
+        LEFT JOIN title st ON m.spousetitle = st.TitleId
+        LEFT JOIN dependant dep ON c.dependantid = dep.id
+        LEFT JOIN title dept ON dep.titleid = dept.TitleId
+        LEFT JOIN dependant partner ON partner.id = dep.dependantid
+        LEFT JOIN committee_period cp ON cp.committee_period_id = c.committeeperiodid
+        WHERE c.institutionid = :institutionid
+            AND (c.committeeperiodid = :committeeperiodid OR :committeeperiodid IS NULL)
+            AND (c.committeegroupid = :committeegroupid OR :committeegroupid IS NULL)
+            AND ((DATE(cp.period_from) <= DATE(:date) OR :date IS NULL) 
+                 AND (DATE(cp.period_to) >= DATE(:date) OR :date IS NULL))
+            AND cp.active = 1
+        ORDER BY cg.`order`, d.designationorder ASC";
         
-        $committeeMembers = Yii::$app->db->createCommand('CALL get_committee_detailstolist(:institutionid, :committeeperiodid, :committeegroupid, :date)')
-        ->bindValue(':institutionid' , $institutionId)
-        ->bindValue(':committeeperiodid', $committeePeriod)
-        ->bindValue(':committeegroupid', $committeeType)
-        ->bindValue(':date', $date)
-        ->queryAll();
+        $command = Yii::$app->db->createCommand($sql)
+            ->bindValue(':institutionid', $institutionId)
+            ->bindValue(':committeeperiodid', $committeePeriod)
+            ->bindValue(':committeegroupid', $committeeType)
+            ->bindValue(':date', $date);
+        
+        $committeeMembers = $command->queryAll();
         return $committeeMembers;
     }
 

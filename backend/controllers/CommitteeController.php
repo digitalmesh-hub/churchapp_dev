@@ -649,15 +649,57 @@ class CommitteeController extends BaseController
                 $institutionId = $this->currentUser()->institutionid;
                 $memberModel = new ExtendedMember();
                 $memberName = yii::$app->request->get('memberName');
-                $isSpouse = yii::$app->request->get('isSpouse');
-                $isSpouse = strtolower($isSpouse) == 'true' ? 's' : 'm';
                 $memberId = yii::$app->request->get('memberId');
-               /* if($memberName){
-                    $memberName = preg_replace('!\s+!', ' ', $memberName);
-                }*/
-                //get committee members
-                $committeMemberDetails = $memberModel->getCommitteeMemberDetails(
-                    $memberName, $isSpouse, $institutionId, $memberId);
+                
+                // Get member details
+                $memberDetails = $memberModel->getCommitteeMemberDetails(
+                    $memberName, 'm', $institutionId, $memberId);
+                
+                // Get spouse details
+                $spouseDetails = $memberModel->getCommitteeMemberDetails(
+                    $memberName, 's', $institutionId, $memberId);
+                
+                // Get dependants with relation inference
+                $dependants = [];
+                if ($memberId) {
+                    $sql = "SELECT 
+                                d.id as id,
+                                d.dependantname,
+                                IFNULL(t.Description, '') as title,
+                                CASE 
+                                    WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+                                    WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                                    WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                                    WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                                    WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                                    WHEN partner.relation = 'Father' THEN 'Mother'
+                                    WHEN partner.relation = 'Mother' THEN 'Father'
+                                    WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                                    WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                                    WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                                    WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                                    WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                                    WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                                    WHEN d.dependantid IS NOT NULL THEN 'Spouse'
+                                    ELSE ''
+                                END as relation,
+                                d.image,
+                                d.dob,
+                                d.dependantmobile
+                            FROM dependant d
+                            INNER JOIN member m ON d.memberid = m.memberid
+                            LEFT JOIN title t ON d.titleid = t.TitleId
+                            LEFT JOIN dependant partner ON partner.id = d.dependantid
+                            WHERE m.institutionid = :institutionid
+                            AND m.memberid = :memberid
+                            ORDER BY d.dependantname";
+                    
+                    $dependants = Yii::$app->db->createCommand($sql)
+                        ->bindValue(':institutionid', $institutionId)
+                        ->bindValue(':memberid', $memberId)
+                        ->queryAll();
+                }
+                
                 //committe add
                 $committeeModel = new \yii\base\DynamicModel(['committeeType', 'designationType','periodType']);
                 $query = ExtendedDesignation::find()
@@ -675,7 +717,9 @@ class CommitteeController extends BaseController
                     ->all(),'committeegroupid','description');
 
                 $html = $this->renderPartial('_addmember',
-                            ['committeMemberDetails' => $committeMemberDetails, 
+                            ['memberDetails' => $memberDetails, 
+                            'spouseDetails' => $spouseDetails,
+                            'dependants' => $dependants,
                             'committeeModel' => $committeeModel,
                             'committeDesignationList' => $committeDesignationList,
                             'committeTypeList' => $committeTypeList]);
@@ -685,10 +729,13 @@ class CommitteeController extends BaseController
             }
         } catch(Exception $e){
             yii::error($e->getMessage());
-            return ['status' => 'error','data' => $e->getMessage().$$e->getLine()];
+            return ['status' => 'error','data' => $e->getMessage().' '.$e->getLine()];
         }
     }
-
+    
+    /**
+     * Infer relation from partner's relation
+     * @param string $partnerRelation
     /**
      * Save committee member.
      * If the model is not found, a 404 HTTP exception will be thrown.
@@ -713,19 +760,29 @@ class CommitteeController extends BaseController
                 $memberId = yii::$app->request->post('memberId');
                 $userId = yii::$app->request->post('userId');
                 $isSpouse = yii::$app->request->post('isSpouse');
+                $dependantId = yii::$app->request->post('dependantId'); // New: Dependant ID support
                 $committeeGroupId = 
                     yii::$app->request->post('committeeGroupId');
                 $committeePeriodId = 
                     yii::$app->request->post('committeePeriodId');
                 $createdDatetime = gmdate(Yii::$app->params['dateFormat']['sqlDandTFormat']);
-                $committeeCount = $model->checkMemberAvailbaleInCommittee($committeePeriodId, $designationId, $memberId, $committeeGroupId);
+                // Check if this exact member/spouse/dependant combination already exists
+                $committeeCount = $model->checkMemberAvailbaleInCommittee(
+                    $committeePeriodId, 
+                    $designationId, 
+                    $memberId, 
+                    $committeeGroupId, 
+                    $isSpouse, 
+                    $dependantId
+                );
                 if ((int)$committeeCount == 0) {
                     if ($userId != null || $userId != 0) {
+                        // Pass dependantId to save method (null for regular members/spouses)
                         $status = $model->saveCommitteeMember($userId, 
                             $designationId, $memberId, $institutionId,
                             $isSpouse, $createdDatetime, 
                             $createdBy, $committeeGroupId, 
-                            $committeePeriodId);
+                            $committeePeriodId, $dependantId);
                         if($status == true){
                             return [
                                 'status' => 'success', 'data' => ''
@@ -861,6 +918,204 @@ class CommitteeController extends BaseController
         catch(Exception $e){
             yii::error($e->getMessage());
             return ['status' => 'error','data' => ''];
+        }
+    }
+
+    /**
+     * Get dependant search results for committee assignment
+     * @return mixed
+     */
+    public function actionGetDependantForSearch()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        try{
+            if (yii::$app->request->isAjax) {
+                $institutionId = $this->currentUser()->institutionid;
+                $dependantName = yii::$app->request->get('dependantName');
+                
+                // Get dependants matching search
+                $sql = "SELECT 
+                            d.id as dependantid,
+                            d.dependantname as name,
+                            t.Description as title,
+                            d.relation,
+                            CONCAT(IFNULL(mt.Description, ''), ' ', m.firstName, ' ', 
+                                   IFNULL(m.middleName, ''), ' ', m.lastName) as parent_name,
+                            m.memberno as parent_memberno
+                        FROM dependant d
+                        INNER JOIN member m ON d.memberid = m.memberid
+                        LEFT JOIN title t ON d.titleid = t.TitleId
+                        LEFT JOIN title mt ON m.membertitle = mt.TitleId
+                        WHERE m.institutionid = :institutionid
+                        AND d.dependantname LIKE :dependantname
+                        ORDER BY d.dependantname
+                        LIMIT 20";
+                
+                $results = Yii::$app->db->createCommand($sql)
+                    ->bindValue(':institutionid', $institutionId)
+                    ->bindValue(':dependantname', '%' . $dependantName . '%')
+                    ->queryAll();
+                
+                return ['status' => 'success', 'data' => $results];
+            } else {
+                return ['status' => 'error','data' => ''];
+            }
+        } catch(Exception $e){
+            yii::error($e->getMessage());
+            return ['status' => 'error','data' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get dependant details for committee assignment
+     * @return mixed
+     */
+    public function actionGetDependantDetails()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        try{
+            if (yii::$app->request->isAjax) {
+                $institutionId = $this->currentUser()->institutionid;
+                $dependantId = yii::$app->request->get('dependantId');
+               
+                // Get full dependant details
+                $sql = "SELECT 
+                            d.id as dependantid,
+                            d.memberid,
+                            m.memberid as parent_memberid,
+                            d.dependantname,
+                            t.Description as title,
+                            CASE 
+                                WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+                                WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                                WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                                WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                                WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                                WHEN partner.relation = 'Father' THEN 'Mother'
+                                WHEN partner.relation = 'Mother' THEN 'Father'
+                                WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                                WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                                WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                                WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                                WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                                WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                                WHEN d.dependantid IS NOT NULL THEN 'Spouse'
+                                ELSE ''
+                            END as relation,
+                            d.image as memberimage,
+                            d.dob,
+                            d.dependantmobile,
+                            d.dependantmobilecountrycode,
+                            mt.Description as parent_title,
+                            m.firstName as parent_firstname,
+                            m.middleName as parent_middlename,
+                            m.lastName as parent_lastname,
+                            m.memberno as parent_memberno,
+                            m.member_email as parent_email,
+                            m.member_mobile1 as parent_mobile,
+                            m.institutionid,
+                            um.userid
+                        FROM dependant d
+                        INNER JOIN member m ON d.memberid = m.memberid
+                        LEFT JOIN title t ON d.titleid = t.TitleId
+                        LEFT JOIN title mt ON m.membertitle = mt.TitleId
+                        LEFT JOIN dependant partner ON partner.id = d.dependantid
+                        LEFT JOIN usermember um ON um.memberid = m.memberid AND um.usertype = 'M'
+                        WHERE m.institutionid = :institutionid
+                        AND d.id = :dependantid";
+                
+                $dependantDetails = Yii::$app->db->createCommand($sql)
+                    ->bindValue(':institutionid', $institutionId)
+                    ->bindValue(':dependantid', $dependantId)
+                    ->queryAll();
+                
+                // Get committee form data
+                $committeeModel = new \yii\base\DynamicModel(['committeeType', 'designationType','periodType']);
+                
+                $committeDesignationList = ArrayHelper::map(
+                    ExtendedDesignation::find()
+                            ->where(['institutionid' => $institutionId])
+                    ->orderBy('designationorder')
+                    ->all(),'designationid','description');
+
+                $committeTypeList = ArrayHelper::map(
+                    ExtendedCommitteegroup::find()
+                    ->where(['institutionid' => $institutionId, 'active' =>1])
+                    ->orderBy('order')
+                    ->all(),'committeegroupid','description');
+
+                $html = $this->renderPartial('_adddependant',
+                            ['dependantDetails' => $dependantDetails, 
+                            'committeeModel' => $committeeModel,
+                            'committeDesignationList' => $committeDesignationList,
+                            'committeTypeList' => $committeTypeList]);
+                return ['status' => 'success','data' => $html];
+            } else {
+                return ['status' => 'error','data' => ''];
+            }
+        } catch(Exception $e){
+            yii::error($e->getMessage());
+            return ['status' => 'error','data' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get all dependants for a member
+     * @return mixed
+     */
+    public function actionGetMemberDependants()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        try{
+            if (yii::$app->request->isAjax) {
+                $institutionId = $this->currentUser()->institutionid;
+                $memberId = yii::$app->request->get('memberId');
+                
+                // Get all dependants for this member with direct SQL (no stored procedure)
+                $sql = "SELECT 
+                            d.id as dependantid,
+                            d.dependantname,
+                            IFNULL(t.Description, '') as title,
+                            CASE 
+                                WHEN d.relation IS NOT NULL AND d.relation != '' THEN d.relation
+                                WHEN partner.relation = 'Son' THEN 'Daughter-in-law'
+                                WHEN partner.relation = 'Son in law' THEN 'Daughter'
+                                WHEN partner.relation = 'Daughter' THEN 'Son-in-law'
+                                WHEN partner.relation = 'Daughter in law' THEN 'Son'
+                                WHEN partner.relation = 'Father' THEN 'Mother'
+                                WHEN partner.relation = 'Mother' THEN 'Father'
+                                WHEN partner.relation = 'Brother' THEN 'Sister-in-law'
+                                WHEN partner.relation = 'Sister' THEN 'Brother-in-law'
+                                WHEN partner.relation = 'Grandfather' THEN 'Grandmother'
+                                WHEN partner.relation = 'Grandmother' THEN 'Grandfather'
+                                WHEN partner.relation = 'Grandson' THEN 'Granddaughter-in-law'
+                                WHEN partner.relation = 'Granddaughter' THEN 'Grandson-in-law'
+                                WHEN d.dependantid IS NOT NULL THEN 'Spouse'
+                                ELSE ''
+                            END as relation,
+                            d.image,
+                            d.dob,
+                            d.dependantmobile
+                        FROM dependant d
+                        INNER JOIN member m ON d.memberid = m.memberid
+                        LEFT JOIN title t ON d.titleid = t.TitleId
+                        LEFT JOIN dependant partner ON partner.id = d.dependantid
+                        WHERE m.institutionid = :institutionid
+                        AND m.memberid = :memberid
+                        ORDER BY d.dependantname";
+                
+                $dependants = Yii::$app->db->createCommand($sql)
+                    ->bindValue(':institutionid', $institutionId)
+                    ->bindValue(':memberid', $memberId)
+                    ->queryAll();
+                
+                return ['status' => 'success', 'data' => $dependants, 'count' => count($dependants)];
+            } else {
+                return ['status' => 'error','data' => ''];
+            }
+        } catch(Exception $e){
+            yii::error($e->getMessage());
+            return ['status' => 'error','data' => $e->getMessage()];
         }
     }
 }
