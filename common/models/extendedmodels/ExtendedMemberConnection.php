@@ -13,6 +13,7 @@ use common\models\basemodels\Member;
  * @property int $member_id
  * @property int $connected_member_id
  * @property string $created_at
+ * @property int $created_by
  *
  * @property Member $member
  * @property Member $connectedMember
@@ -34,7 +35,7 @@ class ExtendedMemberConnection extends MemberConnection
     {
         return [
             [['member_id', 'connected_member_id'], 'required'],
-            [['member_id', 'connected_member_id'], 'integer'],
+            [['member_id', 'connected_member_id', 'created_by'], 'integer'],
             [['created_at'], 'safe'],
             [['member_id', 'connected_member_id'], 'unique', 'targetAttribute' => ['member_id', 'connected_member_id']],
             [['member_id'], 'exist', 'skipOnError' => true, 'targetClass' => Member::className(), 'targetAttribute' => ['member_id' => 'memberid']],
@@ -52,6 +53,7 @@ class ExtendedMemberConnection extends MemberConnection
             'member_id' => 'Member ID',
             'connected_member_id' => 'Connected Member ID',
             'created_at' => 'Created At',
+            'created_by' => 'Created By',
         ];
     }
 
@@ -182,7 +184,115 @@ class ExtendedMemberConnection extends MemberConnection
         $result = Yii::$app->db->createCommand($sql)
             ->bindValue(':memberId', $memberId)
             ->queryAll();
-        
+
         return $result;
+    }
+
+    /**
+     * Get a member's connections with display details, for the admin UI grid.
+     * Scoped to the given institution so connections into other churches never surface.
+     *
+     * @param int $memberId The member ID whose connections to list
+     * @param int $institutionId The admin's institution ID
+     * @return array Array of connections with member display details
+     */
+    public static function getConnectionsForAdmin($memberId, $institutionId)
+    {
+        $sql = "SELECT mc.id, mc.connected_member_id as memberId, m.memberno as membershipNumber,
+                    TRIM(CONCAT_WS(' ', m.firstName, m.middleName, m.lastName)) as memberName,
+                    m.member_mobile1 as mobile, mc.created_at
+                FROM member_connection mc
+                INNER JOIN member m ON mc.connected_member_id = m.memberid
+                WHERE mc.member_id = :memberId AND m.institutionid = :institutionId
+                ORDER BY mc.created_at DESC";
+
+        return Yii::$app->db->createCommand($sql)
+            ->bindValue(':memberId', $memberId)
+            ->bindValue(':institutionId', $institutionId)
+            ->queryAll();
+    }
+
+    /**
+     * Add a single one-directional connection from the admin UI.
+     * Both members must belong to the given institution; mirrors the mobile app's
+     * one-directional storage (adding A->B does not also add B->A).
+     *
+     * @param int $memberId The owning member
+     * @param int $connectedMemberId The member to connect to
+     * @param int $institutionId The admin's institution ID
+     * @param int|null $createdBy The admin userid creating the connection
+     * @return array ['success' => bool, 'error' => string|null]
+     */
+    public static function addConnection($memberId, $connectedMemberId, $institutionId, $createdBy = null)
+    {
+        if ($memberId == $connectedMemberId) {
+            return [
+                'success' => false,
+                'error' => 'A member cannot connect to themselves'
+            ];
+        }
+
+        $validMemberCount = Member::find()
+            ->where(['memberid' => [$memberId, $connectedMemberId], 'institutionid' => $institutionId])
+            ->count();
+        if ((int) $validMemberCount !== 2) {
+            return [
+                'success' => false,
+                'error' => 'Both members must belong to the same institution'
+            ];
+        }
+
+        $exists = self::find()
+            ->where(['member_id' => $memberId, 'connected_member_id' => $connectedMemberId])
+            ->exists();
+        if ($exists) {
+            return [
+                'success' => false,
+                'error' => 'Connection already exists'
+            ];
+        }
+
+        $connection = new self();
+        $connection->member_id = $memberId;
+        $connection->connected_member_id = $connectedMemberId;
+        $connection->created_by = $createdBy;
+
+        if ($connection->save()) {
+            return ['success' => true, 'error' => null];
+        }
+
+        return [
+            'success' => false,
+            'error' => implode(', ', $connection->getFirstErrors())
+        ];
+    }
+
+    /**
+     * Remove a single connection from the admin UI, scoped to the given institution
+     * so an admin cannot delete a connection row belonging to another church's member.
+     *
+     * @param int $memberId The owning member
+     * @param int $connectedMemberId The connected member to unlink
+     * @param int $institutionId The admin's institution ID
+     * @return array ['success' => bool, 'error' => string|null]
+     */
+    public static function removeConnection($memberId, $connectedMemberId, $institutionId)
+    {
+        $ownerBelongs = Member::find()
+            ->where(['memberid' => $memberId, 'institutionid' => $institutionId])
+            ->exists();
+        if (!$ownerBelongs) {
+            return ['success' => false, 'error' => 'Member not found'];
+        }
+
+        $deleted = self::deleteAll([
+            'member_id' => $memberId,
+            'connected_member_id' => $connectedMemberId
+        ]);
+
+        return [
+            'success' => (bool) $deleted,
+            'error' => $deleted ? null : 'Connection not found'
+        ];
     }
 }

@@ -479,6 +479,59 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 );
             });
 
+            $("#button-add-connection").on('click', function() {
+                var connectedMemberId = $('#connected-member-id').val();
+                if (!connectedMemberId) {
+                    swal({
+                        title: 'Connections',
+                        text: 'Please search and select a member first',
+                        type: 'error',
+                    })
+                    return;
+                }
+
+                var memberId = $('#connection-member-id').val();
+                var ajaxUrl = $('#homeUrl').val() + $('#admin-add-member-connection-Url').val();
+                $.post(ajaxUrl, {
+                    '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
+                    memberId: memberId,
+                    connectedMemberId: connectedMemberId,
+                }, function(res) {
+                    if (res && res.status == 'success') {
+                        $('#connection-member-name').val('');
+                        $('#connected-member-id').val('');
+                        __this._loadMemberConnections();
+                    } else {
+                        swal({
+                            title: 'Connections',
+                            text: (res && res.message) ? res.message : 'Unable to add connection',
+                            type: 'error',
+                        })
+                    }
+                });
+            });
+
+            $(document).on('click', '.remove-member-connection', function() {
+                var memberId = $(this).data('member-id');
+                var connectedMemberId = $(this).data('connected-member-id');
+                var ajaxUrl = $('#homeUrl').val() + $('#admin-remove-member-connection-Url').val();
+                $.post(ajaxUrl, {
+                    '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
+                    memberId: memberId,
+                    connectedMemberId: connectedMemberId,
+                }, function(res) {
+                    if (res && res.status == 'success') {
+                        __this._loadMemberConnections();
+                    } else {
+                        swal({
+                            title: 'Connections',
+                            text: (res && res.message) ? res.message : 'Unable to remove connection',
+                            type: 'error',
+                        })
+                    }
+                });
+            });
+
 
             $("#btnAddDepend").on('click', function() {
                 $('#btnAddDepend').attr('disabled', 'true')
@@ -765,6 +818,20 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     })
             }
         },
+        _loadMemberConnections: function() {
+            var memberId = $('#connection-member-id').val()
+            if (!memberId) {
+                return;
+            }
+            var ajaxUrl = $('#homeUrl').val() + $('#admin-get-member-connections-Url').val()
+            $.get(ajaxUrl, {
+                memberId: memberId
+            }, function(res) {
+                if (res && res.status == 'success') {
+                    $('#MemberConnectionsListDiv').html(res.data)
+                }
+            });
+        },
         _onLoadEvents: function() {
             var __this = this
             //$('#tag-cloud-input').tagsinput('items')
@@ -783,6 +850,7 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 __this._spouseDropDownToggle()
                 __this._weddingAnnivesaryToogle()
                 __this._updateSpouseRequiredIndicators()
+                __this._loadMemberConnections()
 
             });
 

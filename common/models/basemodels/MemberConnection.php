@@ -11,6 +11,7 @@ use Yii;
  * @property int $member_id
  * @property int $connected_member_id
  * @property string $created_at
+ * @property int $created_by
  *
  * @property Member $member
  * @property Member $connectedMember
@@ -32,7 +33,7 @@ class MemberConnection extends \yii\db\ActiveRecord
     {
         return [
             [['member_id', 'connected_member_id'], 'required'],
-            [['member_id', 'connected_member_id'], 'integer'],
+            [['member_id', 'connected_member_id', 'created_by'], 'integer'],
             [['created_at'], 'safe'],
             [['member_id', 'connected_member_id'], 'unique', 'targetAttribute' => ['member_id', 'connected_member_id']],
             [['member_id'], 'exist', 'skipOnError' => true, 'targetClass' => Member::className(), 'targetAttribute' => ['member_id' => 'memberid']],
@@ -50,6 +51,7 @@ class MemberConnection extends \yii\db\ActiveRecord
             'member_id' => 'Member ID',
             'connected_member_id' => 'Connected Member ID',
             'created_at' => 'Created At',
+            'created_by' => 'Created By',
         ];
     }
 

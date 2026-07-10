@@ -39,6 +39,7 @@ use common\models\extendedmodels\ExtendedInstitution;
 use common\models\basemodels\CustomRoleModel;
 use yii\filters\AccessControl;
 use common\models\extendedmodels\ExtendedTempmembermail;
+use common\models\extendedmodels\ExtendedMemberConnection;
 use common\models\basemodels\BaseModel;
 use Exception;
 use common\models\basemodels\UserOtp;
@@ -5231,6 +5232,106 @@ class MemberController extends BaseController
 			}
 			return;
 		}
+	}
+
+	/**
+	 * Renders the member connections grid for the Connections tab (ajax).
+	 */
+	public function actionGetMemberConnections()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		$memberId = Yii::$app->request->get('memberId');
+		$institutionId = $this->currentUser()->institutionid;
+		$model = $this->findModel($memberId);
+
+		if (!$model || $model->institutionid != $institutionId) {
+			return ['status' => 'error', 'data' => ''];
+		}
+
+		$connections = ExtendedMemberConnection::getConnectionsForAdmin($memberId, $institutionId);
+		$html = $this->renderAjax('_connections', [
+			'connections' => $connections,
+			'memberId' => $memberId,
+		]);
+
+		return ['status' => 'success', 'data' => $html];
+	}
+
+	/**
+	 * Ajax member search (autocomplete source) for the "add connection" picker.
+	 * Excludes the member themselves and members already connected to them.
+	 */
+	public function actionSearchMemberForConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'list' => []];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$term = Yii::$app->request->post('term', '');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$memberObject = new ExtendedMember();
+		$results = $memberObject->getCommitteeMemberDetailsForAutoComplete($term, 'm', $institutionId, null);
+
+		$excludeIds = ArrayHelper::getColumn(ExtendedMemberConnection::getMemberConnections($memberId), 'connected_member_id');
+		$excludeIds[] = (int) $memberId;
+
+		$results = array_values(array_filter($results, function ($row) use ($excludeIds) {
+			return !in_array((int) $row['id'], $excludeIds);
+		}));
+
+		return ['status' => 'success', 'list' => $results];
+	}
+
+	/**
+	 * Adds a one-directional member connection from the admin UI.
+	 */
+	public function actionAddMemberConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'message' => 'Invalid request'];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$connectedMemberId = Yii::$app->request->post('connectedMemberId');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$model = $this->findModel($memberId);
+		if (!$model || $model->institutionid != $institutionId) {
+			return ['status' => 'error', 'message' => 'Member not found'];
+		}
+
+		$result = ExtendedMemberConnection::addConnection($memberId, $connectedMemberId, $institutionId, $this->currentUserId());
+
+		if ($result['success']) {
+			return ['status' => 'success', 'message' => 'Connection added'];
+		}
+		return ['status' => 'error', 'message' => $result['error']];
+	}
+
+	/**
+	 * Removes a member connection from the admin UI.
+	 */
+	public function actionRemoveMemberConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'message' => 'Invalid request'];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$connectedMemberId = Yii::$app->request->post('connectedMemberId');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$result = ExtendedMemberConnection::removeConnection($memberId, $connectedMemberId, $institutionId);
+
+		if ($result['success']) {
+			return ['status' => 'success', 'message' => 'Connection removed'];
+		}
+		return ['status' => 'error', 'message' => $result['error']];
 	}
 
 	public function actionExportMemberListRaw()

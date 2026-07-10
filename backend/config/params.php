@@ -72,6 +72,10 @@ return [
         'member-data-url' => 'member/member-data-for-editor',
         'remove-member-pic'=>'member/remove-member-pic',
         'remove-member-spousepic'=>'member/remove-spousepic',
+        'admin-get-member-connections-Url' => 'member/get-member-connections',
+        'admin-search-member-for-connection-Url' => 'member/search-member-for-connection',
+        'admin-add-member-connection-Url' => 'member/add-member-connection',
+        'admin-remove-member-connection-Url' => 'member/remove-member-connection',
     ],
     'constants' =>[
         'restaurant' => 1
