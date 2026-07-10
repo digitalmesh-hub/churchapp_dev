@@ -6,3 +6,6 @@ vendor*
 !/service/**/.gitkeep
 !default-user.png
 .env
+database/
+local_docs/
+.claude/
