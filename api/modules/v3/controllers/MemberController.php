@@ -781,6 +781,8 @@ class MemberController extends BaseController
 			$memberDetails->memberNickName = (!empty($response['membernickname']))? $response['membernickname']:'';
 			$memberDetails->memberImage = (!empty($response['member_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['member_pic']):'';
 			$memberDetails->memberImageThumbnail = (!empty($response['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['memberImageThumbnail']):'';
+			$memberDetails->familyImage = (!empty($response['family_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['family_pic']):'';
+			$memberDetails->familyImageThumbnail = (!empty($response['familyImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['familyImageThumbnail']):'';
 			$memberDetails->memberDob = (!empty($response['member_dob']))?date_format(date_create($response['member_dob']),Yii::$app->params['dateFormat']['viewDateFormat']):'';
 			$memberDetails->mobileCountryCode = (empty($mobileNumber))?'':$mobileCountryCode;
 			$memberDetails->mobileNumber = $mobileNumber;
@@ -843,6 +845,8 @@ class MemberController extends BaseController
 		$memberDetails->memberNickName = (!empty($response['temp_membernickname']))?$response['temp_membernickname']:'';
 		$memberDetails->memberImage = (!empty($response['temp_member_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['temp_member_pic']):'';
 		$memberDetails->memberImageThumbnail = (!empty($response['temp_memberImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['temp_memberImageThumbnail']):'';
+		$memberDetails->familyImage = (!empty($response['temp_family_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['temp_family_pic']):'';
+		$memberDetails->familyImageThumbnail = (!empty($response['temp_familyImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['temp_familyImageThumbnail']):'';
 		$memberDetails->memberDob = (!empty($response['temp_member_dob']))?date_format(date_create($response['temp_member_dob']),Yii::$app->params['dateFormat']['viewDateFormat']):'';
 		$memberDetails->mobileCountryCode = (empty($mobileCountryCode))?'':$mobileCountryCode;
 		$memberDetails->mobileNumber = $mobileNumber;
@@ -888,6 +892,8 @@ class MemberController extends BaseController
 		$memberDetails->memberNickName = (!empty($response['membernickname']))?$response['membernickname']:'';
 		$memberDetails->memberImage = (!empty($response['member_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['member_pic']):'';
 		$memberDetails->memberImageThumbnail = (!empty($response['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['memberImageThumbnail']):'';
+		$memberDetails->familyImage = (!empty($response['family_pic']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['family_pic']):'';
+		$memberDetails->familyImageThumbnail = (!empty($response['familyImageThumbnail']))?(string)preg_replace('/\s/', "%20",  yii::$app->params['imagePath'].$response['familyImageThumbnail']):'';
 		$memberDetails->memberDob = (!empty($response['member_dob']))?date_format(date_create($response['member_dob']),Yii::$app->params['dateFormat']['viewDateFormat']):'';
 		$memberDetails->mobileCountryCode = (empty($mobileCountryCode))?'':$mobileCountryCode;
 		$memberDetails->mobileNumber = $mobileNumber;
@@ -1355,6 +1361,8 @@ class MemberController extends BaseController
 		$memberData->memberNickName = (!empty($response['membernickname']))?$response['membernickname']:'';
 		$memberData->memberImageThumbnail = (!empty($response['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$response['memberImageThumbnail']):'';
 		$memberData->memberImage = (!empty($response['member_pic']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$response['member_pic']):'';
+		$memberData->familyImageThumbnail = (!empty($response['familyImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$response['familyImageThumbnail']):'';
+		$memberData->familyImage = (!empty($response['family_pic']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$response['family_pic']):'';
 		$memberData->mobileCountryCode = (empty($mobileNumber))?'':$mobileCountryCode;
 		$memberData->mobileNumber = $mobileNumber;
 		$memberData->email = (!empty($response['member_email']))?$response['member_email']:'';
@@ -1472,6 +1480,8 @@ class MemberController extends BaseController
 							'memberNickName' => (!empty($value['membernickname'])) ? $value['membernickname']:'',
 							'memberImageThumbnail' => (!empty($value['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['memberImageThumbnail']):'',
 							'memberImage' => (!empty($value['member_pic']))? (string) preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['member_pic']):'',
+							'familyImageThumbnail' => (!empty($value['familyImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['familyImageThumbnail']):'',
+							'familyImage' => (!empty($value['family_pic']))? (string) preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$value['family_pic']):'',
 							'memberPhone' => (!empty($value['member_mobile1'])) ? $value['member_mobile1']:'',
 							'memberProfession' => (!empty($value['occupation'])) ? $value['occupation']:'',
 							'memberTag' => $tagMember,
@@ -1591,6 +1601,10 @@ class MemberController extends BaseController
 			        $data->memberImageEdited="";
 			        $data->memberImageThumbnail="";
 			        $data->memberImageThumbnailEdited="";
+			        $data->familyImage="";
+			        $data->familyImageEdited="";
+			        $data->familyImageThumbnail="";
+			        $data->familyImageThumbnailEdited="";
 			        $data->memberDob="";
 			        $data->memberDobEdited="";
 			        $data->memberEmail="";
@@ -1720,6 +1734,10 @@ class MemberController extends BaseController
 		$memberData->memberImageEdited = (!empty($responsePendingMembers['temp_member_pic']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['temp_member_pic']):'';
 		$memberData->memberImageThumbnail = (!empty($responsePendingMembers['memberImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['memberImageThumbnail']):'';
 		$memberData->memberImageThumbnailEdited = (!empty($responsePendingMembers['temp_memberImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['temp_memberImageThumbnail']):'';
+		$memberData->familyImage = (!empty($responsePendingMembers['family_pic']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['family_pic']):'';
+		$memberData->familyImageEdited = (!empty($responsePendingMembers['temp_family_pic']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['temp_family_pic']):'';
+		$memberData->familyImageThumbnail = (!empty($responsePendingMembers['familyImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['familyImageThumbnail']):'';
+		$memberData->familyImageThumbnailEdited = (!empty($responsePendingMembers['temp_familyImageThumbnail']))?(string)preg_replace('/\s/', "%20", yii::$app->params['imagePath'].$responsePendingMembers['temp_familyImageThumbnail']):'';
 		$memberData->memberDob = (!empty($responsePendingMembers['member_dob']))? date_format(date_create($responsePendingMembers['member_dob']),Yii::$app->params['dateFormat']['viewDateFormat']):'';
 		$memberData->memberDobEdited = (!empty($responsePendingMembers['temp_member_dob']))? date_format(date_create($responsePendingMembers['temp_member_dob']),Yii::$app->params['dateFormat']['viewDateFormat']):'';
 		$memberData->memberEmail = (!empty($responsePendingMembers['member_email']))? $responsePendingMembers['member_email']:'';
@@ -1829,7 +1847,10 @@ class MemberController extends BaseController
 		$request = Yii::$app->request;
 		$memberId = $request->getBodyParam('memberId');
 		$isSpouse = $request->getBodyParam('isSpouse') == 'false' ? false : true;
-		
+		// photoType (member|spouse|family) takes precedence over isSpouse when provided;
+		// isSpouse is kept for backward compatibility with existing app builds.
+		$photoType = $request->getBodyParam('photoType');
+
 		if($memberId)
 		{
 			$memberId = filter_var($memberId, FILTER_SANITIZE_NUMBER_INT);
@@ -1846,21 +1867,16 @@ class MemberController extends BaseController
 						$filename = explode('.', $_FILES['file']['name']);
 						$extension = end($filename);
 						if(strtolower($extension) == 'jpg' || strtolower($extension) == 'jpeg' || strtolower($extension) == 'png'){
-							if(!$isSpouse)
-							{
-								$type = 'member';
-								$targetPath = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member']['memberImage'];
-								$thumbnail = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member']['memberthumbnailImage'];
-								$memberImage = $this->fileUpload($image, $targetPath,$thumbnail);
-								$status = ExtendedTempmember::saveTempMemberSpouseImage($memberId,$institutionId,$memberImage['orginal'],$memberImage['thumbnail'],$type);
-								
-							} else {
-								$type = 'spouse';
-								$targetPath = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member']['spouseImage'];
-								$thumbnail = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member']['spousethumbnailImage'];
-								$memberImage = $this->fileUpload($image, $targetPath,$thumbnail);
-								$status = ExtendedTempmember::saveTempMemberSpouseImage($memberId,$institutionId,$memberImage['orginal'],$memberImage['thumbnail'],$type);
-							}
+							$type = $photoType == 'family' ? 'family' : (!$isSpouse ? 'member' : 'spouse');
+							[$imageKey, $thumbnailKey] = match ($type) {
+								'family' => ['familyImage', 'familythumbnailImage'],
+								'member' => ['memberImage', 'memberthumbnailImage'],
+								'spouse' => ['spouseImage', 'spousethumbnailImage'],
+							};
+							$targetPath = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member'][$imageKey];
+							$thumbnail = Yii::$app->params['image']['member']['main'].'/'.Yii::$app->params['image']['member'][$thumbnailKey];
+							$memberImage = $this->fileUpload($image, $targetPath,$thumbnail);
+							$status = ExtendedTempmember::saveTempMemberSpouseImage($memberId,$institutionId,$memberImage['orginal'],$memberImage['thumbnail'],$type);
 							if($status)
 							{
 								$this->statusCode = 200;
@@ -1875,20 +1891,20 @@ class MemberController extends BaseController
 							}
 						}else{
 							$this->statusCode = 500;
-							$this->message = 'An error occurred while processing the request';
+							$this->message = 'Only JPG, JPEG, PNG files are allowed';
 							$this->data = new \stdClass();
 							return new ApiResponse($this->statusCode,$this->data,$this->message);
 						}
-						
+
 					}else{
 						$this->statusCode = 500;
-						$this->message = 'An error occurred while processing the request';
+						$this->message = 'File size should be less than 5 MB';
 						$this->data = new \stdClass();
 						return new ApiResponse($this->statusCode,$this->data,$this->message);
 					}
 				}else{
 					$this->statusCode = 500;
-					$this->message = 'An error occurred while processing the request';
+					$this->message = 'No file uploaded';
 					$this->data = new \stdClass();
 					return new ApiResponse($this->statusCode,$this->data,$this->message);
 				}
@@ -3196,6 +3212,19 @@ class MemberController extends BaseController
                                 $value['data'] = str_replace(Yii::$app->params['imagePath'],'',$value['data']);
 	    						$updateSpouseImageThumbnail = ExtendedMember::updateSpouseImage($memberId,$value['data']);
 	    						$updateTempSpouseImage = ExtendedTempmember::updateTempSpouseImage($memberId,$value['data']);
+	    						$flag = 1;
+	    					}else{
+								$flag = 1; //if previosly no image, new image is updated but rejects then data would be empty
+							}
+	    				}
+	    				elseif ($categoryId == 26) //Family Image
+	    				{
+	    					$flag = 0;
+	    					if($value['data'])
+	    					{
+                                $value['data'] = str_replace(Yii::$app->params['imagePath'],'',$value['data']);
+	    						$updateFamilyImageThumbnail = ExtendedMember::updateFamilyImage($memberId,$value['data']);
+	    						$updateTempFamilyImage = ExtendedTempmember::updateTempFamilyImage($memberId,$value['data']);
 	    						$flag = 1;
 	    					}else{
 								$flag = 1; //if previosly no image, new image is updated but rejects then data would be empty

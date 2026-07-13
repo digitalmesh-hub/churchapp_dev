@@ -37,6 +37,8 @@ return [
 			'memberthumbnailImage'    => 'thumbnail_member',
             'spouseImage'    => 'spouse',
 		    'spousethumbnailImage'    => 'thumbnail_spouse',
+            'familyImage'    => 'family',
+		    'familythumbnailImage'    => 'thumbnail_family',
             'dependantImage'  => 'dependant',
             'dependantSpouse' => 'dependant_spouse',
 			'thumbnailDependantSpouse' => 'thumbnail_dependant_spouse',

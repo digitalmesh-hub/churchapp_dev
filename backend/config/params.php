@@ -72,6 +72,7 @@ return [
         'member-data-url' => 'member/member-data-for-editor',
         'remove-member-pic'=>'member/remove-member-pic',
         'remove-member-spousepic'=>'member/remove-spousepic',
+        'remove-member-familypic'=>'member/remove-family-pic',
         'admin-get-member-connections-Url' => 'member/get-member-connections',
         'admin-search-member-for-connection-Url' => 'member/search-member-for-connection',
         'admin-add-member-connection-Url' => 'member/add-member-connection',

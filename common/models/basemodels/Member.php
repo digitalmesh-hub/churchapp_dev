@@ -45,6 +45,7 @@ use Yii;
  * @property string $residence_pincode
  * @property string $member_pic
  * @property string $spouse_pic
+ * @property string $family_pic
  * @property string $app_reg_member
  * @property string $app_reg_spouse
  * @property int $active
@@ -67,6 +68,7 @@ use Yii;
  * @property string $member_business_phone2_countrycode
  * @property string $memberImageThumbnail
  * @property string $spouseImageThumbnail
+ * @property string $familyImageThumbnail
  * @property int $membertype
  * @property int $staffdesignation
  * @property string $member_business_Phone3
@@ -151,7 +153,7 @@ class Member extends \yii\db\ActiveRecord
             [['member_mobile1', 'member_mobile2', 'member_musiness_Phone1', 'member_business_Phone2', 'member_residence_Phone1', 'member_residence_Phone2', 'spouse_mobile1', 'spouse_mobile2', 'member_business_Phone3'], 'string', 'max' => 13],
             [['member_email', 'spouse_email', 'businessemail'], 'string', 'max' => 150],
             [['residence_pincode', 'memberbloodgroup', 'spousebloodgroup'], 'string', 'max' => 15],
-            [['member_pic', 'spouse_pic', 'memberImageThumbnail', 'spouseImageThumbnail'], 'string', 'max' => 200],
+            [['member_pic', 'spouse_pic', 'family_pic', 'memberImageThumbnail', 'spouseImageThumbnail', 'familyImageThumbnail'], 'string', 'max' => 200],
             [['active', 'member_business_phone1_countrycode', 'member_business_phone2_countrycode', 'member_business_phone3_countrycode', 'member_residence_Phone1_countrycode', 'member_residence_Phone2_countrycode'], 'string', 'max' => 4],
             [['spouseoccupation'], 'string', 'max' => 250],
             [['member_business_phone1_areacode', 'member_business_phone3_areacode', 'member_residence_phone1_areacode', 'member_residence_phone2_areacode', 'member_business_phone2_areacode'], 'string', 'max' => 5],
@@ -237,6 +239,7 @@ class Member extends \yii\db\ActiveRecord
             'residence_pincode' => 'Residence Pincode',
             'member_pic' => 'Member Pic',
             'spouse_pic' => 'Spouse Pic',
+            'family_pic' => 'Family Pic',
             'app_reg_member' => 'App Reg Member',
             'app_reg_spouse' => 'App Reg Spouse',
             'active' => 'Active',
@@ -259,6 +262,7 @@ class Member extends \yii\db\ActiveRecord
             'member_business_phone2_countrycode' => 'Member Business Phone2 Countrycode',
             'memberImageThumbnail' => 'Member Image Thumbnail',
             'spouseImageThumbnail' => 'Spouse Image Thumbnail',
+            'familyImageThumbnail' => 'Family Image Thumbnail',
             'membertype' => 'Membertype',
             'staffdesignation' => 'Staffdesignation',
             'member_business_Phone3' => 'Member Business  Phone3',

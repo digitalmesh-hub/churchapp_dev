@@ -137,6 +137,14 @@ echo Html::hiddenInput(
 );
 
 echo Html::hiddenInput(
+    'remove-member-familypic',
+    \Yii::$app->params['ajaxUrl']['remove-member-familypic'],
+    [
+        'id'=>'remove-member-familypic'
+    ]
+);
+
+echo Html::hiddenInput(
 		'isStaff',
 		$type,
 		[
@@ -365,6 +373,29 @@ echo Html::hiddenInput(
                                                     </div>
                                                     <div class="segment">&nbsp;</div>
                                         <?php }?>
+
+                                    <?php if ($type != 'Staff') { ?>
+                                    <!-- Family Cover Photo -->
+                                    <div class="col-md-12 col-sm-12 Mtop20">
+                                        <fieldset>
+                                            <legend>Family Photo</legend>
+                                            <div class="blockrow">
+                                                <div class="col-md-12 col-sm-12">
+                                                    <img id="familyimage" src="<?php
+                                                       $familyImage  = $model->family_pic ? $model->family_pic : "/Member/default-family.svg";
+                                                    echo Yii::$app->params['imagePath'].$familyImage; ?>" style="display:block; width:100%; height:220px; object-fit:contain; border-radius:4px; background-color:#f0f0f0;">
+                                                </div>
+                                                <div class="col-md-12 col-sm-12 Mtop10">
+                                                    <?= $form->field($model, 'familyImageThumbnail')->fileInput(['class' => 'form-control','id' => 'familyfile'])->label(false); ?>
+                                                    <input type="button" title = "Remove" id="btnfamilyremove" value="Remove">
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                    <div class="segment">&nbsp;</div>
+                                    <?php } ?>
+                                    <!-- /Family Cover Photo -->
+
                                     <!-- Section 1 -->
 
                                     <div class="col-md-6 col-sm-6 Mtop20">
@@ -403,11 +434,11 @@ echo Html::hiddenInput(
                                                 </div>
                                             </div>
                                             <!-- rows -->
-                                            
+
 
                                             <div class="inlinerow Mtop10">
                                                 <div class="col-md-4 col-sm-5 L32">Title<span style="color: red;"> *</span></div>
-                                                
+
                                                 <div class="col-md-8 col-sm-7">
                                                    
  											<?= $form->field($model, 'membertitle')->dropDownList(

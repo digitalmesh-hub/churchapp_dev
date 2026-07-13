@@ -8,7 +8,7 @@ use common\models\extendedmodels\ExtendedInstitution;
 $assetName = AppAsset::register($this);
 
 $this->registerJsFile(
-   $assetName->baseUrl . '/theme/js/Remember.memberApproval.ui.js?v=1.2.0',
+   $assetName->baseUrl . '/theme/js/Remember.memberApproval.ui.js?v=1.3.0',
    [
       'depends' => [
          AppAsset::className()
@@ -69,7 +69,44 @@ echo Html::hiddenInput(
             data-toggle="tooltip" data-placement="left" 
             title="Click 'Approve All' to approve all pending changes at once. After approving, click the 'Save' button to save the changes. Note: Unapproved changes will be automatically rejected upon submission."></span>
       </div>
-      
+
+      <?php if ($type != 'Staff') { ?>
+      <div class="col-md-12 col-sm-12 col-xs-12 Mtop20">
+         <fieldset>
+            <legend>Family Photo</legend>
+            <div class="blockrow">
+               <div class="col-md-12 col-sm-12">
+                  <img id="tempfamilyimage" src="<?php
+                                                     $image  = $tempMember->temp_family_pic ? $tempMember->temp_family_pic : "/Member/default-family.svg";
+                                                     echo Yii::$app->params['imagePath'] . $image; ?>"
+                     style="display:block; width:100%; height:220px; object-fit:contain; border-radius:4px; background-color:#f0f0f0;"
+                     isapproved="<?php echo $tempMember->getPendingInfo($tempMember->temp_family_pic, $model->family_pic) ? 'False' : 'undefined' ?>" class="<?= $tempMember->getPendingInfo($tempMember->temp_family_pic, $model->family_pic) ?>">
+               </div>
+               <?php if ($tempMember->getPendingInfo($tempMember->temp_family_pic, $model->family_pic)) { ?>
+                  <div class="col-md-12 col-sm-12 Mtop10" data-tempimage="tempfamilyimage">
+                     <input type="button" class="infobtn" id="familyimageinfo" isapproved="<?php echo $tempMember->getPendingInfo($tempMember->temp_family_pic, $model->family_pic) ? 'False' : 'True' ?>">
+                     <!-- approval box -->
+                     <div class="approvalbox nodisplay">
+                        <div class="prevdatahead">Previous Data</div>
+                        <div class="prevdata">
+                           <img id="familypic" src="<?php
+                                                       $image  = $model->family_pic ? $model->family_pic : "/Member/default-family.svg";
+                                                       echo Yii::$app->params['imagePath'] . $image; ?>"
+                              style="display:block; width:100%; max-width:500px; height:180px; object-fit:contain; border-radius:4px; background-color:#f0f0f0; margin:0 auto;" />
+                        </div>
+                        <div class="inlinerow text-center">
+                           <input type="button" class="approvebtn" value="Approve">
+                           <input type="button" class="rejectbtn" value="Reject">
+                        </div>
+                     </div>
+                     <!-- /.approval box -->
+                  </div>
+               <?php } ?>
+            </div>
+         </fieldset>
+      </div>
+      <?php } ?>
+
       <div class="col-md-6 col-sm-6 col-xs-12 Mtop20">
          <fieldset>
             <legend>Member Details</legend>

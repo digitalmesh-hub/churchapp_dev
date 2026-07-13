@@ -479,6 +479,24 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 );
             });
 
+            $("#btnfamilyremove").on("click", function() { /*remove image */
+                familyimage.src = $('#base-url').val() + "/theme/images/default-family.svg";
+                $('#familyfile').val("");
+                $("#familyfile").replaceWith($("#familyfile").clone());
+                _familyimage = "removed";
+
+                var memberId = $("#memberId").val();
+                var ajaxUrl = $('#homeUrl').val() + $('#remove-member-familypic').val();
+                $.post(ajaxUrl, // Ajax Post URL
+                    {
+                        '_csrf-backend': $("meta[name='csrf-token']").attr('content'),
+                        memberId: memberId,
+
+                    }, // Data
+                    function(res) {}
+                );
+            });
+
             $("#button-add-connection").on('click', function() {
                 var connectedMemberId = $('#connected-member-id').val();
                 if (!connectedMemberId) {
@@ -774,6 +792,40 @@ Remember.memberCreate.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     var url = window.URL.createObjectURL(imageFile);
                     // Now use your newly created URL!
                     spouseimage.src = url;
+                }
+
+            });
+            $("#familyfile").on("change", function() {
+                _familyimage = "";
+                // Get the first file in the FileList object
+                var imageFile = this.files[0];
+                var type = imageFile.type;
+                if (this.files[0].size > 5242880) {
+                    $("#familyfile").val('');
+                    swal({
+                        title: 'Member ',
+                        text: 'Please upload files less than 2MB',
+                        type: 'error',
+                    });
+                    if ($("#familyimage").attr("src") != $('#base-url').val() + "/theme/images/default-user.png") {
+                        familyimage.src = $('#base-url').val() + "/theme/images/default-family.svg";
+                    }
+                    return;
+                }
+                if (imageFile.type != 'image/png' && imageFile.type != 'image/jpg' && imageFile.type != 'image/jpeg') {
+                    swal({
+                        title: 'Member ',
+                        text: 'Please use one of these file types : .png , .jpg  or jpeg ',
+                        type: 'error',
+                    })
+                    if ($("#familyimage").attr("src") != $('#base-url').val() + "/theme/images/default-user.png") {
+                        familyimage.src = $('#base-url').val() + "/theme/images/default-family.svg";
+                    }
+                } else {
+                    // get a local URL representation of the image blob
+                    var url = window.URL.createObjectURL(imageFile);
+                    // Now use your newly created URL!
+                    familyimage.src = url;
                 }
 
             });

@@ -170,7 +170,7 @@ class ExtendedMember extends Member
             [['member_email', 'spouse_email', 'businessemail'], 'string', 'max' => 150],
             [['residence_pincode', 'memberbloodgroup', 'spousebloodgroup'], 'string', 'max' => 15],
          //   [['member_pic', 'spouse_pic', 'memberImageThumbnail', 'spouseImageThumbnail'], 'string', 'max' => 200],
-        		[['member_pic', 'spouse_pic', 'memberImageThumbnail', 'spouseImageThumbnail'], 'file', 'skipOnEmpty' => true,
+        		[['member_pic', 'spouse_pic', 'family_pic', 'memberImageThumbnail', 'spouseImageThumbnail', 'familyImageThumbnail'], 'file', 'skipOnEmpty' => true,
         		'extensions' => 'png, jpg', 'skipOnEmpty' =>true,
         		'maxSize' => \Yii::$app->params['fileUploadSize']['imageFileSize'],
         		'tooBig' => \Yii::$app->params['fileUploadSize']['imageSizeMsg']],
@@ -907,7 +907,25 @@ class ExtendedMember extends Member
     		return false;
     	}
     }
-  
+    /**
+     * update family image
+     */
+    public static function updateFamilyImage($memberId,$familyImage)
+    {
+    	$sql = "update member set familyImageThumbnail=:familyImageThumbnail , family_pic =:familyImageThumbnail where memberid=:memberid";
+    	$updateFamilyImage = Yii::$app->db->createCommand($sql)
+				    	->bindValue(':familyImageThumbnail', $familyImage)
+				    	->bindValue(':memberid', $memberId)
+				    	->execute();
+    	if($updateFamilyImage)
+    	{
+    		return true;
+    	}
+    	else{
+    		return false;
+    	}
+    }
+
     /**
      * To send profile approved notification
      */

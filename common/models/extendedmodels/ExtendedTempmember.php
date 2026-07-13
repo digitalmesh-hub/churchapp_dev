@@ -217,15 +217,13 @@ class ExtendedTempmember extends Tempmember
 	{
 		
 		try {
-			if($type == 'member')
-			{
-				$sql = 'update tempmember set temp_member_pic=:pendingImageURL,temp_memberImageThumbnail=:thumbnail, temp_approved = 0 where temp_memberid=:memberid';
-			
-			}elseif ($type == 'spouse')
-			{
-				$sql = 'update tempmember set temp_spouse_pic=:pendingImageURL,temp_spouseImageThumbnail=:thumbnail, temp_approved = 0 where temp_memberid=:memberid';
-			}
-				
+			$sql = match ($type) {
+				'member' => 'update tempmember set temp_member_pic=:pendingImageURL,temp_memberImageThumbnail=:thumbnail, temp_approved = 0 where temp_memberid=:memberid',
+				'spouse' => 'update tempmember set temp_spouse_pic=:pendingImageURL,temp_spouseImageThumbnail=:thumbnail, temp_approved = 0 where temp_memberid=:memberid',
+				'family' => 'update tempmember set temp_family_pic=:pendingImageURL,temp_familyImageThumbnail=:thumbnail, temp_approved = 0 where temp_memberid=:memberid',
+				default => null,
+			};
+
 			Yii::$app->db->createCommand($sql)
 			->bindValue(':memberid', $memberId)
 			->bindValue(':pendingImageURL', $pendingImageURL)
@@ -300,6 +298,26 @@ class ExtendedTempmember extends Tempmember
 			}
 			
 		} catch (Exception $e) {
+			return false;
+		}
+	}
+	/**
+	 * update temp family image
+	 */
+	public static function updateTempFamilyImage($memberId, $familyImage)
+	{
+		try {
+			$sql = "update tempmember set temp_familyImageThumbnail=:familyImageThumbnail where temp_memberid=:memberid and temp_approved=0";
+			$updateTempFamilyImage = Yii::$app->db->createCommand($sql)
+				->bindValue(':familyImageThumbnail', $familyImage)
+				->bindValue(':memberid', $memberId)
+				->execute();
+			if ($updateTempFamilyImage) {
+				return true;
+			} else {
+				return false;
+			}
+		} catch (\Exception $e) {
 			return false;
 		}
 	}

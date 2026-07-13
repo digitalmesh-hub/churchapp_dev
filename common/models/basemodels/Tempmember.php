@@ -46,6 +46,7 @@ use Yii;
  * @property string $temp_residence_pincode
  * @property string $temp_member_pic
  * @property string $temp_spouse_pic
+ * @property string $temp_family_pic
  * @property string $temp_app_reg_member
  * @property string $temp_app_reg_spouse
  * @property int $temp_active
@@ -70,6 +71,7 @@ use Yii;
  * @property int $temp_member_business_phone2_countrycode
  * @property string $temp_memberImageThumbnail
  * @property string $temp_spouseImageThumbnail
+ * @property string $temp_familyImageThumbnail
  * @property string $tempusertype
  * @property string $temp_member_business_Phone3
  * @property int $temp_member_business_phone3_countrycode
@@ -120,7 +122,7 @@ class Tempmember extends \yii\db\ActiveRecord
             [['temp_member_mobile1', 'temp_member_mobile2', 'temp_member_business_Phone1', 'temp_member_business_Phone2', 'temp_member_residence_Phone1', 'temp_member_residence_Phone2', 'temp_spouse_mobile1', 'temp_spouse_mobile2', 'temp_member_business_Phone3'], 'string', 'max' => 13],
             [['temp_member_email', 'temp_spouse_email', 'temp_businessemail'], 'string', 'max' => 150],
             [['temp_residence_pincode', 'tempmemberBloodGroup', 'tempspouseBloodGroup'], 'string', 'max' => 15],
-            [['temp_member_pic', 'temp_spouse_pic', 'temp_memberImageThumbnail', 'temp_spouseImageThumbnail'], 'string', 'max' => 200],
+            [['temp_member_pic', 'temp_spouse_pic', 'temp_family_pic', 'temp_memberImageThumbnail', 'temp_spouseImageThumbnail', 'temp_familyImageThumbnail'], 'string', 'max' => 200],
             [['temp_active', 'temp_approved'], 'string', 'max' => 4],
             [['temp_membertitle', 'temp_spousetitle'], 'string', 'max' => 10],
             [['temp_homechurch', 'temp_occupation'], 'string', 'max' => 250],
@@ -205,6 +207,7 @@ class Tempmember extends \yii\db\ActiveRecord
             'temp_residence_pincode' => 'Temp Residence Pincode',
             'temp_member_pic' => 'Temp Member Pic',
             'temp_spouse_pic' => 'Temp Spouse Pic',
+            'temp_family_pic' => 'Temp Family Pic',
             'temp_app_reg_member' => 'Temp App Reg Member',
             'temp_app_reg_spouse' => 'Temp App Reg Spouse',
             'temp_active' => 'Temp Active',
@@ -229,6 +232,7 @@ class Tempmember extends \yii\db\ActiveRecord
             'temp_member_business_phone2_countrycode' => 'Temp Member Business Phone2 Countrycode',
             'temp_memberImageThumbnail' => 'Temp Member Image Thumbnail',
             'temp_spouseImageThumbnail' => 'Temp Spouse Image Thumbnail',
+            'temp_familyImageThumbnail' => 'Temp Family Image Thumbnail',
             'tempusertype' => 'Tempusertype',
             'temp_member_business_Phone3' => 'Temp Member Business  Phone3',
             'temp_member_business_phone3_countrycode' => 'Temp Member Business Phone3 Countrycode',
