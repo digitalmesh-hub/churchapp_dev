@@ -39,6 +39,7 @@ use common\models\extendedmodels\ExtendedInstitution;
 use common\models\basemodels\CustomRoleModel;
 use yii\filters\AccessControl;
 use common\models\extendedmodels\ExtendedTempmembermail;
+use common\models\extendedmodels\ExtendedMemberConnection;
 use common\models\basemodels\BaseModel;
 use Exception;
 use common\models\basemodels\UserOtp;
@@ -261,6 +262,7 @@ class MemberController extends BaseController
 
 			$spouseImages = [];
 			$memberImages = [];
+			$familyImages = [];
 			$imageType  = 'member';
 
 			if (UploadedFile::getInstance($model, 'memberImageThumbnail')) {
@@ -286,7 +288,18 @@ class MemberController extends BaseController
 				$spouseImages['thumbnail'] = '';
 			}
 
-			$response = $this->saveMemberdetails(Yii::$app->request->post(), $memberImages, $spouseImages, 'create');
+			if (UploadedFile::getInstance($model, 'familyImageThumbnail')) {
+
+				$familyImage = UploadedFile::getInstance($model, 'familyImageThumbnail');
+				$targetPath = Yii::$app->params['image']['member']['main'] . '/' . Yii::$app->params['image']['member']['familyImage'];
+				$thumbnail = Yii::$app->params['image']['member']['main'] . '/' . Yii::$app->params['image']['member']['familythumbnailImage'];
+				$familyImages = $this->fileUpload($familyImage, $targetPath, $thumbnail, $imageType);
+			} else {
+				$familyImages['orginal'] = '';
+				$familyImages['thumbnail'] = '';
+			}
+
+			$response = $this->saveMemberdetails(Yii::$app->request->post(), $memberImages, $spouseImages, 'create', null, null, $familyImages);
 
 			if (!$response['status']) {
 				$this->sessionAddFlashArray('error', $response['msg'], true);
@@ -386,6 +399,7 @@ class MemberController extends BaseController
 			$titleModel      = new ExtendedTitle();
 			$spouseImages = [];
 			$memberImages = [];
+			$familyImages = [];
 
 			$memberadditionalModal = ExtendedMemberadditionalinfo::find()->where(['memberid' => $id])->one();
 			if ($memberadditionalModal == null) {
@@ -396,6 +410,8 @@ class MemberController extends BaseController
 			$memberImages['thumbnail'] = $model->memberImageThumbnail;
 			$spouseImages['orginal'] = $model->spouse_pic;
 			$spouseImages['thumbnail'] = $model->spouseImageThumbnail;
+			$familyImages['orginal'] = $model->family_pic;
+			$familyImages['thumbnail'] = $model->familyImageThumbnail;
 
 			$familyUnits = $familyUnitmodel->getActiveFamilyUnits($institusionId);
 			$zoneModel = new ExtendedZone();
@@ -454,9 +470,17 @@ class MemberController extends BaseController
 					$thumbnail = Yii::$app->params['image']['member']['main'] . '/' . Yii::$app->params['image']['member']['spousethumbnailImage'];
 					$spouseImages = $this->fileUpload($spouseImage, $targetPath, $thumbnail, $imageType);
 				}
+				if (UploadedFile::getInstance($model, 'familyImageThumbnail')) {
+
+					$this->unlinkFile($familyImages['orginal'], $familyImages['thumbnail']);
+					$familyImage = UploadedFile::getInstance($model, 'familyImageThumbnail');
+					$targetPath = Yii::$app->params['image']['member']['main'] . '/' . Yii::$app->params['image']['member']['familyImage'];
+					$thumbnail = Yii::$app->params['image']['member']['main'] . '/' . Yii::$app->params['image']['member']['familythumbnailImage'];
+					$familyImages = $this->fileUpload($familyImage, $targetPath, $thumbnail, $imageType);
+				}
 
 
-				$response = $this->saveMemberdetails(Yii::$app->request->post(), $memberImages, $spouseImages, 'update', $id);
+				$response = $this->saveMemberdetails(Yii::$app->request->post(), $memberImages, $spouseImages, 'update', $id, null, $familyImages);
 
 				if ($response['status']) {
 
@@ -1903,6 +1927,9 @@ class MemberController extends BaseController
 		if ($this->isDiffer($model->spouse_pic, $tempMemberModel->temp_spouse_pic)) {
 			$difference++;
 		}
+		if ($this->isDiffer($model->family_pic, $tempMemberModel->temp_family_pic)) {
+			$difference++;
+		}
 		if ($this->isDiffer($model->business_address1, $tempMemberModel->temp_business_address1)) {
 			$difference++;
 		}
@@ -2945,8 +2972,6 @@ class MemberController extends BaseController
 			$isApproved['member_pic'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_member_pic];
 		}
 		// spouse_pic
-		yii::error($tempMemberModal->temp_spouse_pic . 'temp image');
-		yii::error($memberModal->spouse_pic . ' image');
 		if ($this->isDiffer($tempMemberModal->temp_spouse_pic, $memberModal->spouse_pic)) {
 			$total++;
 			if ($this->isDiffer($approvalMemberModal->spouse_pic, $tempMemberModal->temp_spouse_pic)) {
@@ -2962,6 +2987,22 @@ class MemberController extends BaseController
 			$total++;
 			$allAccept++;
 			$isApproved['spouse_pic'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_spouse_pic];
+		}
+		// family_pic
+		if ($this->isDiffer($tempMemberModal->temp_family_pic, $memberModal->family_pic)) {
+			$total++;
+			if ($this->isDiffer($approvalMemberModal->family_pic, $tempMemberModal->temp_family_pic)) {
+				$isApproved['family_pic'] = ['isApproved' => false, 'value' => $tempMemberModal->temp_family_pic];
+				$allReject++;
+			} else {
+				$memberModal->family_pic = $approvalMemberModal->family_pic;
+				$isApproved['family_pic'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_family_pic];
+				$allAccept++;
+			}
+		} else {
+			$total++;
+			$allAccept++;
+			$isApproved['family_pic'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_family_pic];
 		}
 		// businessemail
 		if ($this->isDiffer($tempMemberModal->temp_businessemail, $memberModal->businessemail)) {
@@ -3192,6 +3233,22 @@ class MemberController extends BaseController
 			$allAccept++;
 			$isApproved['spouseImageThumbnail'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_spouseImageThumbnail];
 		}
+		// familyImageThumbnail
+		if ($this->isDiffer($tempMemberModal->temp_familyImageThumbnail, $memberModal->familyImageThumbnail)) {
+			$total++;
+			if ($this->isDiffer($approvalMemberModal->familyImageThumbnail, $tempMemberModal->temp_familyImageThumbnail)) {
+				$isApproved['familyImageThumbnail'] = ['isApproved' => false, 'value' => $tempMemberModal->temp_familyImageThumbnail];
+				$allReject++;
+			} else {
+				$memberModal->familyImageThumbnail = $approvalMemberModal->familyImageThumbnail;
+				$isApproved['familyImageThumbnail'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_familyImageThumbnail];
+				$allAccept++;
+			}
+		} else {
+			$total++;
+			$allAccept++;
+			$isApproved['familyImageThumbnail'] = ['isApproved' => true, 'value' => $tempMemberModal->temp_familyImageThumbnail];
+		}
 		// member_business_Phone3
 		if ($this->isDiffer($tempMemberModal->temp_member_business_Phone3, $memberModal->member_business_Phone3)) {
 			$total++;
@@ -3420,7 +3477,7 @@ class MemberController extends BaseController
 	/**
 	 * to store member details
 	 */
-	protected function saveMemberdetails($postDetails, $memberImages, $spouseImages, $type, $memberId = null, $memberType = null)
+	protected function saveMemberdetails($postDetails, $memberImages, $spouseImages, $type, $memberId = null, $memberType = null, $familyImages = [])
 	{
 		$userCredentialModel = new ExtendedUserCredentials();
 		$userMemberModel     = new ExtendedUserMember();
@@ -3508,7 +3565,7 @@ class MemberController extends BaseController
 					return ['status' => false, 'msg' => "Unable to save member details"];
 				}
 			}
-			$member = $this->addMember($postDetails['ExtendedMember'], $memberModel, $membersince, $memberDob, $spouseDob, $dom, $memberImages, $spouseImages, $memberType, $member_role);
+			$member = $this->addMember($postDetails['ExtendedMember'], $memberModel, $membersince, $memberDob, $spouseDob, $dom, $memberImages, $spouseImages, $memberType, $member_role, $familyImages);
 			if (is_object($member)) {
 				if ($member->memberid) {
 					if ($memberId) {
@@ -3826,7 +3883,8 @@ class MemberController extends BaseController
 		$memberImages,
 		$spouseImages,
 		$isStaff = false,
-		$memberRole = null
+		$memberRole = null,
+		$familyImages = []
 	) {
 
 		if (!$isStaff) {
@@ -3875,6 +3933,10 @@ class MemberController extends BaseController
 		$memberModel->spouse_pic 	= $spouseImages['orginal'];
 		$memberModel->memberImageThumbnail 	= $memberImages['thumbnail'];
 		$memberModel->spouseImageThumbnail 	= $spouseImages['thumbnail'];
+		if (!$isStaff) {
+			$memberModel->family_pic 	= isset($familyImages['orginal']) ? $familyImages['orginal'] : '';
+			$memberModel->familyImageThumbnail 	= isset($familyImages['thumbnail']) ? $familyImages['thumbnail'] : '';
+		}
 		$memberModel->app_reg_member 	= '';
 		$memberModel->app_reg_spouse 	= '';
 		$memberModel->active 	= 1;
@@ -4840,8 +4902,10 @@ class MemberController extends BaseController
 
 		$approvalMemberModal->member_pic 			= '';
 		$approvalMemberModal->spouse_pic 			= '';
+		$approvalMemberModal->family_pic 			= '';
 		$approvalMemberModal->memberImageThumbnail 	= '';
 		$approvalMemberModal->spouseImageThumbnail 	= '';
+		$approvalMemberModal->familyImageThumbnail 	= '';
 		if (isset($memberDetails['memberpic'])) {
 			$memberPic = $this->getCorrectPic($memberDetails['memberpic']);
 			$approvalMemberModal->member_pic 			= $memberPic;
@@ -4858,6 +4922,15 @@ class MemberController extends BaseController
 				$approvalMemberModal->spouseImageThumbnail 	= $memberModal->spouseImageThumbnail;
 			} elseif ($spousepic == $tempMemberModal->temp_spouse_pic) {
 				$approvalMemberModal->spouseImageThumbnail = $tempMemberModal->temp_spouseImageThumbnail;
+			}
+		}
+		if (isset($memberDetails['familypic'])) {
+			$familypic =  $this->getCorrectPic($memberDetails['familypic']);
+			$approvalMemberModal->family_pic = $familypic;
+			if ($familypic == $memberModal->family_pic) {
+				$approvalMemberModal->familyImageThumbnail 	= $memberModal->familyImageThumbnail;
+			} elseif ($familypic == $tempMemberModal->temp_family_pic) {
+				$approvalMemberModal->familyImageThumbnail = $tempMemberModal->temp_familyImageThumbnail;
 			}
 		}
 		return $approvalMemberModal;
@@ -4944,6 +5017,16 @@ class MemberController extends BaseController
 			$memberResponse['spouseImageThumbnail']['value'] =  Yii::$app->params['imagePath'] . $memberResponse['spouseImageThumbnail']['value'];
 		} else {
 			$memberResponse['spouseImageThumbnail']['value'] = Yii::$app->params['imagePath'] . '/Member/default-user.png';
+		}
+		if (!empty($memberResponse['family_pic']['value'])) {
+			$memberResponse['family_pic']['value'] =  Yii::$app->params['imagePath'] . $memberResponse['family_pic']['value'];
+		} else {
+			$memberResponse['family_pic']['value'] = Yii::$app->params['imagePath'] . '/Member/default-family.svg';
+		}
+		if (!empty($memberResponse['familyImageThumbnail']['value'])) {
+			$memberResponse['familyImageThumbnail']['value'] =  Yii::$app->params['imagePath'] . $memberResponse['familyImageThumbnail']['value'];
+		} else {
+			$memberResponse['familyImageThumbnail']['value'] = Yii::$app->params['imagePath'] . '/Member/default-family.svg';
 		}
 
 		$mailContent['name'] = $displayName;
@@ -5231,6 +5314,127 @@ class MemberController extends BaseController
 			}
 			return;
 		}
+	}
+	/**
+	 * To remove family pic.
+	 */
+
+	public function actionRemoveFamilyPic()
+	{
+
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (yii::$app->request->isAjax) {
+			$memberId = yii::$app->request->post('memberId');
+			$model = $this->findModel($memberId);
+			if ($model) {
+				$this->unlinkFile($model->family_pic, $model->familyImageThumbnail);
+				$model->family_pic 	= null;
+				$model->familyImageThumbnail = null;
+				$model->updated_by = $this->currentUserId();
+				$model->save(false);
+			}
+			return;
+		}
+	}
+
+	/**
+	 * Renders the member connections grid for the Connections tab (ajax).
+	 */
+	public function actionGetMemberConnections()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		$memberId = Yii::$app->request->get('memberId');
+		$institutionId = $this->currentUser()->institutionid;
+		$model = $this->findModel($memberId);
+
+		if (!$model || $model->institutionid != $institutionId) {
+			return ['status' => 'error', 'data' => ''];
+		}
+
+		$connections = ExtendedMemberConnection::getConnectionsForAdmin($memberId, $institutionId);
+		$html = $this->renderAjax('_connections', [
+			'connections' => $connections,
+			'memberId' => $memberId,
+		]);
+
+		return ['status' => 'success', 'data' => $html];
+	}
+
+	/**
+	 * Ajax member search (autocomplete source) for the "add connection" picker.
+	 * Excludes the member themselves and members already connected to them.
+	 */
+	public function actionSearchMemberForConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'list' => []];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$term = Yii::$app->request->post('term', '');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$memberObject = new ExtendedMember();
+		$results = $memberObject->getCommitteeMemberDetailsForAutoComplete($term, 'm', $institutionId, null);
+
+		$excludeIds = ArrayHelper::getColumn(ExtendedMemberConnection::getMemberConnections($memberId), 'connected_member_id');
+		$excludeIds[] = (int) $memberId;
+
+		$results = array_values(array_filter($results, function ($row) use ($excludeIds) {
+			return !in_array((int) $row['id'], $excludeIds);
+		}));
+
+		return ['status' => 'success', 'list' => $results];
+	}
+
+	/**
+	 * Adds a one-directional member connection from the admin UI.
+	 */
+	public function actionAddMemberConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'message' => 'Invalid request'];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$connectedMemberId = Yii::$app->request->post('connectedMemberId');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$model = $this->findModel($memberId);
+		if (!$model || $model->institutionid != $institutionId) {
+			return ['status' => 'error', 'message' => 'Member not found'];
+		}
+
+		$result = ExtendedMemberConnection::addConnection($memberId, $connectedMemberId, $institutionId, $this->currentUserId());
+
+		if ($result['success']) {
+			return ['status' => 'success', 'message' => 'Connection added'];
+		}
+		return ['status' => 'error', 'message' => $result['error']];
+	}
+
+	/**
+	 * Removes a member connection from the admin UI.
+	 */
+	public function actionRemoveMemberConnection()
+	{
+		Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+		if (!Yii::$app->request->isAjax) {
+			return ['status' => 'error', 'message' => 'Invalid request'];
+		}
+
+		$memberId = Yii::$app->request->post('memberId');
+		$connectedMemberId = Yii::$app->request->post('connectedMemberId');
+		$institutionId = $this->currentUser()->institutionid;
+
+		$result = ExtendedMemberConnection::removeConnection($memberId, $connectedMemberId, $institutionId);
+
+		if ($result['success']) {
+			return ['status' => 'success', 'message' => 'Connection removed'];
+		}
+		return ['status' => 'error', 'message' => $result['error']];
 	}
 
 	public function actionExportMemberListRaw()

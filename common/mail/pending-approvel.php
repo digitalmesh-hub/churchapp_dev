@@ -46,6 +46,12 @@
                                                 <th colspan="2" style="border-bottom:1px solid #ddd;padding:5px; font-size:14px; background: #755f88; color: #FFF;">Member Details</th>
                                             </tr>
                                             <tr>
+                                                <td colspan="2" style="border-bottom:1px solid #ddd; padding:10px; text-align:center;">
+                                                    <div style="color:#656565; font-size:14px; font-weight:bold; margin-bottom:8px;">Family Photo</div>
+                                                    <img width="380" style="max-width:100%; height:auto; border:2px solid <?= $approvelMemberDetails['family_pic']['isApproved'] ?'#000;':'#C00' ?>;" src="<?=$approvelMemberDetails['familyImageThumbnail']['value'] ?>" />
+                                                </td>
+                                            </tr>
+                                            <tr>
                                                 <td style="border-bottom:1px solid #ddd; vertical-align:top;">
                                                     <table style="width:100%;border:0px solid #ddd; font-size:13px; line-height: 18px;">
                                                         <tr>

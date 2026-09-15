@@ -3,9 +3,11 @@
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use backend\assets\AppAsset;
-use kartik\date\DatePicker; 
+use kartik\date\DatePicker;
 use backend\components\widgets\FlashResult;
 use common\models\extendedmodels\ExtendedInstitution;
+use yii\jui\AutoComplete;
+use yii\web\JsExpression;
 
 /* @var $this yii\web\View */
 /* @var $model common\models\extendedmodels\ExtendedMember */
@@ -135,6 +137,14 @@ echo Html::hiddenInput(
 );
 
 echo Html::hiddenInput(
+    'remove-member-familypic',
+    \Yii::$app->params['ajaxUrl']['remove-member-familypic'],
+    [
+        'id'=>'remove-member-familypic'
+    ]
+);
+
+echo Html::hiddenInput(
 		'isStaff',
 		$type,
 		[
@@ -254,8 +264,11 @@ echo Html::hiddenInput(
                              <?php if ($type != 'Staff'){?>  
                             <li role="presentation"><a href="#dependants" aria-controls="dependants" role="tab" data-toggle="tab">Dependents</a></li>   
                            <?php } ?>
-                           <?php if ( $formType !='editmember' ) {?>                        
+                           <?php if ( $formType !='editmember' ) {?>
                             <li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Settings</a></li>
+                          <?php }?>
+                           <?php if ($type != 'Staff' && $formType == 'update') {?>
+                            <li role="presentation"><a href="#connections" aria-controls="connections" role="tab" data-toggle="tab">Connections</a></li>
                           <?php }?>
                           </ul>
                          <input type="hidden" id='formType' name='formType' value="<?= $formType ?>">
@@ -360,6 +373,29 @@ echo Html::hiddenInput(
                                                     </div>
                                                     <div class="segment">&nbsp;</div>
                                         <?php }?>
+
+                                    <?php if ($type != 'Staff') { ?>
+                                    <!-- Family Cover Photo -->
+                                    <div class="col-md-12 col-sm-12 Mtop20">
+                                        <fieldset>
+                                            <legend>Family Photo</legend>
+                                            <div class="blockrow">
+                                                <div class="col-md-12 col-sm-12">
+                                                    <img id="familyimage" src="<?php
+                                                       $familyImage  = $model->family_pic ? $model->family_pic : "/Member/default-family.svg";
+                                                    echo Yii::$app->params['imagePath'].$familyImage; ?>" style="display:block; width:100%; height:220px; object-fit:contain; border-radius:4px; background-color:#f0f0f0;">
+                                                </div>
+                                                <div class="col-md-12 col-sm-12 Mtop10">
+                                                    <?= $form->field($model, 'familyImageThumbnail')->fileInput(['class' => 'form-control','id' => 'familyfile'])->label(false); ?>
+                                                    <input type="button" title = "Remove" id="btnfamilyremove" value="Remove">
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                    <div class="segment">&nbsp;</div>
+                                    <?php } ?>
+                                    <!-- /Family Cover Photo -->
+
                                     <!-- Section 1 -->
 
                                     <div class="col-md-6 col-sm-6 Mtop20">
@@ -398,11 +434,11 @@ echo Html::hiddenInput(
                                                 </div>
                                             </div>
                                             <!-- rows -->
-                                            
+
 
                                             <div class="inlinerow Mtop10">
                                                 <div class="col-md-4 col-sm-5 L32">Title<span style="color: red;"> *</span></div>
-                                                
+
                                                 <div class="col-md-8 col-sm-7">
                                                    
  											<?= $form->field($model, 'membertitle')->dropDownList(
@@ -1302,6 +1338,67 @@ echo Html::hiddenInput(
                                     
                                 </div>
                                 <!-- /.Settings Tab -->
+
+                                <?php if ($type != 'Staff' && $formType == 'update') { ?>
+                                <!-- Connections Tab -->
+                                <div id="connections" class="tab-pane fade" role="tabpanel">
+                                    <?php
+                                        echo Html::hiddenInput('admin-get-member-connections-Url', \Yii::$app->params['ajaxUrl']['admin-get-member-connections-Url'], ['id' => 'admin-get-member-connections-Url']);
+                                        echo Html::hiddenInput('admin-search-member-for-connection-Url', \Yii::$app->params['ajaxUrl']['admin-search-member-for-connection-Url'], ['id' => 'admin-search-member-for-connection-Url']);
+                                        echo Html::hiddenInput('admin-add-member-connection-Url', \Yii::$app->params['ajaxUrl']['admin-add-member-connection-Url'], ['id' => 'admin-add-member-connection-Url']);
+                                        echo Html::hiddenInput('admin-remove-member-connection-Url', \Yii::$app->params['ajaxUrl']['admin-remove-member-connection-Url'], ['id' => 'admin-remove-member-connection-Url']);
+                                        echo Html::hiddenInput('connection-member-id', $model->memberid, ['id' => 'connection-member-id']);
+                                        echo Html::hiddenInput('connected-member-id', '', ['id' => 'connected-member-id']);
+                                    ?>
+                                    <div class="inlinerow Mtop20">
+                                        <div class="col-md-4 col-sm-4">
+                                            <div class="labelbox"><strong>Search by Member Name/Membership No.</strong></div>
+                                            <div class="inlinerow Mtop5">
+                                                <?= AutoComplete::widget([
+                                                    'name' => 'connection_member_name',
+                                                    'options' => [
+                                                        'id' => 'connection-member-name',
+                                                        'class' => 'form-control',
+                                                        'placeholder' => 'Enter member name/membership no. to search...',
+                                                        'autocomplete' => 'off',
+                                                    ],
+                                                    'clientOptions' => [
+                                                        'minLength' => 2,
+                                                        'source' => new JsExpression("function(request, response) {
+                                                            $.post($('#homeUrl').val() + $('#admin-search-member-for-connection-Url').val(), {
+                                                                '_csrf-backend': $(\"meta[name='csrf-token']\").attr('content'),
+                                                                memberId: $('#connection-member-id').val(),
+                                                                term: request.term
+                                                            }, function(res) {
+                                                                response((res && res.status == 'success') ? res.list : []);
+                                                            });
+                                                        }"),
+                                                        'select' => new JsExpression("function(event, ui) {
+                                                            $('#connected-member-id').val(ui.item.id);
+                                                        }"),
+                                                        'change' => new JsExpression("function(event, ui) {
+                                                            if (!ui.item) {
+                                                                $('#connected-member-id').val('');
+                                                            }
+                                                        }"),
+                                                    ],
+                                                ]) ?>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-sm-2">
+                                            <div class="labelbox">&nbsp;</div>
+                                            <div class="inlinerow Mtop5">
+                                                <?= Html::button('Add Connection', ['class' => 'btn btn-primary add-member-connection', 'id' => 'button-add-connection']) ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="inlinerow Mtop20">
+                                        <div id="MemberConnectionsListDiv"></div>
+                                    </div>
+                                </div>
+                                <!-- /.Connections Tab -->
+                                <?php } ?>
+
                                 <?php if ($formType =='update' && $type !="Staff" && false){ ?>
                                    <div class="col-md-12 col-sm-12 Mtop20">
                                     <fieldset>

@@ -69,15 +69,25 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
 
 
             $('body').on("click", ".approvebtn", function() {
-                $(this).parent().parent().parent().children().attr('isapproved', true);
+                var $container = $(this).parent().parent().parent();
+                $container.children().attr('isapproved', true);
                 $(this).parent().parent().hide();
-                $(this).parent().parent().parent().children().removeClass('pendinginfo');
+                $container.children().removeClass('pendinginfo');
+                var tempImageId = $container.attr('data-tempimage');
+                if (tempImageId) {
+                    $('#' + tempImageId).attr('isapproved', true).removeClass('pendinginfo');
+                }
             });
 
             $('body').on("click", ".rejectbtn", function() {
-                $(this).parent().parent().parent().children().attr('isapproved', false);
+                var $container = $(this).parent().parent().parent();
+                $container.children().attr('isapproved', false);
                 $(this).parent().parent().hide();
-                $(this).parent().parent().parent().children().removeClass('pendinginfo');
+                $container.children().removeClass('pendinginfo');
+                var tempImageId = $container.attr('data-tempimage');
+                if (tempImageId) {
+                    $('#' + tempImageId).attr('isapproved', false).removeClass('pendinginfo');
+                }
             });
 
             // Approve All button handler
@@ -179,6 +189,7 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 var MemberNickName = typeof $("#txtMemberNickName").attr("isapproved") != 'undefined' ? ($("#txtMemberNickName").attr("isapproved").toLowerCase() == 'true' ? $("#txtMemberNickName").val() : $("#MemberNickName").text()) : $("#txtMemberNickName").val();
                 var memberpic = $("#tempmemberimage").attr("isapproved") != 'undefined' ? (($("#memberimageinfo").attr("isapproved").toLowerCase() == 'true' || $("#tempmemberimage").attr("isapproved").toLowerCase() == 'true') ? $("#tempmemberimage").attr("src") : $("#memberpic").attr("src")) : $("#tempmemberimage").attr("src");
                 var spousepic = $("#tempspouseimage").attr("isapproved") != 'undefined' ? (($("#spouseimageinfo").attr("isapproved").toLowerCase() == 'true' || $("#tempspouseimage").attr("isapproved").toLowerCase() == 'true') ? $("#tempspouseimage").attr("src") : $("#spouseimage").attr("src")) : $("#tempspouseimage").attr("src");
+                var familypic = $("#tempfamilyimage").attr("isapproved") != 'undefined' ? (($("#familyimageinfo").attr("isapproved").toLowerCase() == 'true' || $("#tempfamilyimage").attr("isapproved").toLowerCase() == 'true') ? $("#tempfamilyimage").attr("src") : $("#familypic").attr("src")) : $("#tempfamilyimage").attr("src");
 
                 var MemberMobile1_countrycode = typeof $("#txtMemberMobile1_countrycode").attr("isapproved") != 'undefined' ? ($("#txtMemberMobile1_countrycode").attr("isapproved").toLowerCase() == 'true' ? $("#txtMemberMobile1_countrycode").val() : $("#span_Member_Mobile1_Countrycode").text()) : $("#txtMemberMobile1_countrycode").val();
                 var SpouseMobile1_countrycode = typeof $("#txtspousemobile1_countrycode").attr("isapproved") != 'undefined' ? ($("#txtspousemobile1_countrycode").attr("isapproved").toLowerCase() == 'true' ? $("#txtspousemobile1_countrycode").val() : $("#span_Spouse_Mobile1_Countrycode").text()) : $("#txtspousemobile1_countrycode").val();
@@ -1156,6 +1167,22 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                 } else {
                     var IsApprovedspousepic = true;
                 }
+                var Tempfamilypic = $("#tempfamilyimage").attr("src");
+                if ($("#tempfamilyimage").attr("isapproved") != 'undefined') {
+                    var isapproved = $("#tempfamilyimage").attr("isapproved");
+                    var IsApprovedfamilypic = ($("#familyimageinfo").attr("isapproved").toLowerCase() == 'true' || $("#tempfamilyimage").attr("isapproved").toLowerCase() == 'true') ? true : false
+                    if (IsApprovedfamilypic == true) {
+                        AllRejected = false;
+                        totalApproved++;
+                    } else {
+                        AllAccepted = false;
+                        if (isapproved == "false") {
+                            totalRejected++;
+                        }
+                    }
+                } else {
+                    var IsApprovedfamilypic = true;
+                }
 
                 if (HiddenInstitutionType == 2) {
                     var TempHomeChurch = $("#txtHomeChurch").val();
@@ -1532,6 +1559,7 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     "DependantLst": _DependantLst,
                     "memberpic": memberpic,
                     "spousepic": spousepic,
+                    "familypic": familypic,
                     "Member_Mobile1_Countrycode": MemberMobile1_countrycode,
                     "Spouse_Mobile1_Countrycode": SpouseMobile1_countrycode,
                     "Member_Business_Phone1_Countrycode": MemberBusinessPhone1_countrycode,
@@ -1635,6 +1663,8 @@ Remember.memberApproval.ui.PageBuilder = jsFramework.lib.ui.basePageBuilder
                     "IsApprovedmemberpic": IsApprovedmemberpic,
                     "Tempspousepic": Tempspousepic,
                     "IsApprovedspousepic": IsApprovedspousepic,
+                    "Tempfamilypic": Tempfamilypic,
+                    "IsApprovedfamilypic": IsApprovedfamilypic,
                     "AllRejected": AllRejected,
                     "AllAccepted": AllAccepted,
                     "TempMember_Mobile1_Countrycode": TempMember_Mobile1_Countrycode,
