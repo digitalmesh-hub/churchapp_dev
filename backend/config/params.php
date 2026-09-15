@@ -77,6 +77,10 @@ return [
         'admin-search-member-for-connection-Url' => 'member/search-member-for-connection',
         'admin-add-member-connection-Url' => 'member/add-member-connection',
         'admin-remove-member-connection-Url' => 'member/remove-member-connection',
+        'whatsapp-send-test-Url' => 'whatsapp/send-test',
+        'whatsapp-delete-template-Url' => 'whatsapp/delete-template',
+        'whatsapp-resend-message-Url' => 'whatsapp/resend-message',
+        'whatsapp-send-now-Url' => 'whatsapp/send-now',
     ],
     'constants' =>[
         'restaurant' => 1

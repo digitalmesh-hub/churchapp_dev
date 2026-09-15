@@ -27,6 +27,12 @@ return [
         'textMessageHandler' => [
             'class' => 'common\components\TextMessageHandler'
         ],
+        'whatsAppService' => [
+            'class' => 'common\components\WhatsAppService'
+        ],
+        'whatsAppGreetingSender' => [
+            'class' => 'common\components\WhatsAppGreetingSender'
+        ],
     	'PushNotificationHandler' => [
     		'class' => 'common\components\PushNotificationHandler',
     		//Push Notification Settings :TODO Need to change according to the Server
