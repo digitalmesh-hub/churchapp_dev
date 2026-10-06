@@ -5,13 +5,13 @@ return [
         'ios' => [
             'latestAppVersion' => env('IOS_LATEST_VERSION'),
             'minimumAppVersion' => env('IOS_MINIMUM_VERSION'),
-            'description' => 'Minor bug fixes',
+            'description' => env('IOS_APP_DESCRIPTION', 'A new version of the app is available. Please update to the latest version.'),
             'forceUpdate' => []
         ],
         'android' => [
             'latestAppVersion' => env('ANDROID_LATEST_VERSION'),
             'minimumAppVersion' => env('ANDROID_MINIMUM_VERSION'),
-            'description' => 'Login using Fingerprint & Minor bug fixes',
+            'description' => env('ANDROID_APP_DESCRIPTION', 'A new version of the app is available. Please update to the latest version.'),
             'forceUpdate' => []
         ]
     ],
